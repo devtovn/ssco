@@ -1,0 +1,9 @@
+{
+  "database-url-var": "DATABASE_URL",
+  "migrations-dir": "migrations",
+  "migrations-table": "pgmigrations",
+  "migration-file-language": "ts",
+  "dir": "migrations",
+  "check-order": true,
+  "timestamp": true
+}
