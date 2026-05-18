@@ -15,8 +15,8 @@ export const CacheKeys = {
   POPULAR_KEYWORDS: 'search:popular_keywords',
 
   // Price caching
-  PRODUCT_PRICES: (productId: number) => `product:${productId}:prices`,
-  PRICE_HISTORY: (productId: number) => `product:${productId}:price_history`,
+  PRODUCT_PRICES: (productId: string) => `product:${productId}:prices`,
+  PRICE_HISTORY: (productId: string) => `product:${productId}:price_history`,
   BEST_DEALS: (categoryId?: number) =>
     categoryId ? `deals:category:${categoryId}` : 'deals:all',
 
@@ -28,8 +28,10 @@ export const CacheKeys = {
 
   // Advertisement caching
   AD_ZONES: 'ads:zones:all',
-  AD_ZONE: (zoneId: number) => `ads:zone:${zoneId}`,
-  AD_PERFORMANCE: (zoneId: number) => `ads:performance:${zoneId}`,
+  AD_ZONE: (zoneId: string) => `ads:zone:${zoneId}`,
+  AD_ZONE_CONFIGS: (filters?: string) => `ads:zone:configs:${filters || 'all'}`,
+  AD_PERFORMANCE: (zoneId: string) => `ads:performance:${zoneId}`,
+  AD_ACTIVE_ADS: (zoneId: string) => `ads:active:${zoneId}`,
 
   // Authentication caching
   REFRESH_TOKEN: (userId: number) => `auth:refresh_token:${userId}`,

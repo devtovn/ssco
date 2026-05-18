@@ -239,8 +239,8 @@ export class CategoryManagementService {
    */
   async getCategoryTree(rootId?: number): Promise<CategoryTree[]> {
     const query = rootId
-      ? 'SELECT * FROM categories WHERE parent_id = $1 AND is_active = true ORDER BY name'
-      : 'SELECT * FROM categories WHERE parent_id IS NULL AND is_active = true ORDER BY name';
+      ? 'SELECT * FROM categories WHERE parent_id = $1 AND is_active = true ORDER BY name_vi'
+      : 'SELECT * FROM categories WHERE parent_id IS NULL AND is_active = true ORDER BY name_vi';
     
     const params = rootId ? [rootId] : [];
     const result = await queryRead(query, params);
@@ -464,7 +464,7 @@ export class CategoryManagementService {
   private mapRowToCategory(row: any): Category {
     return {
       id: row.id,
-      name: row.name,
+      name: row.name_vi ?? row.name,
       slug: row.slug,
       description: row.description,
       icon: row.icon,

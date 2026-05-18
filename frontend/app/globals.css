@@ -8,12 +8,8 @@
     --foreground: 222.2 84% 4.9%;
   }
 
-  * {
-    @apply border-border;
-  }
-
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white text-slate-900;
   }
 }
 

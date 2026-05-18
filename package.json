@@ -1,28 +1,12 @@
 {
-  "name": "product-price-comparison-website",
-  "version": "1.0.0",
+  "name": "ssco-monorepo",
   "private": true,
-  "description": "Product Price Comparison Website - Monorepo",
-  "workspaces": [
-    "packages/*",
-    "backend",
-    "frontend"
-  ],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "build:types": "npm run build -w @price-comparison/types",
-    "dev": "npm run dev --workspaces --if-present",
-    "clean": "npm run clean --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
+    "test:load": "artillery run tests/load/artillery-search.yml"
   },
   "devDependencies": {
-    "@types/node-pg-migrate": "^2.3.1",
-    "node-pg-migrate": "^8.0.4",
-    "typescript": "^5.3.3"
-  },
-  "engines": {
-    "node": ">=20.0.0",
-    "npm": ">=10.0.0"
+    "@playwright/test": "^1.49.0",
+    "artillery": "^2.0.21"
   }
 }

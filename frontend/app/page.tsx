@@ -1,14 +1,40 @@
-export default function Home() {
+import { PublicLayout } from '@/components/layout/PublicLayout';
+import { SearchBar } from '@/components/home/SearchBar';
+import { PopularKeywords } from '@/components/home/PopularKeywords';
+import { CategoryGrid } from '@/components/home/CategoryGrid';
+import { DealsSection } from '@/components/home/DealsSection';
+import { getBestDeals, getCategoryTree } from '@/lib/api/catalog';
+import { getPopularKeywords } from '@/lib/api/search';
+
+export default async function HomePage() {
+  const [categories, keywords, deals] = await Promise.all([
+    getCategoryTree().catch(() => []),
+    getPopularKeywords(8).catch(() => []),
+    getBestDeals(8).catch(() => []),
+  ]);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold text-center mb-8">
-          Website So Sánh Giá Sản Phẩm
-        </h1>
-        <p className="text-center text-lg text-gray-600">
-          So sánh giá từ nhiều sàn thương mại điện tử: Tiki, Lazada, TikTok Shop, Shopee
-        </p>
-      </div>
-    </main>
+    <PublicLayout>
+      <section className="bg-gradient-to-b from-primary-50 to-white">
+        <div className="mx-auto max-w-6xl px-4 pb-16 pt-12">
+          <div className="text-center">
+            <h1 className="text-balance text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
+              So sánh giá từ Tiki, Lazada, Shopee
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+              Tìm giá tốt nhất trước khi mua — không cần đăng nhập
+            </p>
+          </div>
+
+          <div className="mt-10">
+            <SearchBar />
+            <PopularKeywords keywords={keywords} />
+          </div>
+
+          <CategoryGrid categories={categories} />
+          <DealsSection deals={deals} />
+        </div>
+      </section>
+    </PublicLayout>
   );
 }

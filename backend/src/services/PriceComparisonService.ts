@@ -17,7 +17,7 @@ export class PriceComparisonService {
   /**
    * Get product prices from all sources
    */
-  async getProductPrices(productId: number): Promise<PriceComparison> {
+  async getProductPrices(productId: string): Promise<PriceComparison> {
     // Get product info
     const productQuery = `
       SELECT id, name FROM products WHERE id = $1 AND is_active = true
@@ -105,7 +105,7 @@ export class PriceComparisonService {
    * Get price history for a product
    */
   async getPriceHistory(
-    productId: number,
+    productId: string,
     source?: string,
     days: number = 30
   ): Promise<PriceHistory> {
@@ -297,7 +297,7 @@ export class PriceComparisonService {
    * Update prices for a product (called by scraper)
    */
   async updatePrices(
-    productId: number,
+    productId: string,
     prices: Array<{
       source: string;
       sourceUrl: string;
@@ -368,7 +368,7 @@ export class PriceComparisonService {
   /**
    * Get price statistics for a product
    */
-  async getPriceStatistics(productId: number): Promise<{
+  async getPriceStatistics(productId: string): Promise<{
     currentLowest: number;
     currentHighest: number;
     currentAverage: number;

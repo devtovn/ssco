@@ -41,7 +41,7 @@ const router = Router();
 router.get(
   '/:id/prices',
   asyncHandler(async (req: Request, res: Response) => {
-    const productId = parseInt(req.params.id);
+    const productId = req.params.id;
     
     try {
       const comparison = await cachedPriceService.getProductPrices(productId);
@@ -108,7 +108,7 @@ router.get(
 router.get(
   '/:id/price-history',
   asyncHandler(async (req: Request, res: Response) => {
-    const productId = parseInt(req.params.id);
+    const productId = req.params.id;
     const source = req.query.source as string | undefined;
     const days = parseInt(req.query.days as string) || 30;
     
@@ -237,7 +237,7 @@ router.get(
 router.get(
   '/:id/price-statistics',
   asyncHandler(async (req: Request, res: Response) => {
-    const productId = parseInt(req.params.id);
+    const productId = req.params.id;
     
     try {
       const stats = await cachedPriceService.getPriceStatistics(productId);

@@ -16,7 +16,7 @@ export class CachedPriceService {
   /**
    * Get product prices (with caching)
    */
-  async getProductPrices(productId: number): Promise<PriceComparison> {
+  async getProductPrices(productId: string): Promise<PriceComparison> {
     const cacheKey = CacheKeys.PRODUCT_PRICES(productId);
     
     // Try to get from cache
@@ -41,7 +41,7 @@ export class CachedPriceService {
    * Get price history (with caching)
    */
   async getPriceHistory(
-    productId: number,
+    productId: string,
     source?: string,
     days: number = 30
   ): Promise<PriceHistory> {
@@ -97,7 +97,7 @@ export class CachedPriceService {
    * Update prices (invalidates cache)
    */
   async updatePrices(
-    productId: number,
+    productId: string,
     prices: Array<{
       source: string;
       sourceUrl: string;
@@ -119,7 +119,7 @@ export class CachedPriceService {
   /**
    * Get price statistics (with caching)
    */
-  async getPriceStatistics(productId: number): Promise<{
+  async getPriceStatistics(productId: string): Promise<{
     currentLowest: number;
     currentHighest: number;
     currentAverage: number;
@@ -150,7 +150,7 @@ export class CachedPriceService {
   /**
    * Invalidate price cache for a product
    */
-  async invalidatePriceCache(productId: number): Promise<void> {
+  async invalidatePriceCache(productId: string): Promise<void> {
     // Invalidate product prices
     await CacheService.delete(CacheKeys.PRODUCT_PRICES(productId));
     

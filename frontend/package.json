@@ -12,7 +12,12 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "type-check": "tsc --noEmit"
   },
-  "keywords": ["price-comparison", "e-commerce", "nextjs", "vietnam"],
+  "keywords": [
+    "price-comparison",
+    "e-commerce",
+    "nextjs",
+    "vietnam"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -30,13 +35,14 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@price-comparison/types": "file:../packages/types",
     "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",
+    "@price-comparison/types": "file:../packages/types",
     "next": "^14.2.35",
     "next-pwa": "^5.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "recharts": "^2.15.4",
     "zustand": "^5.0.13"
   }
 }

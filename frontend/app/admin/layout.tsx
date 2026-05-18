@@ -1,0 +1,34 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { AuthGuard } from '@/components/dashboard/AuthGuard';
+import { Sidebar, type SidebarItem } from '@/components/dashboard/Sidebar';
+import { logout } from '@/lib/auth';
+
+const adminNav: SidebarItem[] = [
+  { href: '/admin', label: 'Tổng quan' },
+  { href: '/admin/reviewers', label: 'Biên tập viên' },
+  { href: '/admin/config', label: 'Cấu hình' },
+  { href: '/admin/ads', label: 'Quảng cáo' },
+  { href: '/admin/affiliate', label: 'Affiliate' },
+  { href: '/admin/analytics', label: 'Phân tích' },
+  { href: '/admin/categories', label: 'Danh mục' },
+];
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  async function handleLogout() {
+    await logout();
+    router.push('/login');
+  }
+
+  return (
+    <AuthGuard requiredRole="Administrator">
+      <div className="flex min-h-screen bg-slate-100">
+        <Sidebar title="Quản trị" items={adminNav} onLogout={handleLogout} />
+        <main className="flex-1 overflow-auto p-6">{children}</main>
+      </div>
+    </AuthGuard>
+  );
+}

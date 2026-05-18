@@ -385,6 +385,50 @@ router.get(
 
 /**
  * @swagger
+ * /api/categories/slug/{slug}:
+ *   get:
+ *     summary: Get category by slug
+ *     description: Returns a single category by URL slug
+ *     tags: [Categories]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Category slug
+ *     responses:
+ *       200:
+ *         description: Category retrieved successfully
+ *       404:
+ *         description: Category not found
+ */
+router.get(
+  '/slug/:slug',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { slug } = req.params;
+
+    const category = await cachedCategoryService.getCategoryBySlug(slug);
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'CATEGORY_NOT_FOUND',
+          message: `Category with slug "${slug}" not found`,
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      data: category,
+    });
+  })
+);
+
+/**
+ * @swagger
  * /api/categories/{id}:
  *   get:
  *     summary: Get category by ID

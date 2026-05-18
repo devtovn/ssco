@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export const metadata: Metadata = {
   title: 'So Sánh Giá - Website So Sánh Giá Sản Phẩm',
@@ -30,7 +34,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className="font-sans antialiased">{children}</body>
+      <head>
+        <link rel="preconnect" href={apiUrl} />
+        <link rel="dns-prefetch" href={apiUrl} />
+      </head>
+      <body className="font-sans antialiased">
+        <ErrorBoundary>{children}</ErrorBoundary>
+        <PwaInstallPrompt />
+      </body>
     </html>
   );
 }

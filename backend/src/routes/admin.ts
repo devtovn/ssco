@@ -7,19 +7,21 @@ import { Router, Response } from 'express';
 import { authenticateJWT, requireRole, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { z } from 'zod';
-import { Pool } from 'pg';
-import bcrypt from 'bcrypt';
+import { AdminService } from '../services/AdminService';
 
 const router = Router();
 
 // Validation schemas
-const WebsiteConfigSchema = z.object({
-  logo: z.string().url().optional(),
+const WebsiteConfigUpdateSchema = z.object({
+  logoUrl: z.string().url().optional(),
   siteName: z.string().min(1).max(200).optional(),
   tagline: z.string().max(500).optional(),
-  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  font: z.string().optional(),
+  theme: z.object({
+    primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    fontFamily: z.string().optional(),
+  }).optional(),
+  branding: z.record(z.any()).optional(),
   metadata: z.record(z.any()).optional(),
 });
 
@@ -51,48 +53,57 @@ const UpdateReviewerSchema = z.object({
  *             schema:
  *               type: object
  *               properties:
- *                 logo:
+ *                 id:
+ *                   type: string
+ *                 logoUrl:
  *                   type: string
  *                   format: uri
  *                 siteName:
  *                   type: string
  *                 tagline:
  *                   type: string
- *                 primaryColor:
- *                   type: string
- *                 secondaryColor:
- *                   type: string
- *                 font:
- *                   type: string
+ *                 theme:
+ *                   type: object
+ *                   properties:
+ *                     primaryColor:
+ *                       type: string
+ *                     secondaryColor:
+ *                       type: string
+ *                     fontFamily:
+ *                       type: string
+ *                 branding:
+ *                   type: object
  *                 metadata:
  *                   type: object
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *       404:
+ *         description: Configuration not found
  *       500:
  *         description: Server error
  */
 router.get(
   '/config',
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const pool = req.app.get('pool') as Pool;
+    const adminService = req.app.get('adminService') as AdminService;
 
-    // Get website config from database or return defaults
-    const result = await pool.query(
-      `SELECT config_data FROM website_config WHERE id = 1`
-    );
-
-    if (result.rows.length === 0) {
-      // Return default configuration
-      return res.json({
-        logo: '',
-        siteName: 'Price Comparison',
-        tagline: 'So sánh giá tốt nhất',
-        primaryColor: '#3B82F6',
-        secondaryColor: '#10B981',
-        font: 'Inter',
-        metadata: {},
-      });
+    try {
+      const config = await adminService.getWebsiteConfig();
+      res.json(config);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get configuration';
+      if (message.includes('not found')) {
+        return res.status(404).json({
+          error: message,
+          code: 'CONFIG_NOT_FOUND',
+        });
+      }
+      throw error;
     }
-
-    res.json(result.rows[0].config_data);
   })
 );
 
@@ -112,21 +123,26 @@ router.get(
  *           schema:
  *             type: object
  *             properties:
- *               logo:
+ *               logoUrl:
  *                 type: string
  *                 format: uri
  *               siteName:
  *                 type: string
  *               tagline:
  *                 type: string
- *               primaryColor:
- *                 type: string
- *                 pattern: '^#[0-9A-Fa-f]{6}$'
- *               secondaryColor:
- *                 type: string
- *                 pattern: '^#[0-9A-Fa-f]{6}$'
- *               font:
- *                 type: string
+ *               theme:
+ *                 type: object
+ *                 properties:
+ *                   primaryColor:
+ *                     type: string
+ *                     pattern: '^#[0-9A-Fa-f]{6}$'
+ *                   secondaryColor:
+ *                     type: string
+ *                     pattern: '^#[0-9A-Fa-f]{6}$'
+ *                   fontFamily:
+ *                     type: string
+ *               branding:
+ *                 type: object
  *               metadata:
  *                 type: object
  *     responses:
@@ -138,6 +154,8 @@ router.get(
  *         description: Unauthorized
  *       403:
  *         description: Forbidden (admin only)
+ *       404:
+ *         description: Configuration not found
  */
 router.put(
   '/config',
@@ -160,7 +178,7 @@ router.put(
       });
     });
 
-    const validation = WebsiteConfigSchema.safeParse(req.body);
+    const validation = WebsiteConfigUpdateSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({
         error: 'Validation failed',
@@ -172,22 +190,24 @@ router.put(
       });
     }
 
-    const pool = req.app.get('pool') as Pool;
+    const adminService = req.app.get('adminService') as AdminService;
 
-    // Upsert website config
-    const result = await pool.query(
-      `INSERT INTO website_config (id, config_data, updated_at)
-       VALUES (1, $1, NOW())
-       ON CONFLICT (id)
-       DO UPDATE SET config_data = $1, updated_at = NOW()
-       RETURNING config_data`,
-      [JSON.stringify(validation.data)]
-    );
-
-    res.json({
-      message: 'Configuration updated successfully',
-      config: result.rows[0].config_data,
-    });
+    try {
+      const config = await adminService.updateWebsiteConfig(validation.data);
+      res.json({
+        message: 'Configuration updated successfully',
+        config,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Update failed';
+      if (message.includes('not found')) {
+        return res.status(404).json({
+          error: message,
+          code: 'CONFIG_NOT_FOUND',
+        });
+      }
+      throw error;
+    }
   })
 );
 
@@ -206,6 +226,11 @@ router.put(
  *         schema:
  *           type: boolean
  *         description: Filter by active status
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filter by email (partial match)
  *     responses:
  *       200:
  *         description: List of reviewers
@@ -227,6 +252,9 @@ router.put(
  *                   isActive:
  *                     type: boolean
  *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   updatedAt:
  *                     type: string
  *                     format: date-time
  *                   lastLogin:
@@ -258,27 +286,18 @@ router.get(
       });
     });
 
-    const pool = req.app.get('pool') as Pool;
+    const adminService = req.app.get('adminService') as AdminService;
 
-    let query = `
-      SELECT id, email, role, permissions, is_active as "isActive", 
-             created_at as "createdAt", last_login as "lastLogin"
-      FROM users
-      WHERE role = 'Reviewer'
-    `;
-
-    const params: any[] = [];
-
+    const filters: any = {};
     if (req.query.isActive !== undefined) {
-      query += ` AND is_active = $1`;
-      params.push(req.query.isActive === 'true');
+      filters.isActive = req.query.isActive === 'true';
+    }
+    if (req.query.email) {
+      filters.email = req.query.email as string;
     }
 
-    query += ` ORDER BY created_at DESC`;
-
-    const result = await pool.query(query, params);
-
-    res.json(result.rows);
+    const reviewers = await adminService.getReviewers(filters);
+    res.json(reviewers);
   })
 );
 
@@ -352,37 +371,30 @@ router.post(
       });
     }
 
-    const pool = req.app.get('pool') as Pool;
-    const { email, password, permissions } = validation.data;
+    const adminService = req.app.get('adminService') as AdminService;
 
-    // Check if email already exists
-    const existingUser = await pool.query(
-      'SELECT id FROM users WHERE email = $1',
-      [email]
-    );
-
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({
-        error: 'Email already exists',
-        code: 'EMAIL_EXISTS',
+    try {
+      const reviewer = await adminService.createReviewer(validation.data);
+      res.status(201).json({
+        message: 'Reviewer created successfully',
+        reviewer,
       });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Create failed';
+      if (message.includes('already exists')) {
+        return res.status(400).json({
+          error: message,
+          code: 'EMAIL_EXISTS',
+        });
+      }
+      if (message.includes('Invalid email') || message.includes('Password must')) {
+        return res.status(400).json({
+          error: message,
+          code: 'VALIDATION_ERROR',
+        });
+      }
+      throw error;
     }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Create reviewer
-    const result = await pool.query(
-      `INSERT INTO users (email, password_hash, role, permissions, is_active)
-       VALUES ($1, $2, 'Reviewer', $3, true)
-       RETURNING id, email, role, permissions, is_active as "isActive", created_at as "createdAt"`,
-      [email, passwordHash, JSON.stringify(permissions || {})]
-    );
-
-    res.status(201).json({
-      message: 'Reviewer created successfully',
-      reviewer: result.rows[0],
-    });
   })
 );
 
@@ -464,93 +476,37 @@ router.put(
       });
     }
 
-    const pool = req.app.get('pool') as Pool;
+    const adminService = req.app.get('adminService') as AdminService;
     const { id } = req.params;
-    const updates = validation.data;
 
-    // Check if reviewer exists
-    const existingUser = await pool.query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [id]
-    );
-
-    if (existingUser.rows.length === 0) {
-      return res.status(404).json({
-        error: 'Reviewer not found',
-        code: 'NOT_FOUND',
+    try {
+      const reviewer = await adminService.updateReviewer(id, validation.data);
+      res.json({
+        message: 'Reviewer updated successfully',
+        reviewer,
       });
-    }
-
-    if (existingUser.rows[0].role !== 'Reviewer') {
-      return res.status(400).json({
-        error: 'User is not a reviewer',
-        code: 'INVALID_ROLE',
-      });
-    }
-
-    // Build update query dynamically
-    const updateFields: string[] = [];
-    const values: any[] = [];
-    let paramIndex = 1;
-
-    if (updates.email) {
-      // Check if new email already exists
-      const emailCheck = await pool.query(
-        'SELECT id FROM users WHERE email = $1 AND id != $2',
-        [updates.email, id]
-      );
-
-      if (emailCheck.rows.length > 0) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Update failed';
+      if (message.includes('not found')) {
+        return res.status(404).json({
+          error: message,
+          code: 'NOT_FOUND',
+        });
+      }
+      if (message.includes('already exists')) {
         return res.status(400).json({
-          error: 'Email already exists',
+          error: message,
           code: 'EMAIL_EXISTS',
         });
       }
-
-      updateFields.push(`email = $${paramIndex++}`);
-      values.push(updates.email);
+      if (message.includes('Invalid email') || message.includes('Password must')) {
+        return res.status(400).json({
+          error: message,
+          code: 'VALIDATION_ERROR',
+        });
+      }
+      throw error;
     }
-
-    if (updates.password) {
-      const passwordHash = await bcrypt.hash(updates.password, 10);
-      updateFields.push(`password_hash = $${paramIndex++}`);
-      values.push(passwordHash);
-    }
-
-    if (updates.permissions !== undefined) {
-      updateFields.push(`permissions = $${paramIndex++}`);
-      values.push(JSON.stringify(updates.permissions));
-    }
-
-    if (updates.isActive !== undefined) {
-      updateFields.push(`is_active = $${paramIndex++}`);
-      values.push(updates.isActive);
-    }
-
-    if (updateFields.length === 0) {
-      return res.status(400).json({
-        error: 'No fields to update',
-        code: 'NO_UPDATES',
-      });
-    }
-
-    updateFields.push(`updated_at = NOW()`);
-    values.push(id);
-
-    const query = `
-      UPDATE users
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramIndex}
-      RETURNING id, email, role, permissions, is_active as "isActive", 
-                created_at as "createdAt", updated_at as "updatedAt", last_login as "lastLogin"
-    `;
-
-    const result = await pool.query(query, values);
-
-    res.json({
-      message: 'Reviewer updated successfully',
-      reviewer: result.rows[0],
-    });
   })
 );
 
@@ -573,6 +529,8 @@ router.put(
  *     responses:
  *       200:
  *         description: Reviewer deleted successfully
+ *       400:
+ *         description: Cannot delete reviewer with associated articles
  *       401:
  *         description: Unauthorized
  *       403:
@@ -601,35 +559,30 @@ router.delete(
       });
     });
 
-    const pool = req.app.get('pool') as Pool;
+    const adminService = req.app.get('adminService') as AdminService;
     const { id } = req.params;
 
-    // Check if reviewer exists
-    const existingUser = await pool.query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [id]
-    );
-
-    if (existingUser.rows.length === 0) {
-      return res.status(404).json({
-        error: 'Reviewer not found',
-        code: 'NOT_FOUND',
+    try {
+      await adminService.deleteReviewer(id);
+      res.json({
+        message: 'Reviewer deleted successfully',
       });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Delete failed';
+      if (message.includes('not found')) {
+        return res.status(404).json({
+          error: message,
+          code: 'NOT_FOUND',
+        });
+      }
+      if (message.includes('Cannot delete')) {
+        return res.status(400).json({
+          error: message,
+          code: 'CANNOT_DELETE',
+        });
+      }
+      throw error;
     }
-
-    if (existingUser.rows[0].role !== 'Reviewer') {
-      return res.status(400).json({
-        error: 'User is not a reviewer',
-        code: 'INVALID_ROLE',
-      });
-    }
-
-    // Delete reviewer
-    await pool.query('DELETE FROM users WHERE id = $1', [id]);
-
-    res.json({
-      message: 'Reviewer deleted successfully',
-    });
   })
 );
 
