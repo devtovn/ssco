@@ -1,0 +1,22 @@
+# Dependencies and build output (build context is repo root)
+**/node_modules
+**/.next
+**/dist
+**/coverage
+
+# Environment and VCS
+.env
+.env.*
+.git
+.gitignore
+
+# IDE and OS
+.vscode
+.idea
+**/.DS_Store
+Thumbs.db
+
+# Docs and tests (not needed in image build)
+**/*.md
+tests
+.kiro

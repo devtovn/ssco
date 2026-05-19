@@ -8,13 +8,12 @@ Write-Host ""
 
 # Check if Docker is running
 Write-Host "Checking Docker status..." -ForegroundColor Yellow
-try {
-    docker info | Out-Null
-    Write-Host "✓ Docker is running" -ForegroundColor Green
-} catch {
-    Write-Host "✗ Docker is not running. Please start Docker Desktop." -ForegroundColor Red
+docker info 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[X] Docker is not running. Start Docker Desktop and wait until it shows 'Running', then run this script again." -ForegroundColor Red
     exit 1
 }
+Write-Host "[OK] Docker is running" -ForegroundColor Green
 
 Write-Host ""
 
@@ -23,9 +22,9 @@ if (-not (Test-Path ".env")) {
     Write-Host "Creating .env file from .env.example..." -ForegroundColor Yellow
     if (Test-Path ".env.example") {
         Copy-Item ".env.example" ".env"
-        Write-Host "✓ .env file created" -ForegroundColor Green
+        Write-Host "[OK] .env file created" -ForegroundColor Green
         Write-Host ""
-        Write-Host "⚠ IMPORTANT: Please review .env file and update:" -ForegroundColor Yellow
+        Write-Host "[!] IMPORTANT: Please review .env file and update:" -ForegroundColor Yellow
         Write-Host "  - JWT_SECRET" -ForegroundColor White
         Write-Host "  - JWT_REFRESH_SECRET" -ForegroundColor White
         Write-Host "  - POSTGRES_PASSWORD" -ForegroundColor White
@@ -34,11 +33,11 @@ if (-not (Test-Path ".env")) {
         Write-Host "Press Enter to continue or Ctrl+C to exit and edit .env first..." -ForegroundColor Cyan
         Read-Host
     } else {
-        Write-Host "✗ .env.example not found" -ForegroundColor Red
+        Write-Host "[X] .env.example not found" -ForegroundColor Red
         exit 1
     }
 } else {
-    Write-Host "✓ .env file found" -ForegroundColor Green
+    Write-Host "[OK] .env file found" -ForegroundColor Green
 }
 
 Write-Host ""
@@ -46,7 +45,7 @@ Write-Host ""
 # Stop any existing services
 Write-Host "Stopping any existing services..." -ForegroundColor Yellow
 docker-compose down 2>$null | Out-Null
-Write-Host "✓ Existing services stopped" -ForegroundColor Green
+Write-Host "[OK] Existing services stopped" -ForegroundColor Green
 
 Write-Host ""
 
@@ -59,7 +58,7 @@ docker-compose up -d --build
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "✓ Services started successfully" -ForegroundColor Green
+    Write-Host "[OK] Services started successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Waiting for services to be healthy (30 seconds)..." -ForegroundColor Yellow
     Start-Sleep -Seconds 30
@@ -91,7 +90,7 @@ if ($LASTEXITCODE -eq 0) {
     Start-Process "http://localhost:3000"
 } else {
     Write-Host ""
-    Write-Host "✗ Failed to start services" -ForegroundColor Red
+    Write-Host "[X] Failed to start services" -ForegroundColor Red
     Write-Host ""
     Write-Host "To view error logs, run:" -ForegroundColor Yellow
     Write-Host "  docker-compose logs" -ForegroundColor White

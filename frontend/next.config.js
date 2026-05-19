@@ -15,10 +15,6 @@ const nextConfig = {
     domains: ['salt.tikicdn.com', 'laz-img-cdn.alicdn.com', 'down-vn.img.susercontent.com'],
     formats: ['image/avif', 'image/webp'],
   },
-  // Enable experimental features for better performance
-  experimental: {
-    optimizeCss: true,
-  },
   // Configure headers for better caching
   async headers() {
     return [

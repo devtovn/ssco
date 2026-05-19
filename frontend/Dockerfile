@@ -1,53 +1,57 @@
 # Multi-stage Dockerfile for Next.js 14 Frontend
+# Build context: repository root (see docker-compose.yml)
+
+# Shared workspace package (@price-comparison/types)
+FROM node:20-alpine AS types-builder
+WORKDIR /packages/types
+COPY packages/types/package.json ./
+RUN npm install
+COPY packages/types/ ./
+RUN npm run build
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
+COPY --from=types-builder /packages/types /packages/types
+COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=types-builder /packages/types /packages/types
+COPY frontend/ .
 
-# Set environment variables for build
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 
-# Build the Next.js application
 RUN npm run build
 
 # Stage 3: Runner (Production)
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy necessary files from builder
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Set correct permissions
 RUN chown -R nextjs:nodejs /app
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 CMD ["node", "server.js"]
 
@@ -55,16 +59,15 @@ CMD ["node", "server.js"]
 FROM node:20-alpine AS development
 WORKDIR /app
 
-# Install dependencies
-COPY package.json package-lock.json* ./
+COPY --from=types-builder /packages/types /packages/types
+COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
 
-# Copy application code
-COPY . .
+COPY frontend/ .
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 CMD ["npm", "run", "dev"]

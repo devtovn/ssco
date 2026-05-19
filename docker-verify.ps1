@@ -8,13 +8,12 @@ Write-Host ""
 
 # Check if Docker is running
 Write-Host "Checking Docker status..." -ForegroundColor Yellow
-try {
-    docker info | Out-Null
-    Write-Host "✓ Docker is running" -ForegroundColor Green
-} catch {
-    Write-Host "✗ Docker is not running. Please start Docker Desktop." -ForegroundColor Red
+docker info 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[X] Docker is not running. Start Docker Desktop and wait until it shows 'Running', then run this script again." -ForegroundColor Red
     exit 1
 }
+Write-Host "[OK] Docker is running" -ForegroundColor Green
 
 Write-Host ""
 
@@ -23,22 +22,22 @@ if (-not (Test-Path "docker-compose.yml")) {
     Write-Host "✗ docker-compose.yml not found in current directory" -ForegroundColor Red
     exit 1
 }
-Write-Host "✓ docker-compose.yml found" -ForegroundColor Green
+Write-Host "[OK] docker-compose.yml found" -ForegroundColor Green
 
 Write-Host ""
 
 # Check if .env file exists
 if (-not (Test-Path ".env")) {
-    Write-Host "⚠ .env file not found. Creating from .env.example..." -ForegroundColor Yellow
+    Write-Host "[!] .env file not found. Creating from .env.example..." -ForegroundColor Yellow
     if (Test-Path ".env.example") {
         Copy-Item ".env.example" ".env"
-        Write-Host "✓ .env file created. Please review and update values." -ForegroundColor Green
+        Write-Host "[OK] .env file created. Please review and update values." -ForegroundColor Green
     } else {
         Write-Host "✗ .env.example not found. Cannot create .env file." -ForegroundColor Red
         exit 1
     }
 } else {
-    Write-Host "✓ .env file found" -ForegroundColor Green
+    Write-Host "[OK] .env file found" -ForegroundColor Green
 }
 
 Write-Host ""
@@ -48,7 +47,7 @@ Write-Host "Checking Docker Compose services..." -ForegroundColor Yellow
 $services = docker-compose ps --services 2>$null
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "⚠ No services are currently running" -ForegroundColor Yellow
+    Write-Host "[!] No services are currently running" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Would you like to start the services? (Y/N)" -ForegroundColor Cyan
     $response = Read-Host
@@ -79,9 +78,9 @@ $pgStatus = docker-compose ps postgres --format json 2>$null | ConvertFrom-Json
 if ($pgStatus.State -eq "running") {
     $pgHealth = docker-compose exec -T postgres pg_isready -U pricecompare 2>$null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host " ✓ Running and healthy" -ForegroundColor Green
+        Write-Host " [OK] Running and healthy" -ForegroundColor Green
     } else {
-        Write-Host " ⚠ Running but not healthy" -ForegroundColor Yellow
+        Write-Host " [!] Running but not healthy" -ForegroundColor Yellow
         $allHealthy = $false
     }
 } else {
@@ -95,9 +94,9 @@ $redisStatus = docker-compose ps redis --format json 2>$null | ConvertFrom-Json
 if ($redisStatus.State -eq "running") {
     $redisHealth = docker-compose exec -T redis redis-cli ping 2>$null
     if ($redisHealth -match "PONG") {
-        Write-Host " ✓ Running and healthy" -ForegroundColor Green
+        Write-Host " [OK] Running and healthy" -ForegroundColor Green
     } else {
-        Write-Host " ⚠ Running but not healthy" -ForegroundColor Yellow
+        Write-Host " [!] Running but not healthy" -ForegroundColor Yellow
         $allHealthy = $false
     }
 } else {
@@ -112,13 +111,13 @@ if ($backendStatus.State -eq "running") {
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:4000/health" -TimeoutSec 5 -UseBasicParsing
         if ($response.StatusCode -eq 200) {
-            Write-Host " ✓ Running and healthy" -ForegroundColor Green
+            Write-Host " [OK] Running and healthy" -ForegroundColor Green
         } else {
-            Write-Host " ⚠ Running but health check failed" -ForegroundColor Yellow
+            Write-Host " [!] Running but health check failed" -ForegroundColor Yellow
             $allHealthy = $false
         }
     } catch {
-        Write-Host " ⚠ Running but not responding" -ForegroundColor Yellow
+        Write-Host " [!] Running but not responding" -ForegroundColor Yellow
         $allHealthy = $false
     }
 } else {
@@ -133,13 +132,13 @@ if ($frontendStatus.State -eq "running") {
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:3000" -TimeoutSec 5 -UseBasicParsing
         if ($response.StatusCode -eq 200) {
-            Write-Host " ✓ Running and healthy" -ForegroundColor Green
+            Write-Host " [OK] Running and healthy" -ForegroundColor Green
         } else {
-            Write-Host " ⚠ Running but health check failed" -ForegroundColor Yellow
+            Write-Host " [!] Running but health check failed" -ForegroundColor Yellow
             $allHealthy = $false
         }
     } catch {
-        Write-Host " ⚠ Running but not responding" -ForegroundColor Yellow
+        Write-Host " [!] Running but not responding" -ForegroundColor Yellow
         $allHealthy = $false
     }
 } else {

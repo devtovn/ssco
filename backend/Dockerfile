@@ -1,44 +1,47 @@
 # Multi-stage Dockerfile for Express.js Backend with TypeScript
+# Build context: repository root (see docker-compose.yml)
+
+# Shared workspace package (@price-comparison/types)
+FROM node:20-alpine AS types-builder
+WORKDIR /packages/types
+COPY packages/types/package.json ./
+RUN npm install
+COPY packages/types/ ./
+RUN npm run build
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
+COPY --from=types-builder /packages/types /packages/types
+COPY backend/package.json backend/package-lock.json* ./
 RUN npm ci
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=types-builder /packages/types /packages/types
+COPY backend/ .
 
-# Build TypeScript to JavaScript
 RUN npm run build
 
 # Stage 3: Runner (Production)
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
-# Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 expressjs
 
-# Copy package files
-COPY package.json package-lock.json* ./
+COPY --from=types-builder /packages/types /packages/types
+COPY backend/package.json backend/package-lock.json* ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
-
-# Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Set correct permissions
 RUN chown -R expressjs:nodejs /app
 
 USER expressjs
@@ -51,14 +54,12 @@ CMD ["node", "dist/index.js"]
 FROM node:20-alpine AS development
 WORKDIR /app
 
-# Install dependencies
-COPY package.json package-lock.json* ./
+COPY --from=types-builder /packages/types /packages/types
+COPY backend/package.json backend/package-lock.json* ./
 RUN npm ci
 
-# Copy application code
-COPY . .
+COPY backend/ .
 
 EXPOSE 4000
 
-# Use ts-node-dev for hot-reload in development
 CMD ["npm", "run", "dev"]

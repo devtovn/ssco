@@ -43,6 +43,45 @@ export interface ValidationResult {
   errors: string[];
 }
 
+export interface ClickMetadata {
+  userSession: string;
+  userAgent: string;
+  referrer?: string;
+  productId: string;
+  campaignId?: string;
+}
+
+export interface AffiliatePerformance {
+  platformId: string;
+  platformName: string;
+  totalClicks: number;
+  totalConversions: number;
+  conversionRate: number;
+  estimatedRevenue: number;
+  clicksByDate: ClickData[];
+  topProducts: ProductPerformance[];
+}
+
+export interface ClickData {
+  date: string;
+  clicks: number;
+  conversions: number;
+}
+
+export interface ProductPerformance {
+  productId: string;
+  productName?: string;
+  clicks: number;
+  conversions: number;
+  conversionRate: number;
+  revenue: number;
+}
+
+export interface DateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
 export class AffiliateLinkService {
   constructor(private pool: Pool) {}
 
@@ -296,8 +335,6 @@ export class AffiliateLinkService {
       updatedAt: row.updated_at,
     };
   }
-}
-
 
   /**
    * Generate affiliate link from product URL and platform ID
@@ -550,50 +587,6 @@ export class AffiliateLinkService {
       referCode: result.rows[0].refer_code,
     };
   }
-}
-
-
-export interface ClickMetadata {
-  userSession: string;
-  userAgent: string;
-  referrer?: string;
-  productId: string;
-  campaignId?: string;
-}
-
-export interface AffiliatePerformance {
-  platformId: string;
-  platformName: string;
-  totalClicks: number;
-  totalConversions: number;
-  conversionRate: number;
-  estimatedRevenue: number;
-  clicksByDate: ClickData[];
-  topProducts: ProductPerformance[];
-}
-
-export interface ClickData {
-  date: string;
-  clicks: number;
-  conversions: number;
-}
-
-export interface ProductPerformance {
-  productId: string;
-  productName?: string;
-  clicks: number;
-  conversions: number;
-  conversionRate: number;
-  revenue: number;
-}
-
-export interface DateRange {
-  startDate: Date;
-  endDate: Date;
-}
-
-export class AffiliateLinkService {
-  // ... existing code ...
 
   /**
    * Track affiliate link click
