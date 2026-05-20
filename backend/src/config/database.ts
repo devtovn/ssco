@@ -26,6 +26,9 @@ const poolConfig: PoolConfig = {
   
   // Application name for monitoring
   application_name: 'price-comparison-backend',
+
+  // Session defaults (avoids extra client.query on pool 'connect' — deprecated in pg@8+)
+  options: '-c timezone=UTC',
   
   // Keep-alive settings
   keepAlive: true,
@@ -57,21 +60,10 @@ if (process.env.DB_READ_HOST) {
 }
 
 // Connection event handlers for primary pool
-pool.on('connect', (client: PoolClient) => {
-  console.log('🔌 Database: New client connected to primary pool');
-  
-  // Set default timezone
-  client.query('SET timezone = "UTC"').catch((err) => {
-    console.error('Failed to set timezone:', err);
-  });
-});
-
-pool.on('acquire', () => {
-  console.log('📤 Database: Client acquired from primary pool');
-});
-
-pool.on('remove', () => {
-  console.log('📥 Database: Client removed from primary pool');
+pool.on('connect', () => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🔌 Database: New client connected to primary pool');
+  }
 });
 
 pool.on('error', (err) => {

@@ -99,9 +99,7 @@ router.post(
 
       // Determine redirect URL based on role
       const redirectUrl =
-        user.role === 'Administrator'
-          ? '/admin/dashboard'
-          : '/reviewer/dashboard';
+        user.role === 'Administrator' ? '/admin' : '/reviewer';
 
       res.json({
         user: {

@@ -12,7 +12,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     INSERT INTO users (email, password_hash, role, permissions, is_active)
     VALUES (
       'admin@pricecompare.vn',
-      '${passwordHash}',
+      $hash$${passwordHash}$hash$,
       'Administrator',
       '{"full_access": true, "manage_users": true, "manage_content": true, "manage_ads": true, "manage_affiliates": true, "view_analytics": true}'::jsonb,
       true

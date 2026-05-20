@@ -1,7 +1,4 @@
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api').replace(
-  /\/$/,
-  ''
-);
+import { buildApiUrl } from './api/client';
 
 const TOKEN_KEY = 'accessToken';
 const REFRESH_KEY = 'refreshToken';
@@ -30,26 +27,13 @@ export interface LoginResult {
   redirectUrl?: string;
 }
 
-function buildUrl(path: string, params?: Record<string, string | number | undefined>): string {
-  const normalized = path.startsWith('/') ? path : `/${path}`;
-  const url = new URL(`${API_URL}${normalized}`);
-
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined && value !== '') {
-        url.searchParams.set(key, String(value));
-      }
-    }
-  }
-
-  return url.toString();
-}
-
 function setAuthCookies(accessToken: string, role: UserRole, expiresIn: number): void {
   if (typeof document === 'undefined') return;
   const maxAge = expiresIn > 0 ? expiresIn : 3600;
-  document.cookie = `${TOKEN_KEY}=${encodeURIComponent(accessToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
-  document.cookie = `${ROLE_KEY}=${encodeURIComponent(role)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  // JWT is base64url — do not encodeURIComponent (middleware must read the same value)
+  const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${TOKEN_KEY}=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
+  document.cookie = `${ROLE_KEY}=${role}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
 }
 
 function clearAuthCookies(): void {
@@ -74,7 +58,7 @@ export function getStoredRole(): UserRole | null {
 }
 
 export async function login(email: string, password: string): Promise<LoginResult> {
-  const response = await fetch(buildUrl('/auth/login'), {
+  const response = await fetch(buildApiUrl('/auth/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -107,7 +91,7 @@ export async function logout(): Promise<void> {
 
   if (refreshToken) {
     try {
-      await fetch(buildUrl('/auth/logout'), {
+      await fetch(buildApiUrl('/auth/logout'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
@@ -139,7 +123,7 @@ export async function apiFetchWithAuth<T>(
     throw new Error('Chưa đăng nhập');
   }
 
-  const response = await fetch(buildUrl(path, options?.params), {
+  const response = await fetch(buildApiUrl(path, options?.params), {
     ...options,
     headers: {
       'Content-Type': 'application/json',

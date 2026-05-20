@@ -212,7 +212,7 @@ export class AuthenticationService {
 
     // Store refresh token in Redis with TTL
     const redisKey = `refresh_token:${user.id}:${refreshToken}`;
-    await redisClient.setex(redisKey, this.REFRESH_TOKEN_TTL, '1');
+    await redisClient.setEx(redisKey, this.REFRESH_TOKEN_TTL, '1');
 
     // Calculate expiry time in seconds
     const expiresIn = 24 * 60 * 60; // 24 hours

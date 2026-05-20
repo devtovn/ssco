@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { CategoryTree } from '@price-comparison/types';
-
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api').replace(
-  /\/$/,
-  ''
-);
+import { buildApiUrl } from '@/lib/api/client';
 
 function CategoryNode({ node, depth = 0 }: { node: CategoryTree; depth?: number }) {
   return (
@@ -41,7 +37,7 @@ export default function AdminCategoriesPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_URL}/categories/tree`)
+    fetch(buildApiUrl('/categories/tree'))
       .then((res) => res.json())
       .then((json) => {
         setTree(json.data ?? []);

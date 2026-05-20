@@ -207,16 +207,12 @@ docker-compose exec redis redis-cli
 
 ### Database Management
 
-Run database migrations:
+Migrations chạy từ **máy host** (không chạy trong container backend). Xem **[backend/MIGRATIONS.md](backend/MIGRATIONS.md)**.
 
-```bash
-docker-compose exec backend npm run migrate
-```
-
-Seed the database:
-
-```bash
-docker-compose exec backend npm run seed
+```powershell
+cd backend
+$env:DATABASE_URL = "postgresql://pricecompare:pricecompare_dev_password@localhost:5432/price_comparison"
+npm run migrate:up
 ```
 
 Backup the database:

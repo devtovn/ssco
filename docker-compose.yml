@@ -52,12 +52,12 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: ${BACKEND_PORT:-4000}
       
-      # Database Configuration
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_NAME: ${POSTGRES_DB:-price_comparison}
-      DATABASE_USER: ${POSTGRES_USER:-pricecompare}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-pricecompare_dev_password}
+      # Database Configuration (pool reads DB_* — see backend/src/config/database.ts)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-price_comparison}
+      DB_USER: ${POSTGRES_USER:-pricecompare}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-pricecompare_dev_password}
       DATABASE_URL: postgresql://${POSTGRES_USER:-pricecompare}:${POSTGRES_PASSWORD:-pricecompare_dev_password}@postgres:5432/${POSTGRES_DB:-price_comparison}
       
       # Redis Configuration

@@ -24,13 +24,13 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     getMe()
       .then((me) => {
         if (me.role !== requiredRole) {
-          router.replace(me.role === 'Administrator' ? '/admin' : '/reviewer');
+          window.location.assign(me.role === 'Administrator' ? '/admin' : '/reviewer');
           return;
         }
         setUser(me);
       })
       .catch(() => {
-        router.replace('/login');
+        window.location.assign('/login');
       })
       .finally(() => setLoading(false));
   }, [requiredRole, router]);

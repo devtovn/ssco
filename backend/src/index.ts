@@ -78,6 +78,17 @@ const authRateLimiter = createRateLimiter({
   maxRequests: parseInt(process.env.RATE_LIMIT_AUTH_MAX || '20', 10),
 });
 
+// Root — API info (no handler on / returns NOT_FOUND)
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Price Comparison API',
+    health: '/health',
+    docs: `${API_PREFIX}/docs`,
+    api: API_PREFIX,
+  });
+});
+
 // Health check endpoint
 app.get('/health', (_req, res) => {
   res.status(200).json({

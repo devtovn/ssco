@@ -1,12 +1,11 @@
 'use client';
 
 import { FormEvent, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/auth';
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +21,15 @@ function LoginForm() {
       const result = await login(email, password);
       const from = searchParams.get('from');
       const defaultPath = result.user.role === 'Administrator' ? '/admin' : '/reviewer';
-      router.push(from && from.startsWith('/') ? from : defaultPath);
+      let target =
+        from && from.startsWith('/') ? from : result.redirectUrl || defaultPath;
+      // Backend may return legacy paths that do not exist in the App Router
+      if (target === '/admin/dashboard') target = '/admin';
+      if (target === '/reviewer/dashboard') target = '/reviewer';
+
+      // Full navigation so Next.js middleware receives accessToken / userRole cookies
+      window.location.assign(target);
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại');
     } finally {
