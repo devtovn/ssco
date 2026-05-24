@@ -349,9 +349,9 @@ export class SearchService {
       SELECT
         query as keyword,
         COUNT(*) as search_count,
-        MAX(created_at) as last_searched_at
+        MAX(searched_at) as last_searched_at
       FROM search_logs
-      WHERE created_at >= NOW() - INTERVAL '7 days'
+      WHERE searched_at >= NOW() - INTERVAL '7 days'
       GROUP BY query
       ORDER BY search_count DESC
       LIMIT $1
@@ -375,16 +375,15 @@ export class SearchService {
       const client = await pool.connect();
       
       await client.query(
-        `INSERT INTO search_logs (query, category_id, filters, results_count, user_session, user_agent, response_time)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        `INSERT INTO search_logs (query, category, filters, results_count, user_session, user_agent)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
         [
           query.keyword,
-          query.categoryId || null,
+          query.categoryId ? String(query.categoryId) : null,
           JSON.stringify({ priceRange: query.priceRange, brand: query.brand, sortBy: query.sortBy }),
           resultsCount,
-          'anonymous', // TODO: Get from session
-          'unknown', // TODO: Get from request headers
-          responseTime,
+          'anonymous',
+          'unknown',
         ]
       );
       

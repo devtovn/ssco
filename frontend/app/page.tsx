@@ -18,17 +18,17 @@ export default async function HomePage() {
   return (
     <PublicLayout>
       <section className="bg-gradient-to-b from-primary-50 to-white">
-        <div className="mx-auto max-w-6xl px-4 pb-16 pt-12">
+        <div className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:pb-16 sm:pt-12">
           <div className="text-center">
-            <h1 className="text-balance text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
+            <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
               So sánh giá từ Tiki, Lazada, Shopee
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+            <p className="mx-auto mt-3 max-w-2xl text-base text-slate-600 sm:mt-4 sm:text-lg">
               Tìm giá tốt nhất trước khi mua — không cần đăng nhập
             </p>
           </div>
 
-          <div className="mt-10">
+          <div className="mt-6 sm:mt-10">
             <SearchBar />
             <PopularKeywords keywords={keywords} />
           </div>

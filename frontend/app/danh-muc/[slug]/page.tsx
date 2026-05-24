@@ -91,7 +91,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   return (
     <PublicLayout>
       <JsonLd data={jsonLd} />
-      <section className="mx-auto max-w-6xl px-4 py-8">
+      <section className="mx-auto max-w-6xl px-4 py-5 sm:py-8">
         <Breadcrumbs
           items={[
             { label: 'Trang chủ', href: '/' },
@@ -99,17 +99,17 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           ]}
         />
 
-        <div className="mt-6 flex items-center gap-4">
-          <span className="text-5xl" aria-hidden>{icon}</span>
+        <div className="mt-4 flex items-center gap-3 sm:mt-6 sm:gap-4">
+          <span className="text-4xl sm:text-5xl" aria-hidden>{icon}</span>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{category.name}</h1>
+            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{category.name}</h1>
             <p className="text-sm text-slate-500">{pagination.total} sản phẩm · cập nhật mỗi 6 giờ</p>
           </div>
         </div>
 
         <VoucherTabs className="mt-8" />
 
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
           {products.map((p) => (
             <ProductCard key={String(p.id)} product={toProductCard(p)} />
           ))}

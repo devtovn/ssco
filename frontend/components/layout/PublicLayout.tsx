@@ -17,8 +17,8 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       </ErrorBoundary>
       <footer className="border-t border-slate-200 bg-slate-50">
         <AdZone position="footer" className="mx-auto max-w-6xl px-4 py-4" />
-        <div className="mx-auto max-w-6xl px-4 py-8">
-          <div className="grid gap-8 sm:grid-cols-3">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+          <div className="grid gap-6 sm:grid-cols-3 sm:gap-8">
             <div>
               <p className="font-bold text-primary-700">SSCO</p>
               <p className="mt-1 text-xs text-slate-500">So sánh giá</p>

@@ -20,7 +20,7 @@ async function runMigration() {
     // Create website_config table
     await client.query(`
       CREATE TABLE IF NOT EXISTS website_config (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id char(26) PRIMARY KEY DEFAULT generate_ulid(),
         logo_url VARCHAR(500),
         site_name VARCHAR(200) NOT NULL DEFAULT 'Product Price Comparison',
         tagline VARCHAR(500),

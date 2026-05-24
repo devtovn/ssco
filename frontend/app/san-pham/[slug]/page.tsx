@@ -118,14 +118,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
     <PublicLayout>
       <ProductViewTracker productId={resolvedId} />
       <JsonLd data={jsonLd} />
-      <section className="mx-auto max-w-6xl px-4 py-8">
+      <section className="mx-auto max-w-6xl px-4 py-5 sm:py-8">
         <Breadcrumbs items={breadcrumbItems} />
 
-        <div className="mt-6 grid gap-8 lg:grid-cols-[420px_1fr]">
+        <div className="mt-4 grid gap-6 sm:mt-6 sm:gap-8 lg:grid-cols-[420px_1fr]">
           <ProductGallery images={product?.images ?? []} productName={comparison.productName} />
 
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
+            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl md:text-3xl">
               {comparison.productName}
             </h1>
 

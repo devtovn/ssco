@@ -58,7 +58,7 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
         <div>
           {featured ? (
             <>
-              <h2 className="text-2xl font-bold text-slate-900">🏷️ Mã giảm giá hôm nay</h2>
+              <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">🏷️ Mã giảm giá hôm nay</h2>
               <p className="mt-1 text-sm text-slate-500">Voucher từ các sàn TMĐT lớn — cập nhật hàng ngày, dùng ngay khi mua</p>
             </>
           ) : (
@@ -72,7 +72,7 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
 
       <div className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${featured ? 'border-primary-200 shadow-md ring-1 ring-primary-100' : 'border-slate-200'}`}>
         {featured && (
-          <div className="bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-3">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-500 px-3 py-2.5 sm:px-5 sm:py-3">
             <p className="text-sm font-semibold text-white">Sao chép mã → Dán khi thanh toán để được giảm giá ngay!</p>
           </div>
         )}
@@ -85,7 +85,7 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
               <button
                 key={key}
                 onClick={() => setActive(key)}
-                className={`flex shrink-0 items-center gap-1.5 border-b-2 px-5 py-3.5 text-sm font-semibold transition ${
+                className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-3 text-sm font-semibold transition sm:px-5 sm:py-3.5 ${
                   isActive
                     ? 'border-primary-600 text-primary-700'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -100,30 +100,54 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
           })}
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div>
           {vouchers.length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-slate-500">Chưa có mã giảm giá cho sàn này.</p>
           ) : (
-            vouchers.map((v) => {
+            vouchers.map((v, idx) => {
               const c = VOUCHER_COLORS[v.type];
               const isCopied = copied === v.code;
+              const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/70';
               return (
-                <div key={v.code} className="flex flex-wrap items-center gap-4 px-5 py-4">
-                  <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
-                  <div className="min-w-0 flex-1">
+                <div key={v.code} className={`border-b border-slate-100 last:border-0 ${rowBg}`}>
+                  {/* Mobile: 2-row layout */}
+                  <div className="px-3 pb-2.5 pt-3 sm:hidden">
                     <p className="text-sm font-medium text-slate-800">{v.desc}</p>
-                    <p className="mt-0.5 text-xs text-slate-400">HSD: {v.expires}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
+                      <span className="text-xs text-slate-400">HSD: {v.expires}</span>
+                      <div className="ml-auto flex items-center gap-2">
+                        <code className="rounded-md border border-dashed border-slate-300 bg-white px-2 py-1 text-xs font-bold tracking-wider text-slate-800">
+                          {v.code}
+                        </code>
+                        <button
+                          onClick={() => copy(v.code)}
+                          className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-primary-600 hover:text-white'}`}
+                        >
+                          {isCopied ? '✓' : 'Sao'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <code className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-bold tracking-widest text-slate-800">
-                      {v.code}
-                    </code>
-                    <button
-                      onClick={() => copy(v.code)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-primary-600 hover:text-white'}`}
-                    >
-                      {isCopied ? '✓ Đã sao' : 'Sao chép'}
-                    </button>
+
+                  {/* Desktop: single-row layout */}
+                  <div className="hidden items-center gap-4 px-5 py-4 sm:flex">
+                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-800">{v.desc}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">HSD: {v.expires}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <code className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-bold tracking-widest text-slate-800">
+                        {v.code}
+                      </code>
+                      <button
+                        onClick={() => copy(v.code)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-primary-600 hover:text-white'}`}
+                      >
+                        {isCopied ? '✓ Đã sao' : 'Sao chép'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -131,7 +155,7 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
           )}
         </div>
 
-        <p className="border-t border-slate-100 bg-slate-50 px-5 py-2.5 text-xs text-slate-400">
+        <p className="border-t border-slate-100 bg-slate-50 px-3 py-2.5 text-xs text-slate-400 sm:px-5">
           Voucher được cung cấp bởi các sàn thương mại điện tử. SSCO không đảm bảo tính khả dụng của voucher.
         </p>
       </div>

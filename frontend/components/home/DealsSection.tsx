@@ -14,14 +14,14 @@ export function DealsSection({ deals }: DealsSectionProps) {
   if (deals.length === 0) return null;
 
   return (
-    <section className="mt-16">
-      <div className="mb-6 flex items-end justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Ưu đãi tốt nhất</h2>
+    <section className="mt-10 sm:mt-16">
+      <div className="mb-4 flex items-end justify-between sm:mb-6">
+        <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Ưu đãi tốt nhất</h2>
         <Link href="/deals" className="text-sm font-medium text-primary-600 hover:text-primary-700">
           Xem tất cả →
         </Link>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {deals.map((deal) => (
           <Link
             key={String(deal.productId)}

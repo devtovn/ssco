@@ -78,7 +78,7 @@ export const JWTPayloadSchema = z.object({
 
 export const RefreshTokenPayloadSchema = z.object({
   userId: z.number().int().positive(),
-  tokenId: z.string().uuid(),
+  tokenId: z.string().min(1),
   iat: z.number().int(),
   exp: z.number().int(),
 });

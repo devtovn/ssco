@@ -57,7 +57,7 @@ const UpdateAdZoneSchema = z.object({
 });
 
 const TrackAdEventSchema = z.object({
-  adId: z.string().uuid('Invalid ad ID'),
+  adId: z.string().length(26, 'Invalid ad ID'),
   type: z.enum(['impression', 'click']),
   metadata: z
     .object({

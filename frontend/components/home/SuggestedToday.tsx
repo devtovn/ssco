@@ -16,14 +16,14 @@ export function SuggestedToday({ deals }: SuggestedTodayProps) {
   if (!deals.length) return null;
 
   return (
-    <section className="mt-16">
+    <section className="mt-10 sm:mt-16">
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Sản phẩm gợi ý hôm nay</h2>
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Sản phẩm gợi ý hôm nay</h2>
           <p className="mt-1 text-sm text-slate-500">Được cập nhật mỗi ngày dựa trên xu hướng tìm kiếm</p>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4">
         {deals.map((p) => {
           const badge = p.discountPercentage >= 30 ? 'Giảm giá' : 'Gợi ý hôm nay';
           return (

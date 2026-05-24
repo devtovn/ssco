@@ -50,21 +50,23 @@ export function VoucherTable({ source }: VoucherTableProps) {
           {source}
         </span>
       </div>
-      <table className="w-full text-xs">
-        <tbody>
-          {vouchers.map((v, i) => {
-            const c = VOUCHER_COLORS[v.type];
-            const isCopied = copied === v.code;
-            return (
-              <tr key={v.code} className={`border-b border-slate-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-slate-50/50'}`}>
-                <td className="w-px px-3 py-2.5">
-                  <span className={`inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
-                </td>
-                <td className="px-2 py-2.5 leading-snug text-slate-700">{v.desc}</td>
-                <td className="whitespace-nowrap px-2 py-2.5 text-slate-400">{v.expires}</td>
-                <td className="w-px px-3 py-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <code className="whitespace-nowrap rounded border border-dashed border-slate-300 bg-white px-1.5 py-0.5 font-mono font-bold tracking-wide text-slate-800">
+
+      <div>
+        {vouchers.map((v, i) => {
+          const c = VOUCHER_COLORS[v.type];
+          const isCopied = copied === v.code;
+          const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-slate-50/70';
+
+          return (
+            <div key={v.code} className={`border-b border-slate-100 last:border-0 ${rowBg}`}>
+              {/* Mobile: 2-row layout */}
+              <div className="px-3 pb-2.5 pt-3 sm:hidden">
+                <p className="text-sm font-medium text-slate-700">{v.desc}</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
+                  <span className="text-xs text-slate-400">HSD: {v.expires}</span>
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <code className="rounded border border-dashed border-slate-300 bg-white px-2 py-0.5 text-xs font-bold tracking-wider text-slate-800">
                       {v.code}
                     </code>
                     <button
@@ -74,12 +76,31 @@ export function VoucherTable({ source }: VoucherTableProps) {
                       {isCopied ? '✓' : 'Copy'}
                     </button>
                   </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </div>
+              </div>
+
+              {/* Desktop: single-row table layout */}
+              <div className="hidden items-center gap-2 px-3 py-2.5 sm:flex">
+                <span className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
+                <span className="min-w-0 flex-1 px-1 text-xs leading-snug text-slate-700">{v.desc}</span>
+                <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">{v.expires}</span>
+                <div className="ml-2 flex shrink-0 items-center gap-1.5">
+                  <code className="whitespace-nowrap rounded border border-dashed border-slate-300 bg-white px-1.5 py-0.5 font-mono text-xs font-bold tracking-wide text-slate-800">
+                    {v.code}
+                  </code>
+                  <button
+                    onClick={() => copy(v.code)}
+                    className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                  >
+                    {isCopied ? '✓' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       <p className="border-t border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-400">
         Voucher do {source} cung cấp. SSCO không đảm bảo tính khả dụng.
       </p>

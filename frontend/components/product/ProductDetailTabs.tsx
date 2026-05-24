@@ -21,7 +21,7 @@ export function ProductDetailTabs({ comparison, history, productId }: ProductDet
 
   return (
     <>
-      <div role="tablist" className="flex gap-1 border-b border-slate-200">
+      <div role="tablist" className="flex gap-0 overflow-x-auto border-b border-slate-200 [scrollbar-width:none]">
         {tabs.map((t) => {
           const active = tab === t.id;
           return (
@@ -30,7 +30,7 @@ export function ProductDetailTabs({ comparison, history, productId }: ProductDet
               role="tab"
               aria-selected={active}
               onClick={() => setTab(t.id)}
-              className={`relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition ${
+              className={`relative -mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold transition sm:px-4 ${
                 active
                   ? 'border-primary-600 text-primary-700'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -49,7 +49,12 @@ export function ProductDetailTabs({ comparison, history, productId }: ProductDet
 
       {tab === 'price' && (
         <div className="mt-6 space-y-8">
-          <PriceComparisonTable comparison={comparison} productId={productId} />
+          <PriceComparisonTable
+            comparison={comparison}
+            productId={productId}
+            productName={comparison.productName}
+            productImage={comparison.prices.map(p => p.metadata?.image as string | undefined).find(Boolean)}
+          />
           <PriceHistoryChart history={history} />
         </div>
       )}

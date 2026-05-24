@@ -5,12 +5,12 @@
 import { z } from 'zod';
 
 export const CategorySchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().length(26),
   name: z.string().min(1).max(200),
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
   description: z.string().max(1000).optional(),
   icon: z.string().max(100).optional(),
-  parentId: z.string().uuid().optional(),
+  parentId: z.string().length(26).optional(),
   isActive: z.boolean().default(true),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -26,7 +26,7 @@ export const CategoryInputSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
   description: z.string().max(1000, 'Description is too long').optional(),
   icon: z.string().max(100, 'Icon name is too long').optional(),
-  parentId: z.string().uuid().optional(),
+  parentId: z.string().length(26).optional(),
 });
 
 export const CategoryUpdateSchema = z.object({
@@ -34,7 +34,7 @@ export const CategoryUpdateSchema = z.object({
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/).optional(),
   description: z.string().max(1000).optional(),
   icon: z.string().max(100).optional(),
-  parentId: z.string().uuid().nullable().optional(),
+  parentId: z.string().length(26).nullable().optional(),
   isActive: z.boolean().optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: 'At least one field must be provided for update',

@@ -14,7 +14,7 @@ const router = Router();
 const TrackInteractionSchema = z.object({
   eventType: z.enum(['page_view', 'click', 'product_view', 'search']),
   pagePath: z.string().optional(),
-  productId: z.string().uuid().optional(),
+  productId: z.string().max(100).optional(),
   targetUrl: z.string().url().optional(),
   metadata: z.record(z.unknown()).optional(),
   userSession: z.string().max(200).optional(),

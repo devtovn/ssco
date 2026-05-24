@@ -17,9 +17,9 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
   const topLevel = categories.slice(0, 10);
 
   return (
-    <section className="mt-16">
-      <h2 className="mb-6 text-center text-2xl font-bold text-slate-900">Danh mục sản phẩm</h2>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+    <section className="mt-10 sm:mt-16">
+      <h2 className="mb-4 text-center text-xl font-bold text-slate-900 sm:mb-6 sm:text-2xl">Danh mục sản phẩm</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-5">
         {topLevel.map((node) => {
           const cat = node.category;
           const icon = CATEGORY_ICONS[cat.slug] || '🛒';
@@ -27,7 +27,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
             <Link
               key={String(cat.id)}
               href={`/danh-muc/${cat.slug}`}
-              className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:border-primary-300 hover:shadow-md"
+              className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-3 text-center shadow-sm transition hover:border-primary-300 hover:shadow-md sm:p-4"
             >
               <span className="text-3xl" aria-hidden>
                 {icon}

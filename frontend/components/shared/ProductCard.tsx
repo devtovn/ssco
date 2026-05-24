@@ -24,9 +24,9 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
   return (
     <Link
       href={`/san-pham/${product.slug ?? product.id}`}
-      className={`flex gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md ${className}`}
+      className={`flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md sm:gap-4 sm:p-4 ${className}`}
     >
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-24 sm:w-24">
         {product.image ? (
           <Image
             src={product.image}

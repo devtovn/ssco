@@ -13,7 +13,7 @@ const router = Router();
 
 const GenerateArticleSchema = z.object({
   keyword: z.string().min(2).max(200),
-  productId: z.string().uuid().optional(),
+  productId: z.string().max(100).optional(),
   targetLength: z.number().int().min(300).max(5000).optional(),
   tone: z.enum(['professional', 'casual', 'technical']).optional(),
   includeComparison: z.boolean().optional(),

@@ -16,7 +16,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const thumbCount = Math.max(list.length, 4);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
       <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-slate-100">
         {main ? (
           <div className="relative h-full w-full">
@@ -42,7 +42,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
               key={i}
               type="button"
               onClick={() => img && setActive(i)}
-              className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 bg-slate-100 ${
+              className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 bg-slate-100 sm:h-16 sm:w-16 ${
                 i === active && img ? 'border-primary-400' : 'border-slate-200'
               }`}
             >
