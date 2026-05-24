@@ -3,6 +3,7 @@ import type { Category } from '@price-comparison/types';
 
 export interface CategoryProduct {
   id: string;
+  slug?: string;
   name: string;
   description?: string;
   brand?: string;

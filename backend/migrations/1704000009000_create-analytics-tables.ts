@@ -25,10 +25,10 @@ function buildMonthlyPartitions(
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.sql(`
     CREATE TABLE user_interactions (
-      id uuid NOT NULL DEFAULT gen_random_uuid(),
+      id char(26) NOT NULL DEFAULT generate_ulid(),
       event_type varchar(50) NOT NULL,
       page_path text,
-      product_id uuid REFERENCES products(id) ON DELETE SET NULL,
+      product_id char(26) REFERENCES products(id) ON DELETE SET NULL,
       target_url text,
       metadata jsonb DEFAULT '{}',
       user_session varchar(200),
@@ -52,7 +52,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.sql(`
     CREATE TABLE system_metrics (
-      id uuid NOT NULL DEFAULT gen_random_uuid(),
+      id char(26) NOT NULL DEFAULT generate_ulid(),
       metric_name varchar(100) NOT NULL,
       metric_value decimal(12,4) NOT NULL,
       unit varchar(20),
@@ -73,9 +73,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable('analytics_daily_aggregates', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     aggregate_date: {
       type: 'date',

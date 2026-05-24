@@ -3,6 +3,7 @@ import type { CategoryTree } from '@price-comparison/types';
 
 export interface Deal {
   productId: string | number;
+  slug?: string;
   productName: string;
   productImage?: string;
   categoryId?: string | number;

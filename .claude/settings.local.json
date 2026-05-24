@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose *)",
+      "Bash(xargs grep -l \"product\" -i)",
+      "Bash(docker cp *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(len\\(d['data']\\), 'categories'\\)\")",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/danh-muc/dien-thoai)",
+      "Bash(curl -s http://localhost:3000/san-pham/63d10a70-ac7a-4fc7-bdbf-c7f75cbdf033)",
+      "Bash(curl -s \"http://localhost:4000/api/search?keyword=iPhone&page=1&limit=5\")",
+      "Bash(curl -s \"http://localhost:4000/api/search?keyword=iPhone&page=1&limit=3\")",
+      "Bash(curl -s \"http://localhost:3000/search?q=iPhone\")",
+      "Bash(curl -s \"http://localhost:4000/api/products/1\")",
+      "Bash(docker exec *)",
+      "Bash(curl -s \"http://localhost:4000/api/products/63d10a70-ac7a-4fc7-bdbf-c7f75cbdf033\")",
+      "Bash(curl -s \"http://localhost:4000/api/deals?limit=8\")",
+      "Bash(curl -s \"http://localhost:3000/san-pham/63d10a70-ac7a-4fc7-bdbf-c7f75cbdf033\")",
+      "Bash(curl -s \"http://localhost:4000/api/deals?limit=16&minDiscount=5\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(d['categoryId'], d['categoryName'][:20]\\) for d in data['data']]\")",
+      "Bash(curl -s \"http://localhost:4000/api/deals?limit=4\")",
+      "Bash(curl -s \"http://localhost:4000/api/products/deals?limit=4\")",
+      "Bash(curl -s \"http://localhost:4000/api/search?keyword=Apple+iPhone+15&limit=9\")",
+      "Bash(curl -s -H \"Cache-Control: no-cache\" \"http://localhost:3000/san-pham/63d10a70-ac7a-4fc7-bdbf-c7f75cbdf033\")",
+      "Bash(grep -rn \"san-pham/\\\\${.*id\\\\|san-pham/\\\\${.*\\\\.id\\\\|/san-pham/\" d:/Dev/SSCO/frontend/components/ d:/Dev/SSCO/frontend/app/)",
+      "Bash(sed 's/type: .uuid./type: '\\\\''char\\(26\\)'\\\\''/g; s/gen_random_uuid\\(\\)/generate_ulid\\(\\)/g' d:/Dev/SSCO/backend/migrations/1704000001000_create-affiliate-advertisement-tables.ts > /tmp/m1.ts && echo done)",
+      "Bash(docker volume *)",
+      "Bash(rm -rf \"d:/Dev/SSCO/frontend/app/san-pham/[id]\" 2>&1)",
+      "Bash(curl -s \"http://localhost:4000/api/products/apple-iphone-15-pro-max-256gb\")",
+      "Bash(curl -s \"http://localhost:4000/api/products/apple-iphone-15-pro-max-256gb/prices\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d['data'][k] for k in ['productId','productName','availableSources','averagePrice']}, ensure_ascii=False, indent=2\\)\\)\")",
+      "Bash(curl -s \"http://localhost:4000/api/deals?limit=3\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/san-pham/apple-iphone-15-pro-max-256gb\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/san-pham/jbl-flip-6-loa-bluetooth-chong-nuoc-ip67\")",
+      "Bash(curl -s \"http://localhost:3000\")",
+      "Bash(curl -s \"http://localhost:3000/search?q=iphone\")",
+      "Bash(curl -s \"http://localhost:4000/api/categories/tree\")",
+      "Bash(curl -s \"http://localhost:3000/danh-muc/dien-thoai\")",
+      "Bash(curl -s \"http://localhost:3000/san-pham/apple-iphone-15-pro-max-256gb\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp",
+      "d:\\Dev\\SSCO\\frontend\\app\\san-pham\\[id]"
+    ]
+  }
+}

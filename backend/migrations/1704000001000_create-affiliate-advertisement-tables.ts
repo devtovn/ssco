@@ -4,9 +4,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // Create affiliate_configs table
   pgm.createTable('affiliate_configs', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     platform_id: {
       type: 'varchar(100)',
@@ -65,12 +65,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // Create affiliate_campaigns table
   pgm.createTable('affiliate_campaigns', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     affiliate_config_id: {
-      type: 'uuid',
+      type: 'char(26)',
       notNull: true,
       references: 'affiliate_configs(id)',
       onDelete: 'CASCADE',
@@ -127,23 +127,23 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // Create affiliate_link_clicks table (non-partitioned version)
   pgm.createTable('affiliate_link_clicks', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     affiliate_config_id: {
-      type: 'uuid',
+      type: 'char(26)',
       notNull: true,
       references: 'affiliate_configs(id)',
       onDelete: 'CASCADE',
     },
     campaign_id: {
-      type: 'uuid',
+      type: 'char(26)',
       references: 'affiliate_campaigns(id)',
       onDelete: 'SET NULL',
     },
     product_id: {
-      type: 'uuid',
+      type: 'char(26)',
       references: 'products(id)',
       onDelete: 'SET NULL',
     },
@@ -202,9 +202,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // Create ad_zones table
   pgm.createTable('ad_zones', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     name: {
       type: 'varchar(200)',
@@ -248,12 +248,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // Create advertisements table
   pgm.createTable('advertisements', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     zone_id: {
-      type: 'uuid',
+      type: 'char(26)',
       notNull: true,
       references: 'ad_zones(id)',
       onDelete: 'CASCADE',

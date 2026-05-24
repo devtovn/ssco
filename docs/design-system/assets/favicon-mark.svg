@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SSCO mark">
+  
+  <g fill="none" stroke="#0284c7" stroke-width="5" stroke-linecap="round">
+    <circle cx="26" cy="26" r="18" fill="#ffffff"></circle>
+    <line x1="40" y1="40" x2="56" y2="56"></line>
+  </g>
+  <text x="26" y="34" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="22" fill="#0369a1" letter-spacing="-0.04em">S</text>
+</svg>

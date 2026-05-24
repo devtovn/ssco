@@ -3,12 +3,12 @@
  */
 
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description?: string;
   icon?: string;
-  parentId?: number;
+  parentId?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -22,7 +22,7 @@ export interface CategoryInput {
   slug: string;
   description?: string;
   icon?: string;
-  parentId?: number;
+  parentId?: string;
 }
 
 export interface CategoryUpdate {
@@ -30,7 +30,7 @@ export interface CategoryUpdate {
   slug?: string;
   description?: string;
   icon?: string;
-  parentId?: number;
+  parentId?: string | null;
   isActive?: boolean;
 }
 
@@ -40,12 +40,12 @@ export interface CategoryTree {
 }
 
 export interface CategoryMetrics {
-  categoryId: number;
+  categoryId: string;
   productCount: number;
   viewCount: number;
   searchCount: number;
   conversionRate: number;
-  popularProducts?: number[]; // Product IDs
+  popularProducts?: string[]; // Product IDs
 }
 
 /**

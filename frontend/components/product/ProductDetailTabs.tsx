@@ -1,0 +1,66 @@
+'use client';
+
+import { useState } from 'react';
+import type { PriceComparison, PriceHistory } from '@price-comparison/types';
+import { PriceComparisonTable } from './PriceComparisonTable';
+import { PriceHistoryChart } from './PriceHistoryChart';
+
+interface ProductDetailTabsProps {
+  comparison: PriceComparison;
+  history: PriceHistory;
+  productId: string;
+}
+
+export function ProductDetailTabs({ comparison, history, productId }: ProductDetailTabsProps) {
+  const [tab, setTab] = useState<'price' | 'specs'>('price');
+
+  const tabs = [
+    { id: 'price' as const, label: 'So sánh giá', count: comparison.prices.length },
+    { id: 'specs' as const, label: 'Thông số kỹ thuật' },
+  ];
+
+  return (
+    <>
+      <div role="tablist" className="flex gap-1 border-b border-slate-200">
+        {tabs.map((t) => {
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(t.id)}
+              className={`relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                active
+                  ? 'border-primary-600 text-primary-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {t.label}
+              {t.count != null && (
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${active ? 'bg-primary-50 text-primary-700' : 'bg-slate-100 text-slate-500'}`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'price' && (
+        <div className="mt-6 space-y-8">
+          <PriceComparisonTable comparison={comparison} productId={productId} />
+          <PriceHistoryChart history={history} />
+        </div>
+      )}
+
+      {tab === 'specs' && (
+        <div className="mt-6">
+          <p className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
+            Chưa có thông số kỹ thuật cho sản phẩm này.
+          </p>
+        </div>
+      )}
+    </>
+  );
+}

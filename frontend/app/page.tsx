@@ -3,6 +3,8 @@ import { SearchBar } from '@/components/home/SearchBar';
 import { PopularKeywords } from '@/components/home/PopularKeywords';
 import { CategoryGrid } from '@/components/home/CategoryGrid';
 import { DealsSection } from '@/components/home/DealsSection';
+import { VoucherTabs } from '@/components/home/VoucherTabs';
+import { SuggestedToday } from '@/components/home/SuggestedToday';
 import { getBestDeals, getCategoryTree } from '@/lib/api/catalog';
 import { getPopularKeywords } from '@/lib/api/search';
 
@@ -32,7 +34,9 @@ export default async function HomePage() {
           </div>
 
           <CategoryGrid categories={categories} />
+          <VoucherTabs featured className="mt-16" />
           <DealsSection deals={deals} />
+          <SuggestedToday deals={deals} />
         </div>
       </section>
     </PublicLayout>

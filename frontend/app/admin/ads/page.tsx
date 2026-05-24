@@ -18,10 +18,16 @@ export default function AdminAdsPage() {
   const [zones, setZones] = useState<AdZone[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Create form
   const [name, setName] = useState('');
   const [position, setPosition] = useState<string>('header');
   const [width, setWidth] = useState(728);
   const [height, setHeight] = useState(90);
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editWidth, setEditWidth] = useState(728);
+  const [editHeight, setEditHeight] = useState(90);
+  const [editActive, setEditActive] = useState(true);
 
   async function loadZones() {
     setLoading(true);
@@ -55,6 +61,39 @@ export default function AdminAdsPage() {
       await loadZones();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Tạo vùng quảng cáo thất bại');
+    }
+  }
+
+  function startEdit(zone: AdZone) {
+    setEditingId(zone.id);
+    setEditWidth(zone.dimensions.width);
+    setEditHeight(zone.dimensions.height);
+    setEditActive(zone.isActive);
+  }
+
+  async function handleUpdate(id: string) {
+    try {
+      await apiFetchWithAuth(`/ads/zones/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          dimensions: { width: editWidth, height: editHeight, unit: 'px' },
+          isActive: editActive,
+        }),
+      });
+      setEditingId(null);
+      await loadZones();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Cập nhật thất bại');
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Xóa vùng quảng cáo này?')) return;
+    try {
+      await apiFetchWithAuth(`/ads/zones/${id}`, { method: 'DELETE' });
+      await loadZones();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Xóa thất bại');
     }
   }
 
@@ -127,6 +166,7 @@ export default function AdminAdsPage() {
                 <th className="px-4 py-3 font-medium">Vị trí</th>
                 <th className="px-4 py-3 font-medium">Kích thước</th>
                 <th className="px-4 py-3 font-medium">Trạng thái</th>
+                <th className="px-4 py-3 font-medium">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -135,23 +175,93 @@ export default function AdminAdsPage() {
                   <td className="px-4 py-3">{z.name}</td>
                   <td className="px-4 py-3">{z.position}</td>
                   <td className="px-4 py-3">
-                    {z.dimensions.width}×{z.dimensions.height}
-                    {z.dimensions.unit}
+                    {editingId === z.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={1}
+                          value={editWidth}
+                          onChange={(e) => setEditWidth(Number(e.target.value))}
+                          className="w-20 rounded border border-slate-300 px-2 py-1 text-xs"
+                        />
+                        <span className="text-slate-500">×</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={editHeight}
+                          onChange={(e) => setEditHeight(Number(e.target.value))}
+                          className="w-20 rounded border border-slate-300 px-2 py-1 text-xs"
+                        />
+                        <span className="text-xs text-slate-500">px</span>
+                      </div>
+                    ) : (
+                      `${z.dimensions.width}×${z.dimensions.height}${z.dimensions.unit}`
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        z.isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {z.isActive ? 'Bật' : 'Tắt'}
-                    </span>
+                    {editingId === z.id ? (
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={editActive}
+                          onChange={(e) => setEditActive(e.target.checked)}
+                        />
+                        Bật
+                      </label>
+                    ) : (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          z.isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {z.isActive ? 'Bật' : 'Tắt'}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      {editingId === z.id ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdate(z.id)}
+                            className="text-primary-600 hover:underline"
+                          >
+                            Lưu
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(null)}
+                            className="text-slate-600 hover:underline"
+                          >
+                            Hủy
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(z)}
+                            className="text-primary-600 hover:underline"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(z.id)}
+                            className="text-red-600 hover:underline"
+                          >
+                            Xóa
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
               {!zones.length && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
                     Chưa có vùng quảng cáo
                   </td>
                 </tr>

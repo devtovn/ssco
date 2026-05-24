@@ -4,7 +4,16 @@ import { PublicLayout } from '@/components/layout/PublicLayout';
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
 import { ProductCard, type ProductCardData } from '@/components/shared/ProductCard';
 import { JsonLd } from '@/components/shared/JsonLd';
+import { VoucherTabs } from '@/components/home/VoucherTabs';
 import { getCategoryBySlug, getCategoryProducts } from '@/lib/api/categories';
+
+const CATEGORY_ICONS: Record<string, string> = {
+  'dien-lanh': '❄️',
+  'dien-thoai': '📱',
+  'laptop': '💻',
+  'thiet-bi-gia-dung': '🏠',
+  'am-thanh-hinh-anh': '🎧',
+};
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -26,6 +35,7 @@ function parseImages(images?: string[] | string): string | undefined {
 
 function toProductCard(row: {
   id: string;
+  slug?: string;
   name: string;
   brand?: string;
   images?: string[] | string;
@@ -33,6 +43,7 @@ function toProductCard(row: {
 }): ProductCardData {
   return {
     id: String(row.id),
+    slug: row.slug,
     name: row.name,
     brand: row.brand,
     image: parseImages(row.images),
@@ -75,6 +86,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     url: `${SITE_URL}/danh-muc/${params.slug}`,
   };
 
+  const icon = CATEGORY_ICONS[params.slug] || '🛒';
+
   return (
     <PublicLayout>
       <JsonLd data={jsonLd} />
@@ -85,13 +98,18 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             { label: category.name },
           ]}
         />
-        <h1 className="text-3xl font-bold text-slate-900">{category.name}</h1>
-        {category.description && (
-          <p className="mt-2 max-w-2xl text-slate-600">{category.description}</p>
-        )}
-        <p className="mt-2 text-sm text-slate-500">{pagination.total} sản phẩm</p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-6 flex items-center gap-4">
+          <span className="text-5xl" aria-hidden>{icon}</span>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">{category.name}</h1>
+            <p className="text-sm text-slate-500">{pagination.total} sản phẩm · cập nhật mỗi 6 giờ</p>
+          </div>
+        </div>
+
+        <VoucherTabs className="mt-8" />
+
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {products.map((p) => (
             <ProductCard key={String(p.id)} product={toProductCard(p)} />
           ))}

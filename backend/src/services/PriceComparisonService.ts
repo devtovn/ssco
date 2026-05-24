@@ -18,24 +18,25 @@ export class PriceComparisonService {
    * Get product prices from all sources
    */
   async getProductPrices(productId: string): Promise<PriceComparison> {
-    // Get product info
+    // Get product info — accept either ULID id or slug
     const productQuery = `
-      SELECT id, name FROM products WHERE id = $1 AND is_active = true
+      SELECT id, slug, name FROM products WHERE (id = $1 OR slug = $1) AND is_active = true
     `;
     const productResult = await queryRead(productQuery, [productId]);
-    
+
     if (productResult.rows.length === 0) {
       throw new Error(`Product with ID ${productId} not found`);
     }
-    
+
     const product = productResult.rows[0];
-    
+    const resolvedId = product.id;
+
     // Get all price entries for this product
     const pricesQuery = `
       SELECT
         id,
         product_id,
-        source,
+        source_name AS source,
         source_url,
         price,
         currency,
@@ -46,8 +47,8 @@ export class PriceComparisonService {
       WHERE product_id = $1
       ORDER BY price ASC, scraped_at DESC
     `;
-    
-    const pricesResult = await queryRead(pricesQuery, [productId]);
+
+    const pricesResult = await queryRead(pricesQuery, [resolvedId]);
     
     const prices: PriceEntry[] = pricesResult.rows.map(row => ({
       id: row.id,
@@ -89,7 +90,7 @@ export class PriceComparisonService {
       : new Date();
     
     return {
-      productId,
+      productId: resolvedId,
       productName: product.name,
       prices,
       lowestPrice,
@@ -109,42 +110,44 @@ export class PriceComparisonService {
     source?: string,
     days: number = 30
   ): Promise<PriceHistory> {
-    // Verify product exists
+    // Verify product exists — accept either id or slug
     const productCheck = await queryRead(
-      'SELECT id FROM products WHERE id = $1',
+      'SELECT id FROM products WHERE id = $1 OR slug = $1',
       [productId]
     );
-    
+
     if (productCheck.rows.length === 0) {
       throw new Error(`Product with ID ${productId} not found`);
     }
-    
+
+    const resolvedId = productCheck.rows[0].id;
+
     // Build query
     const conditions = ['product_id = $1', 'scraped_at >= NOW() - INTERVAL \'1 day\' * $2'];
-    const params: any[] = [productId, days];
+    const params: any[] = [resolvedId, days];
     let paramIndex = 3;
     
     if (source) {
-      conditions.push(`source = $${paramIndex}`);
+      conditions.push(`source_name = $${paramIndex}`);
       params.push(source);
       paramIndex++;
     }
-    
+
     const whereClause = conditions.join(' AND ');
-    
+
     // Get price history
     const historyQuery = `
       SELECT
         DATE(scraped_at) as date,
-        source,
+        source_name AS source,
         AVG(price) as avg_price,
         MIN(price) as min_price,
         MAX(price) as max_price,
         BOOL_OR(is_available) as is_available
       FROM price_entries
       WHERE ${whereClause}
-      GROUP BY DATE(scraped_at), source
-      ORDER BY date ASC, source ASC
+      GROUP BY DATE(scraped_at), source_name
+      ORDER BY date ASC, source_name ASC
     `;
     
     const historyResult = await queryRead(historyQuery, params);
@@ -172,7 +175,7 @@ export class PriceComparisonService {
       const { lowestEver, highestEver } = this.calculateExtremes(entries);
       
       return {
-        productId,
+        productId: resolvedId,
         source,
         entries,
         trend,
@@ -194,7 +197,7 @@ export class PriceComparisonService {
     const { lowestEver, highestEver } = this.calculateExtremes(allEntries);
     
     return {
-      productId,
+      productId: resolvedId,
       source: source || 'all',
       entries: allEntries,
       trend,
@@ -211,74 +214,78 @@ export class PriceComparisonService {
     limit: number = 20,
     minDiscountPercent: number = 10
   ): Promise<Deal[]> {
-    // Build query
-    const conditions = ['p.is_active = true'];
-    const params: any[] = [];
-    let paramIndex = 1;
-    
+    const params: any[] = [minDiscountPercent];
+    let paramIndex = 2;
+
+    let categoryFilter = '';
     if (categoryId) {
-      conditions.push(`EXISTS (
-        SELECT 1 FROM product_categories pc
-        WHERE pc.product_id = p.id AND pc.category_id = $${paramIndex}
-      )`);
+      categoryFilter = `AND EXISTS (
+        SELECT 1 FROM product_categories pc2
+        WHERE pc2.product_id = p.id AND pc2.category_id = $${paramIndex}
+      )`;
       params.push(categoryId);
       paramIndex++;
     }
-    
-    const whereClause = conditions.join(' AND ');
-    
-    // Get deals
+
+    params.push(limit);
+
     const dealsQuery = `
-      WITH product_price_stats AS (
-        SELECT
+      WITH cheapest AS (
+        SELECT DISTINCT ON (product_id)
           product_id,
-          MIN(price) as current_price,
-          MAX(price) as original_price,
-          MIN(source) FILTER (WHERE price = MIN(price)) as source,
-          MIN(source_url) FILTER (WHERE price = MIN(price)) as source_url,
-          MAX(scraped_at) as scraped_at
+          price        AS current_price,
+          source_name  AS source,
+          source_url
+        FROM price_entries
+        WHERE is_available = true
+          AND scraped_at >= NOW() - INTERVAL '7 days'
+        ORDER BY product_id, price ASC
+      ),
+      expensive AS (
+        SELECT product_id, MAX(price) AS original_price
         FROM price_entries
         WHERE is_available = true
           AND scraped_at >= NOW() - INTERVAL '7 days'
         GROUP BY product_id
-        HAVING MAX(price) > MIN(price) * (1 + $${paramIndex} / 100.0)
+        HAVING MAX(price) > MIN(price) * (1 + $1 / 100.0)
       ),
       product_categories_agg AS (
         SELECT
           pc.product_id,
-          MIN(c.id) as category_id,
-          MIN(c.name) as category_name
+          MIN(c.id::text)  AS category_id,
+          MIN(c.name_vi)   AS category_name
         FROM product_categories pc
         INNER JOIN categories c ON pc.category_id = c.id
         GROUP BY pc.product_id
       )
       SELECT
-        p.id as product_id,
-        p.name as product_name,
-        p.images[1] as product_image,
+        p.id              AS product_id,
+        p.slug            AS product_slug,
+        p.name            AS product_name,
+        p.images[1]       AS product_image,
         pca.category_id,
         pca.category_name,
-        pps.original_price,
-        pps.current_price,
-        pps.original_price - pps.current_price as discount,
-        ((pps.original_price - pps.current_price) / pps.original_price * 100) as discount_percentage,
-        pps.source,
-        pps.source_url,
-        pps.scraped_at
+        exp.original_price,
+        ch.current_price,
+        exp.original_price - ch.current_price                              AS discount,
+        (exp.original_price - ch.current_price) / exp.original_price * 100 AS discount_percentage,
+        ch.source,
+        ch.source_url
       FROM products p
-      INNER JOIN product_price_stats pps ON p.id = pps.product_id
-      LEFT JOIN product_categories_agg pca ON p.id = pca.product_id
-      WHERE ${whereClause}
+      INNER JOIN expensive exp ON p.id = exp.product_id
+      INNER JOIN cheapest  ch  ON p.id = ch.product_id
+      LEFT  JOIN product_categories_agg pca ON p.id = pca.product_id
+      WHERE p.is_active = true
+      ${categoryFilter}
       ORDER BY discount_percentage DESC, discount DESC
-      LIMIT $${paramIndex + 1}
+      LIMIT $${paramIndex}
     `;
-    
-    params.push(minDiscountPercent, limit);
-    
+
     const dealsResult = await queryRead(dealsQuery, params);
-    
+
     return dealsResult.rows.map(row => ({
       productId: row.product_id,
+      slug: row.product_slug,
       productName: row.product_name,
       productImage: row.product_image || '',
       categoryId: row.category_id,
@@ -289,7 +296,7 @@ export class PriceComparisonService {
       discountPercentage: parseFloat(row.discount_percentage),
       source: row.source,
       sourceUrl: row.source_url,
-      scrapedAt: new Date(row.scraped_at),
+      scrapedAt: new Date(),
     }));
   }
 
@@ -329,7 +336,7 @@ export class PriceComparisonService {
       for (const priceData of prices) {
         try {
           await client.query(
-            `INSERT INTO price_entries (product_id, source, source_url, price, currency, is_available, metadata, scraped_at)
+            `INSERT INTO price_entries (product_id, source_name, source_url, price, currency, is_available, metadata, scraped_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
             [
               productId,

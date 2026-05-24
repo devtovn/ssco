@@ -16,6 +16,7 @@ interface SearchResultsProps {
 function toCard(product: SearchResponse['results'][0]): ProductCardData {
   return {
     id: String(product.id),
+    slug: product.slug,
     name: product.name,
     image: product.images[0],
     categoryName: product.categoryName,

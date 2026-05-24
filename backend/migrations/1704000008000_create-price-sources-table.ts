@@ -3,9 +3,9 @@ import { MigrationBuilder } from 'node-pg-migrate';
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable('price_sources', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     name: {
       type: 'varchar(100)',

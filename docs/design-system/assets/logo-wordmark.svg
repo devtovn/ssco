@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64" role="img" aria-label="SSCO — So sánh giá">
+  
+  <g fill="none" stroke="#0284c7" stroke-width="4.5" stroke-linecap="round">
+    <circle cx="26" cy="28" r="16" fill="#ffffff"></circle>
+    <line x1="38" y1="40" x2="50" y2="52"></line>
+  </g>
+  <text x="26" y="35" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="20" fill="#0369a1" letter-spacing="-0.04em">S</text>
+
+  
+  <text x="68" y="38" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="32" fill="#0369a1" letter-spacing="-0.02em">SSCO</text>
+  <text x="170" y="38" font-family="Inter, system-ui, sans-serif" font-weight="400" font-size="14" fill="#64748b">So sánh giá</text>
+</svg>

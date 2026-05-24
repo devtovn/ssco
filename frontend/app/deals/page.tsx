@@ -26,7 +26,7 @@ export default async function DealsPage() {
             {deals.map((deal) => (
               <Link
                 key={String(deal.productId)}
-                href={`/san-pham/${deal.productId}`}
+                href={`/san-pham/${deal.slug ?? deal.productId}`}
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
               >
                 <div className="relative aspect-square bg-slate-100">

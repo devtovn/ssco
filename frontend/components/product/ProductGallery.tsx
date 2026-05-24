@@ -13,41 +13,50 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const [active, setActive] = useState(0);
   const main = list[active];
 
+  const thumbCount = Math.max(list.length, 4);
+
   return (
-    <section className="space-y-3">
-      <div className="relative aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-slate-100">
         {main ? (
-          <Image
-            src={main}
-            alt={productName}
-            fill
-            className="object-contain p-4"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            priority
-          />
+          <div className="relative h-full w-full">
+            <Image
+              src={main}
+              alt={productName}
+              fill
+              className="object-contain p-4"
+              sizes="(max-width: 768px) 100vw, 420px"
+              priority
+            />
+          </div>
         ) : (
-          <span className="flex h-full items-center justify-center text-6xl" aria-hidden>
-            📦
-          </span>
+          <span className="text-7xl" aria-hidden>📦</span>
         )}
       </div>
 
-      {list.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {list.map((img, i) => (
+      <div className="mt-4 flex gap-2">
+        {Array.from({ length: Math.min(thumbCount, 4) }).map((_, i) => {
+          const img = list[i];
+          return (
             <button
-              key={img}
+              key={i}
               type="button"
-              onClick={() => setActive(i)}
-              className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 ${
-                i === active ? 'border-primary-500' : 'border-slate-200'
+              onClick={() => img && setActive(i)}
+              className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 bg-slate-100 ${
+                i === active && img ? 'border-primary-400' : 'border-slate-200'
               }`}
             >
-              <Image src={img} alt="" fill className="object-cover" sizes="64px" />
+              {img ? (
+                <div className="relative h-full w-full">
+                  <Image src={img} alt="" fill className="object-cover" sizes="64px" />
+                </div>
+              ) : (
+                <span className="text-lg" aria-hidden>📦</span>
+              )}
             </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </section>
   );
 }

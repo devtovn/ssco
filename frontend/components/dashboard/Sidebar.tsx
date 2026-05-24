@@ -20,7 +20,7 @@ export function Sidebar({ title, items, onLogout }: SidebarProps) {
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-slate-50">
       <div className="border-b border-slate-200 px-4 py-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           Bảng điều khiển
         </p>
         <h1 className="mt-1 text-lg font-bold text-primary-700">{title}</h1>

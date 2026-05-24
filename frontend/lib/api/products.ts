@@ -1,6 +1,21 @@
 import { apiFetch, apiPost } from './client';
 import type { PriceComparison, PriceHistory } from '@price-comparison/types';
 
+export interface ProductDetail {
+  id: string;
+  name: string;
+  brand: string | null;
+  description: string | null;
+  images: string[];
+  categoryId: string | null;
+  categoryName: string | null;
+  categorySlug: string | null;
+}
+
+export async function getProductById(productId: string): Promise<ProductDetail> {
+  return apiFetch<ProductDetail>(`/products/${productId}`);
+}
+
 export async function getProductPrices(productId: string): Promise<PriceComparison> {
   return apiFetch<PriceComparison>(`/products/${productId}/prices`);
 }

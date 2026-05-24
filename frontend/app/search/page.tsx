@@ -79,7 +79,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           itemListElement: results.results.slice(0, 10).map((item, index) => ({
             '@type': 'ListItem',
             position: index + 1,
-            url: `${SITE_URL}/san-pham/${item.id}`,
+            url: `${SITE_URL}/san-pham/${item.slug ?? item.id}`,
             name: item.name,
           })),
         }

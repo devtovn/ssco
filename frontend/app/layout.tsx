@@ -1,7 +1,14 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
+
+const inter = Inter({
+  subsets: ['latin', 'vietnamese'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -33,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" className={inter.variable}>
       <head>
         <link rel="preconnect" href={apiUrl} />
         <link rel="dns-prefetch" href={apiUrl} />

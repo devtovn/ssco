@@ -99,6 +99,8 @@ services:
     volumes:
       # Mount source code for hot-reload in development
       - ./backend/src:/app/src:ro
+      - ./backend/scripts:/app/scripts:ro
+      - ./backend/migrations:/app/migrations:ro
       - ./backend/package.json:/app/package.json:ro
       - ./backend/tsconfig.json:/app/tsconfig.json:ro
       # Named volume for node_modules to avoid conflicts
@@ -133,6 +135,8 @@ services:
       # API Configuration
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
       NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL:-http://localhost:3000}
+      # Internal URL for server-side rendering (SSR) inside Docker network
+      INTERNAL_API_URL: http://backend:4000
       
       # Analytics Configuration
       NEXT_PUBLIC_GA_MEASUREMENT_ID: ${NEXT_PUBLIC_GA_MEASUREMENT_ID:-}
@@ -146,6 +150,8 @@ services:
       # Mount source code for hot-reload in development
       - ./frontend/src:/app/src:ro
       - ./frontend/app:/app/app:ro
+      - ./frontend/components:/app/components:ro
+      - ./frontend/lib:/app/lib:ro
       - ./frontend/public:/app/public:ro
       - ./frontend/package.json:/app/package.json:ro
       - ./frontend/tsconfig.json:/app/tsconfig.json:ro

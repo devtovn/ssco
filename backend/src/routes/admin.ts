@@ -4,6 +4,7 @@
  */
 
 import { Router, Response } from 'express';
+import { Pool } from 'pg';
 import { authenticateJWT, requireRole, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { z } from 'zod';
@@ -583,6 +584,74 @@ router.delete(
       }
       throw error;
     }
+  })
+);
+
+// ─── Products ────────────────────────────────────────────────────────────────
+
+router.get(
+  '/products',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+
+    const pool = req.app.get('pool') as Pool;
+    const category = (req.query.category as string) || null;
+    const q = (req.query.q as string) || null;
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
+    const page = Math.max(parseInt(req.query.page as string, 10) || 1, 1);
+    const offset = (page - 1) * limit;
+
+    const conditions: string[] = [];
+    const params: (string | number | null)[] = [];
+
+    if (category) {
+      params.push(category);
+      conditions.push(`p.category = $${params.length}`);
+    }
+
+    if (q) {
+      params.push(`%${q}%`);
+      const i = params.length;
+      conditions.push(`(p.name ILIKE $${i} OR p.brand ILIKE $${i} OR p.model ILIKE $${i})`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM products p ${where}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].count, 10);
+
+    params.push(limit, offset);
+    const dataResult = await pool.query(
+      `SELECT p.id, p.name, p.brand, p.model, p.category AS category_slug,
+              c.name_vi AS category_name,
+              p.is_active, p.created_at,
+              COUNT(DISTINCT pe.id)::int AS price_count,
+              MIN(pe.price) AS min_price,
+              MAX(pe.price) AS max_price
+       FROM products p
+       LEFT JOIN categories c ON c.slug = p.category
+       LEFT JOIN price_entries pe ON pe.product_id = p.id AND pe.is_available = true
+       ${where}
+       GROUP BY p.id, p.name, p.brand, p.model, p.category, c.name_vi, p.is_active, p.created_at
+       ORDER BY p.created_at DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+
+    res.json({
+      success: true,
+      data: dataResult.rows,
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    });
   })
 );
 

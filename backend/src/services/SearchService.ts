@@ -119,30 +119,41 @@ export class SearchService {
 
     // Main search query
     const searchQuery = `
-      WITH product_prices AS (
-        SELECT
+      WITH cheapest AS (
+        SELECT DISTINCT ON (product_id)
           product_id,
-          MIN(price) as min_price,
-          MAX(price) as max_price,
-          AVG(price) as avg_price,
-          MIN(source) FILTER (WHERE price = MIN(price)) as lowest_source,
-          MIN(source_url) FILTER (WHERE price = MIN(price)) as lowest_source_url,
-          BOOL_OR(is_available) as is_available
+          source_name AS lowest_source,
+          source_url  AS lowest_source_url
         FROM price_entries
         WHERE is_available = true
-        GROUP BY product_id
+        ORDER BY product_id, price ASC
+      ),
+      product_prices AS (
+        SELECT
+          pe.product_id,
+          MIN(pe.price)            AS min_price,
+          MAX(pe.price)            AS max_price,
+          AVG(pe.price)            AS avg_price,
+          c.lowest_source,
+          c.lowest_source_url,
+          BOOL_OR(pe.is_available) AS is_available
+        FROM price_entries pe
+        JOIN cheapest c ON pe.product_id = c.product_id
+        WHERE pe.is_available = true
+        GROUP BY pe.product_id, c.lowest_source, c.lowest_source_url
       ),
       product_categories_agg AS (
         SELECT
           pc.product_id,
-          MIN(c.id) as category_id,
-          MIN(c.name) as category_name
+          MIN(c.id::text) AS category_id,
+          MIN(c.name_vi)  AS category_name
         FROM product_categories pc
         INNER JOIN categories c ON pc.category_id = c.id
         GROUP BY pc.product_id
       )
       SELECT
         p.id,
+        p.slug,
         p.name,
         p.description,
         p.brand,
@@ -168,6 +179,7 @@ export class SearchService {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
+    const countParams = [...params]; // snapshot before adding limit/offset
     params.push(limit, offset);
 
     // Execute search
@@ -180,13 +192,13 @@ export class SearchService {
       WHERE ${whereClause}
     `;
 
-    const countParams = params.slice(0, paramIndex - 2); // Remove limit and offset
     const countResult = await queryRead(countQuery, countParams);
     const total = parseInt(countResult.rows[0].total);
 
     // Map results
     const results: SearchResult[] = searchResult.rows.map(row => ({
       id: row.id,
+      slug: row.slug,
       name: row.name,
       description: row.description,
       categoryId: row.category_id,
@@ -268,17 +280,17 @@ export class SearchService {
     // Get category suggestions
     const categoryQuery = `
       SELECT
-        name as text,
+        name_vi as text,
         'category' as type,
-        similarity(name, $1) as score,
+        similarity(name_vi, $1) as score,
         id as category_id
       FROM categories
       WHERE is_active = true
         AND (
-          name ILIKE $2
-          OR similarity(name, $1) > 0.3
+          name_vi ILIKE $2
+          OR similarity(name_vi, $1) > 0.3
         )
-      ORDER BY score DESC, name ASC
+      ORDER BY score DESC, name_vi ASC
       LIMIT $3
     `;
 
@@ -411,14 +423,14 @@ export class SearchService {
     const categoryQuery = `
       SELECT
         c.id,
-        c.name,
+        c.name_vi AS name,
         COUNT(DISTINCT p.id) as count
       FROM products p
       INNER JOIN product_categories pc ON p.id = pc.product_id
       INNER JOIN categories c ON pc.category_id = c.id
       WHERE ${whereClause}
         ${categoryId ? `AND c.id != $${paramIndex}` : ''}
-      GROUP BY c.id, c.name
+      GROUP BY c.id, c.name_vi
       ORDER BY count DESC
       LIMIT 10
     `;

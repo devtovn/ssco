@@ -97,7 +97,7 @@ router.get(
 router.get(
   '/:id/products',
   asyncHandler(async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const { id } = req.params;
     const includeSubcategories = req.query.includeSubcategories !== 'false';
     const page = parseInt(req.query.page as string) || 1;
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
@@ -226,7 +226,7 @@ router.put(
   // TODO: Add authentication middleware
   // TODO: Add authorization middleware (admin only)
   asyncHandler(async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const { id } = req.params;
     
     // Validate request body
     const validation = validate(CategoryUpdateSchema, req.body);
@@ -303,7 +303,7 @@ router.delete(
   // TODO: Add authentication middleware
   // TODO: Add authorization middleware (admin only)
   asyncHandler(async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const { id } = req.params;
     const cascade = req.query.cascade === 'true';
     
     try {
@@ -360,7 +360,7 @@ router.delete(
 router.get(
   '/:id/metrics',
   asyncHandler(async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const { id } = req.params;
     
     // Verify category exists
     const category = await cachedCategoryService.getCategoryById(id);
@@ -450,7 +450,7 @@ router.get(
 router.get(
   '/:id',
   asyncHandler(async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const { id } = req.params;
     
     const category = await cachedCategoryService.getCategoryById(id);
     

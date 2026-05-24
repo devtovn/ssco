@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SSCO — UI Kit · Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: {
+            50:"#f0f9ff",100:"#e0f2fe",200:"#bae6fd",300:"#7dd3fc",400:"#38bdf8",
+            500:"#0ea5e9",600:"#0284c7",700:"#0369a1",800:"#075985",900:"#0c4a6e",950:"#082f49"
+          }
+        },
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+      }
+    }
+  };
+</script>
+<style>
+  html, body { font-family: 'Inter', system-ui, sans-serif; }
+</style>
+</head>
+<body class="bg-slate-100 antialiased text-slate-900">
+
+<div id="root" data-screen-label="00 Dashboard"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="Components.jsx"></script>
+<script type="text/babel" src="AdminScreens.jsx"></script>
+<script type="text/babel" src="ReviewerScreens.jsx"></script>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+const ADMIN_NAV = [
+  { href: "/admin", label: "Tổng quan" },
+  { href: "/admin/reviewers", label: "Biên tập viên" },
+  { href: "/admin/config", label: "Cấu hình" },
+  { href: "/admin/display", label: "Hiển thị" },
+  { href: "/admin/ads", label: "Quảng cáo" },
+  { href: "/admin/affiliate", label: "Affiliate" },
+  { href: "/admin/analytics", label: "Phân tích" },
+  { href: "/admin/categories", label: "Danh mục" },
+];
+const REVIEWER_NAV = [
+  { href: "/reviewer", label: "Tổng quan" },
+  { href: "/reviewer/generate", label: "Tạo bài viết" },
+  { href: "/reviewer/articles", label: "Bài viết" },
+  { href: "/reviewer/pending", label: "Chờ duyệt" },
+];
+
+function NotBuilt({ title }) {
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+      <p className="mt-2 text-sm text-slate-600">Trang này sẽ được thiết kế sau — hiện tại đang là placeholder.</p>
+      <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-400">
+        Khu vực nội dung
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [user, setUser] = useState(null); // { role, redirect }
+  const [path, setPath] = useState("/admin");
+
+  if (!user) {
+    return (
+      <LoginScreen
+        onSuccess={(acc) => {
+          setUser(acc);
+          setPath(acc.redirect);
+        }}
+      />
+    );
+  }
+
+  const isAdmin = user.role === "Administrator";
+  const nav = isAdmin ? ADMIN_NAV : REVIEWER_NAV;
+  const title = isAdmin ? "Quản trị" : "Biên tập";
+
+  let screen;
+  let label = "Overview";
+  if (path === "/admin") { screen = <AdminOverview />; label = "01 Admin Overview"; }
+  else if (path === "/admin/categories") { screen = <AdminCategories />; label = "02 Admin Categories"; }
+  else if (path === "/admin/reviewers") { screen = <AdminReviewers />; label = "03 Admin Reviewers"; }
+  else if (path === "/admin/display") { screen = <AdminDisplayConfig />; label = "04 Admin Display"; }
+  else if (path === "/admin/affiliate") { screen = <AdminAffiliate />; label = "05 Admin Affiliate"; }
+  else if (path === "/reviewer") { screen = <ReviewerOverview onNav={setPath} pendingCount={3} />; label = "04 Reviewer Overview"; }
+  else if (path === "/reviewer/pending") { screen = <ReviewerPending />; label = "05 Reviewer Pending"; }
+  else if (path === "/reviewer/generate") { screen = <ReviewerGenerate onCreated={() => setPath("/reviewer/pending")} />; label = "06 Reviewer Generate"; }
+  else { screen = <NotBuilt title={nav.find(n => n.href === path)?.label || "Chưa triển khai"} />; label = "07 Placeholder"; }
+
+  return (
+    <div data-screen-label={label} className="flex min-h-screen bg-slate-100">
+      <Sidebar
+        title={title}
+        items={nav}
+        activeHref={path}
+        onNav={setPath}
+        onLogout={() => { setUser(null); setPath("/admin"); }}
+      />
+      <main className="flex-1 overflow-auto p-6">{screen}</main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@ const adminNav: SidebarItem[] = [
   { href: '/admin/affiliate', label: 'Affiliate' },
   { href: '/admin/analytics', label: 'Phân tích' },
   { href: '/admin/categories', label: 'Danh mục' },
+  { href: '/admin/products', label: 'Sản phẩm' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

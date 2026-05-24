@@ -48,6 +48,7 @@ export interface PriceRange {
 
 export interface Deal {
   productId: number;
+  slug?: string;
   productName: string;
   productImage: string;
   categoryId?: number;

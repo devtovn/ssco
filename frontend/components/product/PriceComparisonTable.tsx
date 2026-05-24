@@ -1,62 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
 import type { PriceComparison, PriceEntry } from '@price-comparison/types';
 import { formatPrice } from '@/lib/utils/format';
-import { generateAffiliateLink, trackClick } from '@/lib/api/products';
-import { getUserSession } from '@/lib/utils/session';
-import { trackInteraction } from '@/lib/api/analytics';
-
-const PLATFORM_IDS: Record<string, string> = {
-  tiki: 'tiki',
-  lazada: 'lazada',
-  shopee: 'shopee',
-  tiktok: 'tiktok',
-};
 
 interface PriceComparisonTableProps {
   comparison: PriceComparison;
   productId: string;
 }
 
+function redirectUrl(entry: PriceEntry, productId: string): string {
+  const source = entry.source.toLowerCase();
+  return `/chuyen-huong?to=${encodeURIComponent(entry.sourceUrl)}&source=${source}&pid=${encodeURIComponent(productId)}`;
+}
+
 export function PriceComparisonTable({ comparison, productId }: PriceComparisonTableProps) {
-  const [loadingSource, setLoadingSource] = useState<string | null>(null);
-
-  const handleBuy = async (entry: PriceEntry) => {
-    const platformId = PLATFORM_IDS[entry.source.toLowerCase()] || entry.source.toLowerCase();
-    setLoadingSource(entry.source);
-
-    try {
-      const { affiliateLink } = await generateAffiliateLink({
-        productUrl: entry.sourceUrl,
-        platformId,
-      });
-
-      await trackClick({
-        platformId,
-        generatedLink: affiliateLink,
-        productId,
-        userSession: getUserSession(),
-        userAgent: navigator.userAgent,
-        referrer: document.referrer || undefined,
-      });
-
-      void trackInteraction({
-        eventType: 'click',
-        productId,
-        targetUrl: affiliateLink,
-        pagePath: `/san-pham/${productId}`,
-        userSession: getUserSession(),
-      });
-
-      window.open(affiliateLink, '_blank', 'noopener,noreferrer');
-    } catch {
-      window.open(entry.sourceUrl, '_blank', 'noopener,noreferrer');
-    } finally {
-      setLoadingSource(null);
-    }
-  };
-
   if (!comparison.prices.length) {
     return (
       <p className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
@@ -105,14 +63,18 @@ export function PriceComparisonTable({ comparison, productId }: PriceComparisonT
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button
-                    type="button"
-                    disabled={!entry.isAvailable || loadingSource === entry.source}
-                    onClick={() => handleBuy(entry)}
-                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:opacity-50"
-                  >
-                    {loadingSource === entry.source ? 'Đang xử lý…' : 'Mua ngay'}
-                  </button>
+                  {entry.isAvailable ? (
+                    <Link
+                      href={redirectUrl(entry, productId)}
+                      className="inline-block rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
+                    >
+                      Tới nơi bán
+                    </Link>
+                  ) : (
+                    <span className="inline-block rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-400">
+                      Hết hàng
+                    </span>
+                  )}
                 </td>
               </tr>
             );

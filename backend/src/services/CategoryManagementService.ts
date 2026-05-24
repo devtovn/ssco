@@ -48,10 +48,10 @@ export class CategoryManagementService {
       
       // Insert category
       const result = await client.query(
-        `INSERT INTO categories (name, slug, description, icon, parent_id, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, name, slug, description, icon, parent_id, is_active, created_at, updated_at`,
-        [input.name, input.slug, input.description, input.icon, input.parentId, true]
+        `INSERT INTO categories (name_vi, name_en, slug, description, icon, parent_id, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, name_vi, slug, description, icon, parent_id, is_active, created_at, updated_at`,
+        [input.name, input.name, input.slug, input.description, input.icon, input.parentId ?? null, true]
       );
       
       await client.query('COMMIT');
@@ -69,7 +69,7 @@ export class CategoryManagementService {
   /**
    * Update an existing category
    */
-  async updateCategory(id: number, update: CategoryUpdate): Promise<Category> {
+  async updateCategory(id: string, update: CategoryUpdate): Promise<Category> {
     const client = await pool.connect();
     
     try {
@@ -127,7 +127,9 @@ export class CategoryManagementService {
       let paramIndex = 1;
       
       if (update.name !== undefined) {
-        updates.push(`name = $${paramIndex++}`);
+        updates.push(`name_vi = $${paramIndex++}`);
+        values.push(update.name);
+        updates.push(`name_en = $${paramIndex++}`);
         values.push(update.name);
       }
       if (update.slug !== undefined) {
@@ -155,10 +157,10 @@ export class CategoryManagementService {
       values.push(id);
       
       const result = await client.query(
-        `UPDATE categories 
+        `UPDATE categories
          SET ${updates.join(', ')}
          WHERE id = $${paramIndex}
-         RETURNING id, name, slug, description, icon, parent_id, is_active, created_at, updated_at`,
+         RETURNING id, name_vi, slug, description, icon, parent_id, is_active, created_at, updated_at`,
         values
       );
       
@@ -177,7 +179,7 @@ export class CategoryManagementService {
   /**
    * Delete a category (with cascade handling)
    */
-  async deleteCategory(id: number, cascade: boolean = false): Promise<void> {
+  async deleteCategory(id: string, cascade: boolean = false): Promise<void> {
     const client = await pool.connect();
     
     try {
@@ -237,7 +239,7 @@ export class CategoryManagementService {
   /**
    * Get category tree (hierarchical structure)
    */
-  async getCategoryTree(rootId?: number): Promise<CategoryTree[]> {
+  async getCategoryTree(rootId?: string): Promise<CategoryTree[]> {
     const query = rootId
       ? 'SELECT * FROM categories WHERE parent_id = $1 AND is_active = true ORDER BY name_vi'
       : 'SELECT * FROM categories WHERE parent_id IS NULL AND is_active = true ORDER BY name_vi';
@@ -318,31 +320,32 @@ export class CategoryManagementService {
     const offset = (page - 1) * limit;
     
     let categoryIds = [categoryId];
-    
+
     if (includeSubcategories) {
-      // Get all descendant category IDs
-      categoryIds = await this.getAllDescendantIds(categoryId);
+      const descendants = await this.getAllDescendantIds(categoryId);
+      categoryIds = [categoryId, ...descendants];
     }
     
     // Get products
     const productsQuery = `
-      SELECT DISTINCT p.*
+      SELECT DISTINCT p.*,
+        (SELECT MIN(pe.price) FROM price_entries pe WHERE pe.product_id = p.id AND pe.is_available = true) as lowest_price
       FROM products p
       INNER JOIN product_categories pc ON p.id = pc.product_id
-      WHERE pc.category_id = ANY($1::int[])
+      WHERE pc.category_id = ANY($1::text[])
         AND p.is_active = true
       ORDER BY p.created_at DESC
       LIMIT $2 OFFSET $3
     `;
-    
+
     const productsResult = await queryRead(productsQuery, [categoryIds, limit, offset]);
-    
+
     // Get total count
     const countQuery = `
       SELECT COUNT(DISTINCT p.id) as total
       FROM products p
       INNER JOIN product_categories pc ON p.id = pc.product_id
-      WHERE pc.category_id = ANY($1::int[])
+      WHERE pc.category_id = ANY($1::text[])
         AND p.is_active = true
     `;
     
@@ -417,7 +420,7 @@ export class CategoryManagementService {
   /**
    * Get category by ID
    */
-  async getCategoryById(id: number): Promise<Category | null> {
+  async getCategoryById(id: string): Promise<Category | null> {
     const result = await queryRead(
       'SELECT * FROM categories WHERE id = $1',
       [id]
@@ -451,8 +454,8 @@ export class CategoryManagementService {
    */
   async getAllCategories(activeOnly: boolean = true): Promise<Category[]> {
     const query = activeOnly
-      ? 'SELECT * FROM categories WHERE is_active = true ORDER BY name'
-      : 'SELECT * FROM categories ORDER BY name';
+      ? 'SELECT * FROM categories WHERE is_active = true ORDER BY name_vi'
+      : 'SELECT * FROM categories ORDER BY name_vi';
     
     const result = await queryRead(query);
     
@@ -477,8 +480,8 @@ export class CategoryManagementService {
 
   private async wouldCreateCircularReference(
     client: PoolClient,
-    categoryId: number,
-    newParentId: number
+    categoryId: string,
+    newParentId: string
   ): Promise<boolean> {
     // Check if newParentId is a descendant of categoryId
     const descendants = await this.getAllDescendantIds(categoryId, client);
@@ -486,9 +489,9 @@ export class CategoryManagementService {
   }
 
   private async getAllDescendantIds(
-    categoryId: number,
+    categoryId: string,
     client?: PoolClient
-  ): Promise<number[]> {
+  ): Promise<string[]> {
     const executor = client || { query: queryRead.bind(null) };
     
     const result = await (client 
@@ -517,7 +520,7 @@ export class CategoryManagementService {
     return result.rows.map(row => row.id);
   }
 
-  private async deleteCategoryRecursive(client: PoolClient, categoryId: number): Promise<void> {
+  private async deleteCategoryRecursive(client: PoolClient, categoryId: string): Promise<void> {
     // Get all children
     const childrenResult = await client.query(
       'SELECT id FROM categories WHERE parent_id = $1',

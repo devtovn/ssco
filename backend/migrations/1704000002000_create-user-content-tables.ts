@@ -4,9 +4,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // Create users table for Administrator and Reviewer roles
   pgm.createTable('users', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     email: {
       type: 'varchar(255)',
@@ -60,12 +60,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // Create articles table with version control
   pgm.createTable('articles', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     product_id: {
-      type: 'uuid',
+      type: 'char(26)',
       references: 'products(id)',
       onDelete: 'SET NULL',
     },
@@ -88,7 +88,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       check: "status IN ('draft', 'pending_review', 'approved', 'published', 'rejected')",
     },
     reviewer_id: {
-      type: 'uuid',
+      type: 'char(26)',
       references: 'users(id)',
       onDelete: 'SET NULL',
     },
@@ -143,9 +143,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // Create search_logs table for analytics
   pgm.createTable('search_logs', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     query: {
       type: 'varchar(500)',

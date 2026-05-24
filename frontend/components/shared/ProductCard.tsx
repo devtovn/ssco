@@ -4,6 +4,7 @@ import { formatPrice } from '@/lib/utils/format';
 
 export interface ProductCardData {
   id: string;
+  slug?: string;
   name: string;
   image?: string;
   categoryName?: string;
@@ -22,7 +23,7 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
 
   return (
     <Link
-      href={`/san-pham/${product.id}`}
+      href={`/san-pham/${product.slug ?? product.id}`}
       className={`flex gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md ${className}`}
     >
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">

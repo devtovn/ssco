@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SSCO — UI Kit · Public Website</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: {
+            50:"#f0f9ff",100:"#e0f2fe",200:"#bae6fd",300:"#7dd3fc",400:"#38bdf8",
+            500:"#0ea5e9",600:"#0284c7",700:"#0369a1",800:"#075985",900:"#0c4a6e",950:"#082f49"
+          }
+        },
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+      }
+    }
+  };
+</script>
+<style>
+  html, body { font-family: 'Inter', system-ui, sans-serif; }
+  .text-balance { text-wrap: balance; }
+</style>
+</head>
+<body class="bg-white antialiased text-slate-900">
+
+<div id="root" data-screen-label="00 Public Website"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="Components.jsx"></script>
+<script type="text/babel" src="Search.jsx"></script>
+<script type="text/babel" src="Screens.jsx"></script>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect } = React;
+
+function parseRoute() {
+  const raw = (location.hash || "#/").replace(/^#/, "") || "/";
+  const [path, qs] = raw.split("?");
+  const params = new URLSearchParams(qs || "");
+  return { path, params };
+}
+
+function App() {
+  const [route, setRoute] = useState(parseRoute());
+  useEffect(() => {
+    const fn = () => setRoute(parseRoute());
+    window.addEventListener("hashchange", fn);
+    return () => window.removeEventListener("hashchange", fn);
+  }, []);
+
+  function go(to) {
+    location.hash = "#" + to;
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  const { path, params } = route;
+  let screen;
+  let label = "Home";
+  if (path === "/") { screen = <HomeScreen go={go} />; label = "01 Home"; }
+  else if (path === "/search") { screen = <SearchScreen q={params.get("q") || ""} go={go} />; label = "02 Search"; }
+  else if (path.startsWith("/san-pham/")) { screen = <ProductScreen id={path.split("/")[2]} go={go} />; label = "03 Product"; }
+  else if (path === "/deals") { screen = <DealsScreen go={go} />; label = "04 Deals"; }
+  else if (path.startsWith("/danh-muc/")) { screen = <CategoryScreen slug={path.split("/")[2]} go={go} />; label = "05 Category"; }
+  else if (path === "/di-toi-noi-ban") {
+    screen = <RedirectScreen listingId={params.get("listing")} productId={params.get("product")} go={go} />;
+    label = "06 Affiliate Redirect";
+  }
+  else { screen = <HomeScreen go={go} />; label = "01 Home"; }
+
+  // Hide chrome on the affiliate redirect to focus user attention
+  const chrome = path !== "/di-toi-noi-ban";
+
+  return (
+    <div data-screen-label={label}>
+      {chrome && <Header go={go} route={path} />}
+      <main>{screen}</main>
+      {chrome && <Footer />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

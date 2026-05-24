@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { cachedPriceService } from '../services/CachedPriceService';
 import { asyncHandler } from '../utils/asyncHandler';
+import { queryRead } from '../config/database';
 
 const router = Router();
 
@@ -258,6 +259,48 @@ router.get(
       }
       throw error;
     }
+  })
+);
+
+router.get(
+  '/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await queryRead(
+      `SELECT
+         p.id, p.slug, p.name, p.brand, p.description, p.images,
+         c.id        AS category_id,
+         c.name_vi   AS category_name,
+         c.slug      AS category_slug
+       FROM products p
+       LEFT JOIN product_categories pc ON pc.product_id = p.id
+       LEFT JOIN categories c ON c.id = pc.category_id
+       WHERE (p.id = $1 OR p.slug = $1) AND p.is_active = true
+       LIMIT 1`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'PRODUCT_NOT_FOUND', message: 'Product not found' },
+      });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      success: true,
+      data: {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        brand: row.brand || null,
+        description: row.description || null,
+        images: row.images || [],
+        categoryId: row.category_id || null,
+        categoryName: row.category_name || null,
+        categorySlug: row.category_slug || null,
+      },
+    });
   })
 );
 

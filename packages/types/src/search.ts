@@ -17,6 +17,7 @@ export interface SearchQuery extends PaginationParams {
 
 export interface SearchResult {
   id: number;
+  slug?: string;
   name: string;
   description?: string;
   categoryId: number;

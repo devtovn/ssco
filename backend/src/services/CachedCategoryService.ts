@@ -29,7 +29,7 @@ export class CachedCategoryService {
   /**
    * Update an existing category (invalidates cache)
    */
-  async updateCategory(id: number, update: CategoryUpdate): Promise<Category> {
+  async updateCategory(id: string, update: CategoryUpdate): Promise<Category> {
     const category = await categoryManagementService.updateCategory(id, update);
     
     // Invalidate all category-related caches
@@ -43,7 +43,7 @@ export class CachedCategoryService {
   /**
    * Delete a category (invalidates cache)
    */
-  async deleteCategory(id: number, cascade: boolean = false): Promise<void> {
+  async deleteCategory(id: string, cascade: boolean = false): Promise<void> {
     await categoryManagementService.deleteCategory(id, cascade);
     
     // Invalidate all category-related caches
@@ -55,7 +55,7 @@ export class CachedCategoryService {
   /**
    * Get category tree (with caching)
    */
-  async getCategoryTree(rootId?: number): Promise<CategoryTree[]> {
+  async getCategoryTree(rootId?: string): Promise<CategoryTree[]> {
     const cacheKey = rootId 
       ? `${CacheKeys.CATEGORY_TREE}:${rootId}`
       : CacheKeys.CATEGORY_TREE;
@@ -95,7 +95,7 @@ export class CachedCategoryService {
    * Get products by category (with caching)
    */
   async getProductsByCategory(
-    categoryId: number,
+    categoryId: string,
     includeSubcategories: boolean = true,
     page: number = 1,
     limit: number = 20
@@ -128,7 +128,7 @@ export class CachedCategoryService {
   /**
    * Get category metrics (with caching)
    */
-  async getCategoryMetrics(categoryId: number): Promise<CategoryMetrics> {
+  async getCategoryMetrics(categoryId: string): Promise<CategoryMetrics> {
     const cacheKey = CacheKeys.CATEGORY_METRICS(categoryId);
     
     // Try to get from cache
@@ -152,7 +152,7 @@ export class CachedCategoryService {
   /**
    * Get category by ID (with caching)
    */
-  async getCategoryById(id: number): Promise<Category | null> {
+  async getCategoryById(id: string): Promise<Category | null> {
     const cacheKey = `category:${id}`;
     
     // Try to get from cache

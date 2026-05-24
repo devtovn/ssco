@@ -23,8 +23,12 @@ export function DealsSection({ deals }: DealsSectionProps) {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {deals.map((deal) => (
-          <article
+          <Link
             key={String(deal.productId)}
+            href={`/san-pham/${deal.slug ?? deal.productId}`}
+            className="block"
+          >
+          <article
             className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
           >
             <div className="relative aspect-square bg-slate-100">
@@ -50,6 +54,7 @@ export function DealsSection({ deals }: DealsSectionProps) {
               <p className="mt-1 text-xs text-slate-500">{deal.source}</p>
             </div>
           </article>
+          </Link>
         ))}
       </div>
     </section>

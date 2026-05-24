@@ -3,7 +3,7 @@ import { MigrationBuilder } from 'node-pg-migrate';
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.addColumns('articles', {
     created_by: {
-      type: 'uuid',
+      type: 'char(26)',
       references: 'users(id)',
       onDelete: 'SET NULL',
     },
@@ -16,12 +16,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable('article_versions', {
     id: {
-      type: 'uuid',
+      type: 'char(26)',
       primaryKey: true,
-      default: pgm.func('gen_random_uuid()'),
+      default: pgm.func('generate_ulid()'),
     },
     article_id: {
-      type: 'uuid',
+      type: 'char(26)',
       notNull: true,
       references: 'articles(id)',
       onDelete: 'CASCADE',
@@ -43,7 +43,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       default: '{}',
     },
     edited_by: {
-      type: 'uuid',
+      type: 'char(26)',
       references: 'users(id)',
       onDelete: 'SET NULL',
     },
