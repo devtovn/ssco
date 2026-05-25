@@ -20,7 +20,8 @@ export class PriceComparisonService {
   async getProductPrices(productId: string): Promise<PriceComparison> {
     // Get product info — accept either ULID id or slug
     const productQuery = `
-      SELECT id, slug, name FROM products WHERE (id = $1 OR slug = $1) AND is_active = true
+      SELECT id, slug, name, hidden_sources
+      FROM products WHERE (id = $1 OR slug = $1) AND is_active = true
     `;
     const productResult = await queryRead(productQuery, [productId]);
 
@@ -30,6 +31,7 @@ export class PriceComparisonService {
 
     const product = productResult.rows[0];
     const resolvedId = product.id;
+    const hiddenSources: string[] = product.hidden_sources || [];
 
     // Get all price entries for this product
     const pricesQuery = `
@@ -49,8 +51,8 @@ export class PriceComparisonService {
     `;
 
     const pricesResult = await queryRead(pricesQuery, [resolvedId]);
-    
-    const prices: PriceEntry[] = pricesResult.rows.map(row => ({
+
+    const allPrices: PriceEntry[] = pricesResult.rows.map(row => ({
       id: row.id,
       productId: row.product_id,
       source: row.source,
@@ -61,7 +63,12 @@ export class PriceComparisonService {
       scrapedAt: new Date(row.scraped_at),
       metadata: row.metadata,
     }));
-    
+
+    // Exclude admin-hidden sources
+    const prices = hiddenSources.length > 0
+      ? allPrices.filter(p => !hiddenSources.includes(p.source))
+      : allPrices;
+
     // Filter only available prices
     const availablePrices = prices.filter(p => p.isAvailable);
     

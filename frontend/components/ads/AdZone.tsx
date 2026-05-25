@@ -19,20 +19,10 @@ export function AdZone({ position, className = '' }: AdZoneProps) {
       .catch(() => setZone(null));
   }, [position]);
 
-  const width = zone?.dimensions?.width ?? (position === 'sidebar' ? 300 : 728);
-  const height = zone?.dimensions?.height ?? (position === 'sidebar' ? 250 : 90);
+  if (!zone) return null;
 
-  if (!zone) {
-    return (
-      <section
-        className={`flex items-center justify-center ${className}`}
-        aria-label={`Khu vực quảng cáo ${position}`}
-      >
-        <GoogleAd width={width} height={height} />
-      </section>
-    );
-  }
-
+  const width = zone.dimensions?.width ?? (position === 'sidebar' ? 300 : 728);
+  const height = zone.dimensions?.height ?? (position === 'sidebar' ? 250 : 90);
   const isGoogle = zone.name.toLowerCase().includes('google');
 
   return (

@@ -14,7 +14,7 @@ import { getBestDeals } from '@/lib/api/catalog';
 import { formatPrice } from '@/lib/utils/format';
 import type { ProductCardData } from '@/components/shared/ProductCard';
 import { VoucherTable } from '@/components/product/VoucherTable';
-import { ProductDetailTabs } from '@/components/product/ProductDetailTabs';
+import { ProductTabsSection } from '@/components/product/ProductTabsSection';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -177,7 +177,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </div>
 
         <div className="mt-10">
-          <ProductDetailTabs comparison={comparison} history={history} productId={resolvedId} />
+          <ProductTabsSection comparison={comparison} history={history} productId={resolvedId} />
         </div>
 
         <RelatedProducts products={related} searchKeyword={keyword} />

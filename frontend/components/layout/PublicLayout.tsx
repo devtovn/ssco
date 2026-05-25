@@ -15,6 +15,8 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       <ErrorBoundary>
         <main className="min-h-screen">{children}</main>
       </ErrorBoundary>
+      <AdZone position="floating" className="fixed bottom-4 right-4 z-50 shadow-lg" />
+      <AdZone position="overlay" className="fixed bottom-4 left-4 z-50 shadow-lg" />
       <footer className="border-t border-slate-200 bg-slate-50">
         <AdZone position="footer" className="mx-auto max-w-6xl px-4 py-4" />
         <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
@@ -44,7 +46,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             </div>
           </div>
           <div className="mt-8 border-t border-slate-200 pt-6 text-center text-sm text-slate-500">
-            © {new Date().getFullYear()} SSCO — So sánh giá Tiki, Lazada, Shopee
+            © {new Intl.DateTimeFormat('vi-VN', { year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())} SSCO — So sánh giá Tiki, Lazada, Shopee
           </div>
         </div>
       </footer>

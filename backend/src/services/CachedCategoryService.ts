@@ -241,6 +241,13 @@ export class CachedCategoryService {
    * Warm up category cache
    * Call this on application startup or after cache clear
    */
+  async reorderCategories(
+    updates: Array<{ id: string; parentId: string | null; displayOrder: number }>
+  ): Promise<void> {
+    await categoryManagementService.reorderCategories(updates);
+    await this.invalidateCategoryCache();
+  }
+
   async warmCache(): Promise<void> {
     console.log('Warming up category cache...');
     

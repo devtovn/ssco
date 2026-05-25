@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import type { CategoryTree } from '@price-comparison/types';
 import { buildApiUrl } from '@/lib/api/client';
 import { apiFetchWithAuth } from '@/lib/auth';
@@ -24,6 +24,101 @@ function flattenTree(nodes: CategoryTree[]): Array<{ id: string; name: string; l
   return result;
 }
 
+// ── DnD helpers ──────────────────────────────────────────────────────────────
+
+interface NodeContext {
+  node: CategoryTree;
+  parentId: string | null;
+  siblings: CategoryTree[];
+}
+
+function findNode(
+  tree: CategoryTree[],
+  id: string,
+  parentId: string | null = null,
+  siblings: CategoryTree[] = tree,
+): NodeContext | null {
+  for (const node of siblings) {
+    if (node.category.id === id) return { node, parentId, siblings };
+    const found = findNode(node.children, id, node.category.id, node.children);
+    if (found) return found;
+  }
+  return null;
+}
+
+function hasDescendant(node: CategoryTree, targetId: string): boolean {
+  return node.children.some(
+    (c) => c.category.id === targetId || hasDescendant(c, targetId),
+  );
+}
+
+type DropPosition = 'before' | 'after' | 'inside';
+
+interface ReorderUpdate {
+  id: string;
+  parentId: string | null;
+  displayOrder: number;
+}
+
+function computeUpdates(
+  tree: CategoryTree[],
+  dragId: string,
+  targetId: string,
+  position: DropPosition,
+): ReorderUpdate[] | null {
+  const dragCtx = findNode(tree, dragId);
+  const targetCtx = findNode(tree, targetId);
+  if (!dragCtx || !targetCtx) return null;
+  if (dragId === targetId) return null;
+  // Prevent circular parenting (dropping parent into its own descendant)
+  if (position === 'inside' && hasDescendant(dragCtx.node, targetId)) return null;
+
+  const newParentId = position === 'inside' ? targetId : targetCtx.parentId;
+  const sameGroup = dragCtx.parentId === newParentId;
+  const updates: ReorderUpdate[] = [];
+
+  if (sameGroup) {
+    const sibs = dragCtx.siblings.filter((n) => n.category.id !== dragId);
+    const tIdx = sibs.findIndex((n) => n.category.id === targetId);
+    const insertAt = position === 'before' ? tIdx : tIdx + 1;
+    const ordered = [...sibs.slice(0, insertAt), dragCtx.node, ...sibs.slice(insertAt)];
+    ordered.forEach((n, i) => updates.push({ id: n.category.id, parentId: dragCtx.parentId, displayOrder: i }));
+  } else {
+    // Reorder old parent (minus drag)
+    dragCtx.siblings
+      .filter((n) => n.category.id !== dragId)
+      .forEach((n, i) => updates.push({ id: n.category.id, parentId: dragCtx.parentId, displayOrder: i }));
+
+    // Build new parent group with drag inserted
+    let newGroup: CategoryTree[];
+    if (position === 'inside') {
+      newGroup = [...targetCtx.node.children, dragCtx.node];
+    } else {
+      const sibs = targetCtx.siblings.filter((n) => n.category.id !== dragId);
+      const tIdx = sibs.findIndex((n) => n.category.id === targetId);
+      const insertAt = position === 'before' ? tIdx : tIdx + 1;
+      newGroup = [...sibs.slice(0, insertAt), dragCtx.node, ...sibs.slice(insertAt)];
+    }
+    newGroup.forEach((n, i) => updates.push({ id: n.category.id, parentId: newParentId, displayOrder: i }));
+  }
+
+  return updates;
+}
+
+// ── CategoryNode ──────────────────────────────────────────────────────────────
+
+interface DndState {
+  dragId: string | null;
+  dropTarget: { id: string; position: DropPosition } | null;
+}
+
+interface DndHandlers {
+  onDragStart: (id: string) => void;
+  onDragOver: (e: React.DragEvent, id: string) => void;
+  onDragEnd: () => void;
+  onDrop: (e: React.DragEvent, id: string) => void;
+}
+
 interface CategoryNodeProps {
   node: CategoryTree;
   depth?: number;
@@ -31,6 +126,8 @@ interface CategoryNodeProps {
   editName: string;
   editIcon: string;
   editActive: boolean;
+  dnd: DndState;
+  dndHandlers: DndHandlers;
   onStartEdit: (node: CategoryTree) => void;
   onEditName: (v: string) => void;
   onEditIcon: (v: string) => void;
@@ -47,6 +144,8 @@ function CategoryNode({
   editName,
   editIcon,
   editActive,
+  dnd,
+  dndHandlers,
   onStartEdit,
   onEditName,
   onEditIcon,
@@ -55,13 +154,36 @@ function CategoryNode({
   onCancel,
   onDelete,
 }: CategoryNodeProps) {
-  const isEditing = editingId !== null && editingId === node.category.id;
+  const id = node.category.id;
+  const isEditing = editingId === id;
+  const isDragging = dnd.dragId === id;
+  const dt = dnd.dropTarget?.id === id ? dnd.dropTarget.position : null;
+
   return (
-    <li className="mt-1">
+    <li className="select-none">
       <div
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+        draggable
+        onDragStart={(e) => { e.stopPropagation(); dndHandlers.onDragStart(id); }}
+        onDragOver={(e) => { e.stopPropagation(); dndHandlers.onDragOver(e, id); }}
+        onDragEnd={(e) => { e.stopPropagation(); dndHandlers.onDragEnd(); }}
+        onDrop={(e) => { e.stopPropagation(); dndHandlers.onDrop(e, id); }}
+        className={[
+          'flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors mt-0.5',
+          isDragging ? 'opacity-30' : '',
+          dt === 'inside' ? 'ring-2 ring-primary-400 bg-primary-50' : 'hover:bg-slate-50',
+          dt === 'before' ? 'border-t-2 border-primary-500' : '',
+          dt === 'after' ? 'border-b-2 border-primary-500' : '',
+        ].join(' ')}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
+        {/* Drag handle */}
+        <span
+          className="cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing shrink-0 text-base leading-none"
+          title="Kéo để sắp xếp"
+        >
+          ⠿
+        </span>
+
         {isEditing ? (
           <>
             <input
@@ -75,7 +197,7 @@ function CategoryNode({
               onChange={(e) => onEditName(e.target.value)}
               className="flex-1 rounded border border-slate-300 px-2 py-0.5 text-sm"
             />
-            <label className="flex items-center gap-1 text-xs text-slate-700">
+            <label className="flex items-center gap-1 text-xs text-slate-700 shrink-0">
               <input
                 type="checkbox"
                 checked={editActive}
@@ -83,48 +205,33 @@ function CategoryNode({
               />
               Hiện
             </label>
-            <button
-              type="button"
-              onClick={() => onSave(node.category.id)}
-              className="text-xs text-primary-600 hover:underline"
-            >
+            <button type="button" onClick={() => onSave(id)} className="text-xs text-primary-600 hover:underline shrink-0">
               Lưu
             </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="text-xs text-slate-600 hover:underline"
-            >
+            <button type="button" onClick={onCancel} className="text-xs text-slate-600 hover:underline shrink-0">
               Hủy
             </button>
           </>
         ) : (
           <>
-            {node.category.icon && <span>{node.category.icon}</span>}
-            <span className="flex-1 font-medium text-slate-800">{node.category.name}</span>
+            {node.category.icon && <span className="shrink-0">{node.category.icon}</span>}
+            <span className="flex-1 font-medium text-slate-800 truncate">{node.category.name}</span>
             {node.category.productCount != null && (
-              <span className="text-xs text-slate-500">({node.category.productCount} SP)</span>
+              <span className="text-xs text-slate-500 shrink-0">({node.category.productCount} SP)</span>
             )}
             {!node.category.isActive && (
-              <span className="rounded bg-slate-200 px-1.5 text-xs text-slate-600">Ẩn</span>
+              <span className="rounded bg-slate-200 px-1.5 text-xs text-slate-600 shrink-0">Ẩn</span>
             )}
-            <button
-              type="button"
-              onClick={() => onStartEdit(node)}
-              className="text-xs text-primary-600 hover:underline"
-            >
+            <button type="button" onClick={() => onStartEdit(node)} className="text-xs text-primary-600 hover:underline shrink-0">
               Sửa
             </button>
-            <button
-              type="button"
-              onClick={() => onDelete(node.category.id, node.category.name)}
-              className="text-xs text-red-600 hover:underline"
-            >
+            <button type="button" onClick={() => onDelete(id, node.category.name)} className="text-xs text-red-600 hover:underline shrink-0">
               Xóa
             </button>
           </>
         )}
       </div>
+
       {node.children.length > 0 && (
         <ul>
           {node.children.map((child) => (
@@ -136,6 +243,8 @@ function CategoryNode({
               editName={editName}
               editIcon={editIcon}
               editActive={editActive}
+              dnd={dnd}
+              dndHandlers={dndHandlers}
               onStartEdit={onStartEdit}
               onEditName={onEditName}
               onEditIcon={onEditIcon}
@@ -151,22 +260,29 @@ function CategoryNode({
   );
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function AdminCategoriesPage() {
   const [tree, setTree] = useState<CategoryTree[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Create form
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
   const [newIcon, setNewIcon] = useState('');
   const [newParentId, setNewParentId] = useState('');
 
-  // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editIcon, setEditIcon] = useState('');
   const [editActive, setEditActive] = useState(true);
+
+  // DnD state
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; position: DropPosition } | null>(null);
+  const [dndSaving, setDndSaving] = useState(false);
+  const treeRef = useRef<CategoryTree[]>([]);
+  treeRef.current = tree; // always current for DnD handlers
 
   async function loadTree() {
     setLoading(true);
@@ -182,9 +298,7 @@ export default function AdminCategoriesPage() {
     }
   }
 
-  useEffect(() => {
-    loadTree();
-  }, []);
+  useEffect(() => { loadTree(); }, []);
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -198,10 +312,7 @@ export default function AdminCategoriesPage() {
           parentId: newParentId || undefined,
         }),
       });
-      setNewName('');
-      setNewSlug('');
-      setNewIcon('');
-      setNewParentId('');
+      setNewName(''); setNewSlug(''); setNewIcon(''); setNewParentId('');
       await loadTree();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Tạo danh mục thất bại');
@@ -219,11 +330,7 @@ export default function AdminCategoriesPage() {
     try {
       await apiFetchWithAuth(`/categories/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({
-          name: editName,
-          icon: editIcon || undefined,
-          isActive: editActive,
-        }),
+        body: JSON.stringify({ name: editName, icon: editIcon || undefined, isActive: editActive }),
       });
       setEditingId(null);
       await loadTree();
@@ -242,6 +349,69 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  // ── DnD handlers ────────────────────────────────────────────────────────────
+
+  function handleDragStart(id: string) {
+    setDragId(id);
+    setDropTarget(null);
+  }
+
+  function handleDragOver(e: React.DragEvent, id: string) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const h = rect.height;
+    const position: DropPosition = y < h * 0.3 ? 'before' : y > h * 0.7 ? 'after' : 'inside';
+    setDropTarget((prev) =>
+      prev?.id === id && prev?.position === position ? prev : { id, position },
+    );
+  }
+
+  function handleDragEnd() {
+    setDragId(null);
+    setDropTarget(null);
+  }
+
+  async function handleDrop(e: React.DragEvent, targetId: string) {
+    e.preventDefault();
+    const currentDragId = dragId;
+    const currentTarget = dropTarget;
+    handleDragEnd();
+
+    if (!currentDragId || !currentTarget || currentDragId === targetId) return;
+
+    const updates = computeUpdates(
+      treeRef.current,
+      currentDragId,
+      targetId,
+      currentTarget.position,
+    );
+    if (!updates || updates.length === 0) return;
+
+    setDndSaving(true);
+    setError('');
+    try {
+      await apiFetchWithAuth('/admin/categories/reorder', {
+        method: 'POST',
+        body: JSON.stringify({ updates }),
+      });
+      await loadTree();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sắp xếp thất bại');
+    } finally {
+      setDndSaving(false);
+    }
+  }
+
+  const dndState: DndState = { dragId, dropTarget };
+  const dndHandlers: DndHandlers = {
+    onDragStart: handleDragStart,
+    onDragOver: handleDragOver,
+    onDragEnd: handleDragEnd,
+    onDrop: handleDrop,
+  };
+
   const flatCategories = flattenTree(tree);
 
   return (
@@ -253,20 +423,14 @@ export default function AdminCategoriesPage() {
         <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
 
-      <form
-        onSubmit={handleCreate}
-        className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-      >
+      <form onSubmit={handleCreate} className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="font-semibold text-slate-900">Thêm danh mục</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <input
             required
             placeholder="Tên danh mục"
             value={newName}
-            onChange={(e) => {
-              setNewName(e.target.value);
-              if (!newSlug) setNewSlug(toSlug(e.target.value));
-            }}
+            onChange={(e) => { setNewName(e.target.value); if (!newSlug) setNewSlug(toSlug(e.target.value)); }}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
           <input
@@ -289,7 +453,7 @@ export default function AdminCategoriesPage() {
           >
             <option value="">Danh mục gốc</option>
             {flatCategories.map((c) => (
-              <option key={c.id} value={c.id as string}>
+              <option key={c.id} value={c.id}>
                 {'—'.repeat(c.level)} {c.name}
               </option>
             ))}
@@ -304,10 +468,19 @@ export default function AdminCategoriesPage() {
       </form>
 
       <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs text-slate-400">
+            Kéo <span className="font-mono">⠿</span> để thay đổi thứ tự hoặc chuyển danh mục con sang cha mới
+          </p>
+          {dndSaving && <span className="text-xs text-primary-600">Đang lưu...</span>}
+        </div>
+
         {loading ? (
           <p className="text-sm text-slate-600">Đang tải...</p>
         ) : (
-          <ul>
+          <ul
+            onDragOver={(e) => e.preventDefault()}
+          >
             {tree.map((node) => (
               <CategoryNode
                 key={node.category.id}
@@ -316,6 +489,8 @@ export default function AdminCategoriesPage() {
                 editName={editName}
                 editIcon={editIcon}
                 editActive={editActive}
+                dnd={dndState}
+                dndHandlers={dndHandlers}
                 onStartEdit={startEdit}
                 onEditName={setEditName}
                 onEditIcon={setEditIcon}

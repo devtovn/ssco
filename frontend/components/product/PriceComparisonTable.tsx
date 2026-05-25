@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { PriceComparison, PriceEntry } from '@price-comparison/types';
-import { formatPrice } from '@/lib/utils/format';
+import { formatPrice, formatDateTime } from '@/lib/utils/format';
 
 interface PriceComparisonTableProps {
   comparison: PriceComparison;
@@ -129,7 +129,7 @@ export function PriceComparisonTable({ comparison, productId, productName, produ
 
       {comparison.lastUpdated && (
         <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
-          Cập nhật: {new Date(comparison.lastUpdated).toLocaleString('vi-VN')}
+          Cập nhật: {formatDateTime(comparison.lastUpdated)}
         </p>
       )}
     </div>

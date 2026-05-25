@@ -6,6 +6,8 @@ import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
 import { JsonLd } from '@/components/shared/JsonLd';
 import { getPublishedArticle, getPublishedArticles } from '@/lib/api/content';
 import { formatDate } from '@/lib/utils/format';
+import { AdZone } from '@/components/ads/AdZone';
+import { AdSidebarLayout } from '@/components/ads/AdSidebarLayout';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -60,7 +62,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   return (
     <PublicLayout>
       <JsonLd data={jsonLd} />
-      <article className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mx-auto max-w-6xl px-4 py-8">
         <Breadcrumbs
           items={[
             { label: 'Trang chủ', href: '/' },
@@ -68,55 +70,62 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             { label: article.title },
           ]}
         />
+        <div className="mt-6">
+          <AdSidebarLayout>
+            <article>
+              <header className="mb-8">
+                <h1 className="text-3xl font-bold leading-tight text-slate-900 md:text-4xl">
+                  {article.title}
+                </h1>
+                {article.publishedAt && (
+                  <p className="mt-2 text-sm text-slate-500">
+                    Đăng ngày {formatDate(article.publishedAt)}
+                  </p>
+                )}
+                {article.excerpt && (
+                  <p className="mt-4 text-lg text-slate-600">{article.excerpt}</p>
+                )}
+              </header>
 
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold leading-tight text-slate-900 md:text-4xl">
-            {article.title}
-          </h1>
-          {article.publishedAt && (
-            <p className="mt-2 text-sm text-slate-500">
-              Đăng ngày {formatDate(article.publishedAt)}
-            </p>
-          )}
-          {article.excerpt && (
-            <p className="mt-4 text-lg text-slate-600">{article.excerpt}</p>
-          )}
-        </header>
+              <AdZone position="in-content" className="mb-8" />
 
-        <div
-          className="prose prose-slate max-w-none prose-headings:text-slate-900 prose-a:text-primary-600"
-          dangerouslySetInnerHTML={{ __html: article.content }}
-        />
+              <div
+                className="prose prose-slate max-w-none prose-headings:text-slate-900 prose-a:text-primary-600"
+                dangerouslySetInnerHTML={{ __html: article.content }}
+              />
 
-        {article.productId && (
-          <p className="mt-8">
-            <Link
-              href={`/san-pham/${article.productId}`}
-              className="inline-flex rounded-lg bg-primary-600 px-5 py-2.5 font-semibold text-white hover:bg-primary-700"
-            >
-              Xem sản phẩm liên quan
-            </Link>
-          </p>
-        )}
-
-        {related.length > 0 && (
-          <section className="mt-12 border-t border-slate-200 pt-8">
-            <h2 className="mb-4 text-xl font-bold text-slate-900">Bài viết khác</h2>
-            <ul className="space-y-3">
-              {related.map((a) => (
-                <li key={a.id}>
+              {article.productId && (
+                <p className="mt-8">
                   <Link
-                    href={`/bai-viet/${a.id}`}
-                    className="font-medium text-primary-600 hover:text-primary-700"
+                    href={`/san-pham/${article.productId}`}
+                    className="inline-flex rounded-lg bg-primary-600 px-5 py-2.5 font-semibold text-white hover:bg-primary-700"
                   >
-                    {a.title}
+                    Xem sản phẩm liên quan
                   </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </article>
+                </p>
+              )}
+
+              {related.length > 0 && (
+                <section className="mt-12 border-t border-slate-200 pt-8">
+                  <h2 className="mb-4 text-xl font-bold text-slate-900">Bài viết khác</h2>
+                  <ul className="space-y-3">
+                    {related.map((a) => (
+                      <li key={a.id}>
+                        <Link
+                          href={`/bai-viet/${a.id}`}
+                          className="font-medium text-primary-600 hover:text-primary-700"
+                        >
+                          {a.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </article>
+          </AdSidebarLayout>
+        </div>
+      </div>
     </PublicLayout>
   );
 }

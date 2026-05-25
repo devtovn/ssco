@@ -8,7 +8,9 @@ import { Pool } from 'pg';
 import { authenticateJWT, requireRole, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { z } from 'zod';
+import { CacheService, CacheKeys } from '../utils/cache';
 import { AdminService } from '../services/AdminService';
+import { cachedCategoryService } from '../services/CachedCategoryService';
 
 const router = Router();
 
@@ -587,6 +589,28 @@ router.delete(
   })
 );
 
+// ─── Categories ──────────────────────────────────────────────────────────────
+
+const CategoryReorderSchema = z.object({
+  updates: z.array(z.object({
+    id: z.string().min(1),
+    parentId: z.string().nullable(),
+    displayOrder: z.number().int().min(0),
+  })).min(1).max(500),
+});
+
+router.post(
+  '/categories/reorder',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await requireAdmin(req, res);
+    if (res.headersSent) return;
+
+    const { updates } = CategoryReorderSchema.parse(req.body);
+    await cachedCategoryService.reorderCategories(updates);
+    res.json({ success: true, updated: updates.length });
+  })
+);
+
 // ─── Products ────────────────────────────────────────────────────────────────
 
 router.get(
@@ -634,14 +658,17 @@ router.get(
       `SELECT p.id, p.name, p.brand, p.model, p.category AS category_slug,
               c.name_vi AS category_name,
               p.is_active, p.created_at,
+              p.hidden_sources,
               COUNT(DISTINCT pe.id)::int AS price_count,
               MIN(pe.price) AS min_price,
-              MAX(pe.price) AS max_price
+              MAX(pe.price) AS max_price,
+              ARRAY(SELECT DISTINCT pe2.source_name FROM price_entries pe2
+                    WHERE pe2.product_id = p.id AND pe2.is_available = true) AS available_sources
        FROM products p
        LEFT JOIN categories c ON c.slug = p.category
        LEFT JOIN price_entries pe ON pe.product_id = p.id AND pe.is_available = true
        ${where}
-       GROUP BY p.id, p.name, p.brand, p.model, p.category, c.name_vi, p.is_active, p.created_at
+       GROUP BY p.id, p.name, p.brand, p.model, p.category, c.name_vi, p.is_active, p.created_at, p.hidden_sources
        ORDER BY p.created_at DESC
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params
@@ -652,6 +679,105 @@ router.get(
       data: dataResult.rows,
       pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     });
+  })
+);
+
+const UpdateProductSchema = z.object({
+  name: z.string().min(1).max(500).optional(),
+  category: z.string().max(100).optional(),
+  isActive: z.boolean().optional(),
+  hiddenSources: z.array(z.string().max(100)).optional(),
+});
+
+const BulkUpdateProductsSchema = z.object({
+  ids: z.array(z.string().min(1).max(26)).min(1).max(200),
+  isActive: z.boolean(),
+});
+
+async function requireAdmin(req: AuthRequest, res: Response) {
+  const authService = req.app.get('authService');
+  await new Promise<void>((resolve, reject) => {
+    authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()));
+  });
+  await new Promise<void>((resolve, reject) => {
+    requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()));
+  });
+}
+
+// Must be registered before /:id to avoid "bulk" being matched as an id
+router.patch(
+  '/products/bulk',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await requireAdmin(req, res);
+    if (res.headersSent) return;
+
+    const { ids, isActive } = BulkUpdateProductsSchema.parse(req.body);
+    const pool = req.app.get('pool') as Pool;
+
+    await pool.query(
+      `UPDATE products SET is_active = $1, updated_at = NOW() WHERE id = ANY($2::text[])`,
+      [isActive, ids]
+    );
+
+    res.json({ updated: ids.length });
+  })
+);
+
+router.patch(
+  '/products/:id',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await requireAdmin(req, res);
+    if (res.headersSent) return;
+
+    const body = UpdateProductSchema.parse(req.body);
+    const { id } = req.params;
+    const pool = req.app.get('pool') as Pool;
+
+    const setClauses: string[] = [];
+    const vals: unknown[] = [];
+
+    if (body.name !== undefined) {
+      vals.push(body.name);
+      setClauses.push(`name = $${vals.length}`);
+    }
+    if (body.category !== undefined) {
+      vals.push(body.category);
+      setClauses.push(`category = $${vals.length}`);
+    }
+    if (body.isActive !== undefined) {
+      vals.push(body.isActive);
+      setClauses.push(`is_active = $${vals.length}`);
+    }
+    if (body.hiddenSources !== undefined) {
+      vals.push(body.hiddenSources);
+      setClauses.push(`hidden_sources = $${vals.length}`);
+    }
+
+    if (setClauses.length === 0) {
+      return res.status(400).json({ error: 'Không có trường nào để cập nhật' });
+    }
+
+    setClauses.push(`updated_at = NOW()`);
+    vals.push(id);
+
+    const result = await pool.query(
+      `UPDATE products SET ${setClauses.join(', ')} WHERE id = $${vals.length}
+       RETURNING id, name, category, is_active, slug`,
+      vals
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Sản phẩm không tồn tại' });
+    }
+
+    // Invalidate price cache keyed by both id and slug so the detail page reflects changes immediately
+    const updated = result.rows[0];
+    await Promise.all([
+      CacheService.delete(CacheKeys.PRODUCT_PRICES(updated.id)),
+      CacheService.delete(CacheKeys.PRODUCT_PRICES(updated.slug)),
+    ]);
+
+    res.json({ product: updated });
   })
 );
 

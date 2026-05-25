@@ -241,8 +241,8 @@ export class CategoryManagementService {
    */
   async getCategoryTree(rootId?: string): Promise<CategoryTree[]> {
     const query = rootId
-      ? 'SELECT * FROM categories WHERE parent_id = $1 AND is_active = true ORDER BY name_vi'
-      : 'SELECT * FROM categories WHERE parent_id IS NULL AND is_active = true ORDER BY name_vi';
+      ? 'SELECT * FROM categories WHERE parent_id = $1 AND is_active = true ORDER BY display_order ASC, name_vi'
+      : 'SELECT * FROM categories WHERE parent_id IS NULL AND is_active = true ORDER BY display_order ASC, name_vi';
     
     const params = rootId ? [rootId] : [];
     const result = await queryRead(query, params);
@@ -518,6 +518,27 @@ export class CategoryManagementService {
     );
     
     return result.rows.map(row => row.id);
+  }
+
+  async reorderCategories(
+    updates: Array<{ id: string; parentId: string | null; displayOrder: number }>
+  ): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const { id, parentId, displayOrder } of updates) {
+        await client.query(
+          'UPDATE categories SET parent_id = $1, display_order = $2, updated_at = NOW() WHERE id = $3',
+          [parentId, displayOrder, id]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
   }
 
   private async deleteCategoryRecursive(client: PoolClient, categoryId: string): Promise<void> {
