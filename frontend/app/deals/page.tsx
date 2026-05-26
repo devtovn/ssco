@@ -4,11 +4,15 @@ import Image from 'next/image';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { getBestDeals } from '@/lib/api/catalog';
 import { formatPrice } from '@/lib/utils/format';
+import { getSiteConfig } from '@/lib/api/site-config';
 
-export const metadata: Metadata = {
-  title: 'Ưu đãi tốt nhất | SSCO',
-  description: 'Danh sách sản phẩm giảm giá nhiều nhất từ Tiki, Lazada, Shopee.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName } = await getSiteConfig();
+  return {
+    title: `Ưu đãi tốt nhất | ${siteName}`,
+    description: 'Danh sách sản phẩm giảm giá nhiều nhất từ Tiki, Lazada, Shopee.',
+  };
+}
 
 export default async function DealsPage() {
   const deals = await getBestDeals(24).catch(() => []);

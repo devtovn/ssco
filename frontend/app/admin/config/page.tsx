@@ -36,13 +36,19 @@ export default function AdminConfigPage() {
     setError('');
 
     try {
+      const theme = {
+        primaryColor: config.theme?.primaryColor || undefined,
+        secondaryColor: config.theme?.secondaryColor || undefined,
+        fontFamily: config.theme?.fontFamily || undefined,
+      };
+      const hasTheme = Object.values(theme).some(Boolean);
       const result = await apiFetchWithAuth<{ config: WebsiteConfig }>('/admin/config', {
         method: 'PUT',
         body: JSON.stringify({
-          logoUrl: config.logoUrl,
-          siteName: config.siteName,
-          tagline: config.tagline,
-          theme: config.theme,
+          logoUrl: config.logoUrl || undefined,
+          siteName: config.siteName || undefined,
+          tagline: config.tagline || undefined,
+          theme: hasTheme ? theme : undefined,
         }),
       });
       setConfig(result.config ?? config);

@@ -12,6 +12,7 @@ import { getProductPrices, getPriceHistory, getProductById } from '@/lib/api/pro
 import { searchProducts } from '@/lib/api/search';
 import { getBestDeals } from '@/lib/api/catalog';
 import { formatPrice } from '@/lib/utils/format';
+import { getSiteConfig } from '@/lib/api/site-config';
 import type { ProductCardData } from '@/components/shared/ProductCard';
 import { VoucherTable } from '@/components/product/VoucherTable';
 import { ProductTabsSection } from '@/components/product/ProductTabsSection';
@@ -23,9 +24,10 @@ interface ProductPageProps {
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const { siteName } = await getSiteConfig();
   try {
     const comparison = await getProductPrices(params.slug);
-    const title = `${comparison.productName} — So sánh giá | SSCO`;
+    const title = `${comparison.productName} — So sánh giá | ${siteName}`;
     const description = `So sánh giá ${comparison.productName} từ ${comparison.availableSources} nguồn. Giá tốt nhất: ${formatPrice(comparison.lowestPrice?.price)}.`;
 
     return {
@@ -35,7 +37,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
       alternates: { canonical: `${SITE_URL}/san-pham/${params.slug}` },
     };
   } catch {
-    return { title: 'Sản phẩm | SSCO' };
+    return { title: `Sản phẩm | ${siteName}` };
   }
 }
 
@@ -141,7 +143,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   {formatPrice(comparison.lowestPrice.price)}
                 </p>
                 <p className="mt-1 text-sm text-green-600">
-                  Giá thấp nhất trên {comparison.lowestPrice.source}
+                  Giá thấp nhất trên <span className="font-bold capitalize">{comparison.lowestPrice.source}</span>
                 </p>
               </>
             )}

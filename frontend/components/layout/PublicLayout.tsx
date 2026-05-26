@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 import { AdZone } from '@/components/ads/AdZone';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
@@ -8,6 +11,7 @@ interface PublicLayoutProps {
 }
 
 export function PublicLayout({ children }: PublicLayoutProps) {
+  const { siteName } = useSiteConfig();
   return (
     <>
       <Header />
@@ -22,7 +26,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
           <div className="grid gap-6 sm:grid-cols-3 sm:gap-8">
             <div>
-              <p className="font-bold text-primary-700">SSCO</p>
+              <p className="font-bold text-primary-700">{siteName}</p>
               <p className="mt-1 text-xs text-slate-500">So sánh giá</p>
               <p className="mt-3 text-sm text-slate-600">
                 So sánh giá sản phẩm từ Tiki, Lazada, Shopee và nhiều sàn thương mại khác.
@@ -46,7 +50,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             </div>
           </div>
           <div className="mt-8 border-t border-slate-200 pt-6 text-center text-sm text-slate-500">
-            © {new Intl.DateTimeFormat('vi-VN', { year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())} SSCO — So sánh giá Tiki, Lazada, Shopee
+            © {new Intl.DateTimeFormat('vi-VN', { year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())} {siteName} — So sánh giá Tiki, Lazada, Shopee
           </div>
         </div>
       </footer>

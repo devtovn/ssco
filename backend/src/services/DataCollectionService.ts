@@ -18,6 +18,13 @@ import {
   JobProcessingResult,
 } from './DataCollectionQueue';
 import { Job } from 'bull';
+import {
+  PlatformAPIService,
+  platformAPIService,
+  PlatformSearchResult,
+  slugify,
+  detectPlatform,
+} from './PlatformAPIService';
 
 export interface CollectionResult {
   success: boolean;
@@ -57,11 +64,33 @@ export interface PriceSource {
 
 const DEFAULT_CATEGORY = 'general';
 
+export interface SeedPreviewResult {
+  primary: NormalizedProduct | null;
+  platformResults: PlatformSearchResult[];
+}
+
+export interface SeedSavePayload {
+  /** The "canonical" product (name, images, brand come from this entry). */
+  primary: NormalizedProduct;
+  /** All platform entries to store as price_entries (may include primary). */
+  entries: NormalizedProduct[];
+  categoryId: string;
+  categorySlug: string;
+}
+
+export interface SeedSaveResult {
+  productId: string;
+  productName: string;
+  productSlug: string;
+  priceEntriesCount: number;
+}
+
 export class DataCollectionService {
   constructor(
     private pool: Pool,
     private apiIntegrator: APIIntegratorService = apiIntegratorService,
     private webScraper: WebScraperService = webScraperService,
+    private platformAPI: PlatformAPIService = platformAPIService,
     private queue?: DataCollectionQueue
   ) {}
 
@@ -440,6 +469,251 @@ export class DataCollectionService {
        WHERE source_type = $1`,
       [sourceType]
     );
+  }
+
+  // ── Dev-seeding helpers ─────────────────────────────────────────────────────
+
+  /**
+   * Preview: fetch product from a URL and search for it on other platforms.
+   * No data is written to the DB.
+   */
+  async previewFromUrl(url: string): Promise<SeedPreviewResult> {
+    const primary = await this.platformAPI.getProductFromUrl(url);
+
+    let platformResults: PlatformSearchResult[] = [];
+    if (primary) {
+      const keyword = [primary.brand, primary.name].filter(Boolean).join(' ').slice(0, 80);
+      platformResults = await this.platformAPI.searchAllNoKeyPlatforms(keyword, 5);
+
+      // Also query official API clients if configured
+      if (this.apiIntegrator.hasAvailableClients()) {
+        const apiResults = await this.apiIntegrator.searchAllPlatforms(keyword, 5);
+        for (const [platform, resp] of Object.entries(apiResults)) {
+          if (resp?.success && resp.data && resp.data.length > 0) {
+            // merge or replace no-key result for same platform
+            const idx = platformResults.findIndex((r) => r.platform === platform);
+            if (idx >= 0) {
+              platformResults[idx] = { platform, products: resp.data };
+            } else {
+              platformResults.push({ platform, products: resp.data });
+            }
+          }
+        }
+      }
+
+      // Remove the same platform as the primary URL so we don't duplicate
+      const primaryPlatform = detectPlatform(url);
+      if (primaryPlatform) {
+        platformResults = platformResults.map((r) =>
+          r.platform === primaryPlatform
+            ? { ...r, products: r.products.filter((p) => p.externalId !== primary.externalId) }
+            : r
+        );
+      }
+    }
+
+    return { primary, platformResults };
+  }
+
+  /**
+   * Preview: search a keyword across all available platforms. No DB writes.
+   */
+  async previewFromKeyword(keyword: string): Promise<PlatformSearchResult[]> {
+    const noKeyResults = await this.platformAPI.searchAllNoKeyPlatforms(keyword, 5);
+
+    if (this.apiIntegrator.hasAvailableClients()) {
+      const apiResults = await this.apiIntegrator.searchAllPlatforms(keyword, 5);
+      for (const [platform, resp] of Object.entries(apiResults)) {
+        if (resp?.success && resp.data && resp.data.length > 0) {
+          const idx = noKeyResults.findIndex((r) => r.platform === platform);
+          if (idx >= 0) {
+            noKeyResults[idx] = { platform, products: resp.data };
+          } else {
+            noKeyResults.push({ platform, products: resp.data });
+          }
+        }
+      }
+    }
+
+    return noKeyResults;
+  }
+
+  /**
+   * Save: upsert one canonical product + all selected platform price entries.
+   */
+  async upsertSeedProduct(payload: SeedSavePayload): Promise<SeedSaveResult> {
+    const { primary, entries, categoryId } = payload;
+    const client = await this.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Generate unique slug
+      const baseSlug = slugify(primary.name) || `product-${Date.now()}`;
+      const slug = await this.resolveUniqueSlug(client, baseSlug);
+
+      // Upsert product (ON CONFLICT on slug)
+      const upsert = await client.query<{ id: string }>(
+        `INSERT INTO products
+           (name, slug, description, category, brand, model, specifications, images, keywords, is_active, hidden_sources)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, '{}')
+         ON CONFLICT (slug) DO UPDATE SET
+           name        = EXCLUDED.name,
+           brand       = EXCLUDED.brand,
+           images      = EXCLUDED.images,
+           description = EXCLUDED.description,
+           updated_at  = NOW()
+         RETURNING id`,
+        [
+          primary.name,
+          slug,
+          primary.description ?? null,
+          'general',
+          primary.brand ?? null,
+          primary.model ?? null,
+          primary.specifications ? JSON.stringify(primary.specifications) : null,
+          primary.images.length > 0 ? primary.images : null,
+          primary.name.split(/\s+/).slice(0, 10),
+        ]
+      );
+
+      const productId = upsert.rows[0].id;
+
+      // Assign category (idempotent)
+      await client.query(
+        `INSERT INTO product_categories (product_id, category_id, is_primary)
+         VALUES ($1, $2, true)
+         ON CONFLICT (product_id, category_id) DO NOTHING`,
+        [productId, categoryId]
+      );
+
+      // Upsert price entries for every selected platform
+      let priceEntriesCount = 0;
+      for (const entry of entries) {
+        await client.query(
+          `INSERT INTO price_entries
+             (product_id, source_name, source_url, price, currency, is_available, metadata, scraped_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+            productId,
+            entry.source,
+            entry.sourceUrl,
+            entry.price,
+            entry.currency ?? 'VND',
+            entry.isAvailable,
+            JSON.stringify({ externalId: entry.externalId, ...entry.metadata }),
+          ]
+        );
+        priceEntriesCount++;
+      }
+
+      await client.query('COMMIT');
+      return { productId, productName: primary.name, productSlug: slug, priceEntriesCount };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Production: refresh price entries for one product from all configured platforms.
+   * Uses official API clients when keys are set; falls back to PlatformAPIService.
+   */
+  async refreshProductPrices(productId: string): Promise<{ updated: number; errors: string[] }> {
+    const productResult = await this.pool.query<{ id: string; name: string; slug: string }>(
+      'SELECT id, name, slug FROM products WHERE id = $1 AND is_active = true',
+      [productId]
+    );
+    if (productResult.rows.length === 0) throw new Error(`Product ${productId} not found`);
+
+    const product = productResult.rows[0];
+    const keyword = product.name.split(/\s+/).slice(0, 5).join(' ');
+    const errors: string[] = [];
+    let updated = 0;
+
+    // Collect fresh prices from all available sources
+    const fresh: NormalizedProduct[] = [];
+
+    if (this.apiIntegrator.hasAvailableClients()) {
+      const apiResults = await this.apiIntegrator.getAllProducts(keyword, 3);
+      fresh.push(...apiResults.filter((p) => p.price > 0));
+    } else {
+      const noKeyResults = await this.platformAPI.searchAllNoKeyPlatforms(keyword, 3);
+      for (const r of noKeyResults) fresh.push(...r.products.filter((p) => p.price > 0));
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const entry of fresh) {
+        try {
+          await client.query(
+            `INSERT INTO price_entries
+               (product_id, source_name, source_url, price, currency, is_available, metadata, scraped_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+            [
+              product.id,
+              entry.source,
+              entry.sourceUrl,
+              entry.price,
+              entry.currency ?? 'VND',
+              entry.isAvailable,
+              JSON.stringify({ externalId: entry.externalId, ...entry.metadata }),
+            ]
+          );
+          updated++;
+        } catch (e: any) {
+          errors.push(`${entry.source}: ${e.message}`);
+        }
+      }
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+
+    return { updated, errors };
+  }
+
+  /**
+   * Production: refresh prices for ALL active products (for scheduled jobs).
+   */
+  async refreshAllProductPrices(): Promise<{ total: number; updated: number; failed: number }> {
+    const result = await this.pool.query<{ id: string }>(
+      'SELECT id FROM products WHERE is_active = true ORDER BY updated_at ASC'
+    );
+    let updated = 0;
+    let failed = 0;
+
+    for (const row of result.rows) {
+      try {
+        const r = await this.refreshProductPrices(row.id);
+        updated += r.updated;
+      } catch {
+        failed++;
+      }
+    }
+
+    return { total: result.rows.length, updated, failed };
+  }
+
+  private async resolveUniqueSlug(client: { query: Function }, base: string): Promise<string> {
+    const existing = await client.query(
+      'SELECT slug FROM products WHERE slug LIKE $1 ORDER BY slug',
+      [`${base}%`]
+    );
+    if (existing.rows.length === 0) return base;
+    const taken = new Set<string>(existing.rows.map((r: any) => r.slug));
+    if (!taken.has(base)) return base;
+    for (let i = 2; i < 1000; i++) {
+      const candidate = `${base}-${i}`;
+      if (!taken.has(candidate)) return candidate;
+    }
+    return `${base}-${Date.now()}`;
   }
 }
 

@@ -21,7 +21,7 @@ export default function ReviewerLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <AuthGuard requiredRole="Reviewer">
+    <AuthGuard requiredRole={['Reviewer', 'Administrator']}>
       <div className="flex min-h-screen bg-slate-100">
         <Sidebar title="Biên tập" items={reviewerNav} onLogout={handleLogout} />
         <main className="flex-1 overflow-auto p-6">{children}</main>

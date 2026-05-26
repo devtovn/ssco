@@ -7,13 +7,17 @@ import { logout } from '@/lib/auth';
 
 const adminNav: SidebarItem[] = [
   { href: '/admin', label: 'Tổng quan' },
+  { href: '/admin/analytics', label: 'Phân tích' },
   { href: '/admin/reviewers', label: 'Biên tập viên' },
   { href: '/admin/config', label: 'Cấu hình' },
   { href: '/admin/ads', label: 'Quảng cáo' },
   { href: '/admin/affiliate', label: 'Affiliate' },
-  { href: '/admin/analytics', label: 'Phân tích' },
   { href: '/admin/categories', label: 'Danh mục' },
   { href: '/admin/products', label: 'Sản phẩm' },
+  { href: '/admin/seed', label: 'Thêm sản phẩm' },
+  { href: '/reviewer/generate', label: 'Tạo bài viết' },
+  { href: '/reviewer/articles', label: 'Bài viết' },
+  { href: '/admin/pending', label: 'Chờ duyệt' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

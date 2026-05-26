@@ -117,30 +117,22 @@ export class SearchService {
         orderByClause = 'p.created_at DESC';
     }
 
-    // Main search query
+    // Main search query — uses materialized view cheapest_prices to avoid full scan
     const searchQuery = `
-      WITH cheapest AS (
-        SELECT DISTINCT ON (product_id)
-          product_id,
-          source_name AS lowest_source,
-          source_url  AS lowest_source_url
-        FROM price_entries
-        WHERE is_available = true
-        ORDER BY product_id, price ASC
-      ),
-      product_prices AS (
+      WITH product_prices AS (
         SELECT
           pe.product_id,
           MIN(pe.price)            AS min_price,
           MAX(pe.price)            AS max_price,
           AVG(pe.price)            AS avg_price,
-          c.lowest_source,
-          c.lowest_source_url,
-          BOOL_OR(pe.is_available) AS is_available
-        FROM price_entries pe
-        JOIN cheapest c ON pe.product_id = c.product_id
-        WHERE pe.is_available = true
-        GROUP BY pe.product_id, c.lowest_source, c.lowest_source_url
+          cp.source_name           AS lowest_source,
+          cp.source_url            AS lowest_source_url,
+          true                     AS is_available
+        FROM cheapest_prices cp
+        JOIN price_entries pe ON pe.product_id = cp.product_id
+          AND pe.is_available = true
+          AND pe.scraped_at >= NOW() - INTERVAL '30 days'
+        GROUP BY pe.product_id, cp.source_name, cp.source_url
       ),
       product_categories_agg AS (
         SELECT
@@ -160,12 +152,12 @@ export class SearchService {
         p.images,
         pca.category_id,
         pca.category_name,
-        pp.min_price as lowest_price,
-        pp.max_price as highest_price,
-        pp.avg_price as average_price,
-        pp.lowest_source as source,
-        pp.lowest_source_url as source_url,
-        COALESCE(pp.is_available, false) as is_available,
+        pp.min_price AS lowest_price,
+        pp.max_price AS highest_price,
+        pp.avg_price AS average_price,
+        pp.lowest_source AS source,
+        pp.lowest_source_url AS source_url,
+        COALESCE(pp.is_available, false) AS is_available,
         ${keyword && keyword.trim() ? `
           ts_rank(p.name_tsvector, plainto_tsquery('vietnamese', unaccent($1))) +
           ts_rank(p.keywords_tsvector, plainto_tsquery('vietnamese', unaccent($1))) +

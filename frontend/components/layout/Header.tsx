@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { siteName } = useSiteConfig();
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -17,7 +19,7 @@ export function Header() {
             </g>
             <text x="26" y="34" textAnchor="middle" fontFamily="Inter, system-ui, sans-serif" fontWeight="700" fontSize="22" fill="#0369a1" letterSpacing="-0.04em">S</text>
           </svg>
-          <span className="text-xl font-bold text-primary-700">SSCO</span>
+          <span className="text-xl font-bold text-primary-700">{siteName}</span>
           <span className="hidden text-sm font-normal text-slate-500 sm:inline">So sánh giá</span>
         </Link>
 

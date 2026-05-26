@@ -6,6 +6,7 @@ import { ProductCard, type ProductCardData } from '@/components/shared/ProductCa
 import { JsonLd } from '@/components/shared/JsonLd';
 import { VoucherTabs } from '@/components/home/VoucherTabs';
 import { getCategoryBySlug, getCategoryProducts } from '@/lib/api/categories';
+import { getSiteConfig } from '@/lib/api/site-config';
 
 const CATEGORY_ICONS: Record<string, string> = {
   'dien-lanh': '❄️',
@@ -52,14 +53,15 @@ function toProductCard(row: {
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { siteName } = await getSiteConfig();
   try {
     const category = await getCategoryBySlug(params.slug);
     return {
-      title: `${category.name} | SSCO`,
+      title: `${category.name} | ${siteName}`,
       description: category.description || `Sản phẩm danh mục ${category.name} — so sánh giá tốt nhất.`,
     };
   } catch {
-    return { title: 'Danh mục | SSCO' };
+    return { title: `Danh mục | ${siteName}` };
   }
 }
 

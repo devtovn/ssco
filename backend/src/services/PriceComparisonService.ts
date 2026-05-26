@@ -391,27 +391,17 @@ export class PriceComparisonService {
     priceVolatility: number;
   }> {
     const query = `
-      WITH current_prices AS (
-        SELECT price
-        FROM price_entries
-        WHERE product_id = $1
-          AND is_available = true
-          AND scraped_at >= NOW() - INTERVAL '24 hours'
-      ),
-      historical_prices AS (
-        SELECT price
-        FROM price_entries
-        WHERE product_id = $1
-          AND is_available = true
-      )
       SELECT
-        (SELECT MIN(price) FROM current_prices) as current_lowest,
-        (SELECT MAX(price) FROM current_prices) as current_highest,
-        (SELECT AVG(price) FROM current_prices) as current_average,
-        (SELECT MIN(price) FROM historical_prices) as historical_lowest,
-        (SELECT MAX(price) FROM historical_prices) as historical_highest,
-        (SELECT STDDEV(price) FROM historical_prices) as price_stddev,
-        (SELECT AVG(price) FROM historical_prices) as historical_average
+        MIN(price) FILTER (WHERE scraped_at >= NOW() - INTERVAL '24 hours') AS current_lowest,
+        MAX(price) FILTER (WHERE scraped_at >= NOW() - INTERVAL '24 hours') AS current_highest,
+        AVG(price) FILTER (WHERE scraped_at >= NOW() - INTERVAL '24 hours') AS current_average,
+        MIN(price)    AS historical_lowest,
+        MAX(price)    AS historical_highest,
+        STDDEV(price) AS price_stddev,
+        AVG(price)    AS historical_average
+      FROM price_entries
+      WHERE product_id = $1
+        AND is_available = true
     `;
     
     const result = await queryRead(query, [productId]);

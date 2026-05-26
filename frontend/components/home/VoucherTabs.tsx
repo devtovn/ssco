@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 const VOUCHERS = {
   tiki: [
@@ -42,6 +43,7 @@ interface VoucherTabsProps {
 }
 
 export function VoucherTabs({ className = '', featured = false }: VoucherTabsProps) {
+  const { siteName } = useSiteConfig();
   const [active, setActive] = useState<TabKey>('tiki');
   const [copied, setCopied] = useState<string | null>(null);
   const vouchers = VOUCHERS[active] || [];
@@ -156,7 +158,7 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
         </div>
 
         <p className="border-t border-slate-100 bg-slate-50 px-3 py-2.5 text-xs text-slate-400 sm:px-5">
-          Voucher được cung cấp bởi các sàn thương mại điện tử. SSCO không đảm bảo tính khả dụng của voucher.
+          Voucher được cung cấp bởi các sàn thương mại điện tử. {siteName} không đảm bảo tính khả dụng của voucher.
         </p>
       </div>
     </section>

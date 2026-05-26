@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { generateAffiliateLink, trackClick } from '@/lib/api/products';
 import { trackInteraction } from '@/lib/api/analytics';
 import { getUserSession } from '@/lib/utils/session';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 const SOURCE_LABELS: Record<string, string> = {
   tiki: 'Tiki',
@@ -20,6 +21,7 @@ const CIRCUMFERENCE = 2 * Math.PI * 28;
 export function ChuyenHuong() {
   const params = useSearchParams();
   const router = useRouter();
+  const { siteName } = useSiteConfig();
 
   const to = params.get('to') || '';
   const source = (params.get('source') || '').toLowerCase();
@@ -136,7 +138,7 @@ export function ChuyenHuong() {
                 Chuẩn bị chuyển trang
               </p>
               <h1 className="mt-1 text-xl font-bold text-slate-900">
-                Bạn đang rời SSCO sang{' '}
+                Bạn đang rời {siteName} sang{' '}
                 <span className="text-primary-700">{sourceLabel}</span>
               </h1>
               {productName && (
@@ -192,7 +194,7 @@ export function ChuyenHuong() {
               onClick={goBack}
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:flex-1"
             >
-              Quay về SSCO
+              Quay về {siteName}
             </button>
             <button
               onClick={goNow}
@@ -203,7 +205,7 @@ export function ChuyenHuong() {
           </div>
 
           <p className="mt-5 border-t border-slate-100 pt-4 text-center text-xs text-slate-400">
-            SSCO có thể nhận hoa hồng nếu bạn đặt mua sau khi click. Giá bạn trả không thay đổi.
+            {siteName} có thể nhận hoa hồng nếu bạn đặt mua sau khi click. Giá bạn trả không thay đổi.
           </p>
         </div>
       </div>

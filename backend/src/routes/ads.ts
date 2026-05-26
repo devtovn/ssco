@@ -56,6 +56,22 @@ const UpdateAdZoneSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+const CreateAdvertisementSchema = z.object({
+  type: z.enum(['google_ads', 'static_banner', 'html_embed']),
+  contentUrl: z.string().url().optional().or(z.literal('')),
+  scriptCode: z.string().optional(),
+  clickUrl: z.string().url().optional().or(z.literal('')),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+});
+
+const UpdateAdvertisementSchema = z.object({
+  contentUrl: z.string().url().optional().or(z.literal('')),
+  scriptCode: z.string().optional(),
+  clickUrl: z.string().url().optional().or(z.literal('')),
+  isActive: z.boolean().optional(),
+});
+
 const TrackAdEventSchema = z.object({
   adId: z.string().length(26, 'Invalid ad ID'),
   type: z.enum(['impression', 'click']),
@@ -685,6 +701,120 @@ router.get(
       }
       throw error;
     }
+  })
+);
+
+// Public: get first active ad for a position (zone must be active)
+router.get(
+  '/active',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const position = req.query.position as string;
+    if (!position) return res.status(400).json({ error: 'position required' });
+    const adService = req.app.get('adService') as CachedAdvertisementService;
+    const result = await adService.getActiveAdByPosition(position as any);
+    if (!result) return res.json(null);
+    res.json(result);
+  })
+);
+
+// Admin: list advertisements in a zone
+router.get(
+  '/zones/:zoneId/advertisements',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) =>
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()))
+    );
+    await new Promise<void>((resolve, reject) =>
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()))
+    );
+    const adService = req.app.get('adService') as CachedAdvertisementService;
+    const ads = await adService.getAdvertisementsByZone(req.params.zoneId);
+    res.json(ads);
+  })
+);
+
+// Admin: create advertisement in a zone
+router.post(
+  '/zones/:zoneId/advertisements',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) =>
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()))
+    );
+    await new Promise<void>((resolve, reject) =>
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()))
+    );
+    const validation = CreateAdvertisementSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validation.error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+      });
+    }
+    const { type, contentUrl, scriptCode, clickUrl, startDate, endDate } = validation.data;
+    const adService = req.app.get('adService') as CachedAdvertisementService;
+    const ad = await adService.createAdvertisement(
+      req.params.zoneId,
+      type,
+      contentUrl || '',
+      startDate ? new Date(startDate) : new Date(),
+      endDate ? new Date(endDate) : undefined,
+      undefined,
+      scriptCode,
+      clickUrl || undefined
+    );
+    // Invalidate position cache
+    await req.app.get('cache')?.deletePattern?.('ads:active-by-position:*');
+    res.status(201).json(ad);
+  })
+);
+
+// Admin: update advertisement
+router.put(
+  '/advertisements/:adId',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) =>
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()))
+    );
+    await new Promise<void>((resolve, reject) =>
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()))
+    );
+    const validation = UpdateAdvertisementSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validation.error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+      });
+    }
+    const adService = req.app.get('adService') as CachedAdvertisementService;
+    const ad = await adService.updateAdvertisement(req.params.adId, {
+      contentUrl: validation.data.contentUrl,
+      scriptCode: validation.data.scriptCode,
+      clickUrl: validation.data.clickUrl,
+      isActive: validation.data.isActive,
+    });
+    await req.app.get('cache')?.deletePattern?.('ads:active-by-position:*');
+    res.json(ad);
+  })
+);
+
+// Admin: delete advertisement
+router.delete(
+  '/advertisements/:adId',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) =>
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()))
+    );
+    await new Promise<void>((resolve, reject) =>
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()))
+    );
+    const adService = req.app.get('adService') as CachedAdvertisementService;
+    await adService.deleteAdvertisement(req.params.adId);
+    await req.app.get('cache')?.deletePattern?.('ads:active-by-position:*');
+    res.json({ message: 'Deleted' });
   })
 );
 

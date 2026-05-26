@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 const VOUCHERS: Record<string, { code: string; desc: string; expires: string; type: 'cashback' | 'shipping' | 'discount' }[]> = {
   tiki: [
@@ -32,6 +33,7 @@ interface VoucherTableProps {
 }
 
 export function VoucherTable({ source }: VoucherTableProps) {
+  const { siteName } = useSiteConfig();
   const key = source.toLowerCase().replace(/\s+/g, '').replace('tiktokshop', 'tiktok');
   const vouchers = VOUCHERS[key] || VOUCHERS['tiki'];
   const [copied, setCopied] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export function VoucherTable({ source }: VoucherTableProps) {
                     </code>
                     <button
                       onClick={() => copy(v.code)}
-                      className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                      className={`inline-flex min-w-[44px] shrink-0 items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
                     >
                       {isCopied ? '✓' : 'Copy'}
                     </button>
@@ -102,7 +104,7 @@ export function VoucherTable({ source }: VoucherTableProps) {
       </div>
 
       <p className="border-t border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-400">
-        Voucher do {source} cung cấp. SSCO không đảm bảo tính khả dụng.
+        Voucher do <span className="font-bold capitalize text-slate-600">{source}</span> cung cấp. {siteName} không đảm bảo tính khả dụng.
       </p>
     </div>
   );

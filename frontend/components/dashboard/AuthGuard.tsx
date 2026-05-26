@@ -6,7 +6,7 @@ import { getMe, getToken, type AuthUser, type UserRole } from '@/lib/auth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  requiredRole: UserRole;
+  requiredRole: UserRole | UserRole[];
 }
 
 export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
@@ -23,7 +23,10 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
 
     getMe()
       .then((me) => {
-        if (me.role !== requiredRole) {
+        const allowed = Array.isArray(requiredRole)
+          ? requiredRole.includes(me.role)
+          : me.role === requiredRole;
+        if (!allowed) {
           window.location.assign(me.role === 'Administrator' ? '/admin' : '/reviewer');
           return;
         }

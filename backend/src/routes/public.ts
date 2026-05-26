@@ -6,8 +6,27 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ContentManagementService } from '../services/ContentManagementService';
+import { AdminService } from '../services/AdminService';
 
 const router = Router();
+
+// Public site config — returns only branding fields, no auth required
+router.get(
+  '/config',
+  asyncHandler(async (req: Request, res: Response) => {
+    const adminService = req.app.get('adminService') as AdminService;
+    try {
+      const config = await adminService.getWebsiteConfig();
+      res.json({
+        siteName: config.siteName ?? null,
+        tagline: config.tagline ?? null,
+        logoUrl: config.logoUrl ?? null,
+      });
+    } catch {
+      res.json({ siteName: null, tagline: null, logoUrl: null });
+    }
+  })
+);
 
 /**
  * @openapi

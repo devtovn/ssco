@@ -67,6 +67,8 @@ export interface Advertisement {
   zoneId: string;
   type: AdType;
   contentUrl?: string;
+  scriptCode?: string;
+  clickUrl?: string;
   targeting?: AdTargeting;
   startDate: Date;
   endDate?: Date;
@@ -74,6 +76,17 @@ export interface Advertisement {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ActiveAdResult {
+  zoneId: string;
+  position: AdPosition;
+  dimensions: AdDimensions;
+  adId: string;
+  type: AdType;
+  contentUrl?: string;
+  scriptCode?: string;
+  clickUrl?: string;
 }
 
 export type AdType = 'google_ads' | 'static_banner' | 'html_embed';
@@ -481,7 +494,9 @@ export class AdvertisementService {
     contentUrl: string,
     startDate: Date,
     endDate?: Date,
-    targeting?: AdTargeting
+    targeting?: AdTargeting,
+    scriptCode?: string,
+    clickUrl?: string
   ): Promise<Advertisement> {
     const client = await this.pool.connect();
 
@@ -521,14 +536,16 @@ export class AdvertisementService {
 
       // Insert advertisement
       const result = await client.query(
-        `INSERT INTO advertisements 
-         (zone_id, type, content_url, targeting, start_date, end_date, performance_data, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+        `INSERT INTO advertisements
+         (zone_id, type, content_url, script_code, click_url, targeting, start_date, end_date, performance_data, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
          RETURNING *`,
         [
           zoneId,
           type,
-          contentUrl,
+          contentUrl || null,
+          scriptCode || null,
+          clickUrl || null,
           JSON.stringify(targeting || {}),
           startDate,
           endDate || null,
@@ -624,6 +641,8 @@ export class AdvertisementService {
     adId: string,
     updates: {
       contentUrl?: string;
+      scriptCode?: string;
+      clickUrl?: string;
       targeting?: AdTargeting;
       startDate?: Date;
       endDate?: Date;
@@ -652,7 +671,17 @@ export class AdvertisementService {
 
       if (updates.contentUrl !== undefined) {
         updateFields.push(`content_url = $${paramIndex++}`);
-        values.push(updates.contentUrl);
+        values.push(updates.contentUrl || null);
+      }
+
+      if (updates.scriptCode !== undefined) {
+        updateFields.push(`script_code = $${paramIndex++}`);
+        values.push(updates.scriptCode || null);
+      }
+
+      if (updates.clickUrl !== undefined) {
+        updateFields.push(`click_url = $${paramIndex++}`);
+        values.push(updates.clickUrl || null);
       }
 
       if (updates.targeting !== undefined) {
@@ -716,6 +745,39 @@ export class AdvertisementService {
     }
   }
 
+  /**
+   * Get first active advertisement for a position (zone must also be active)
+   */
+  async getActiveAdByPosition(position: AdPosition): Promise<ActiveAdResult | null> {
+    const result = await this.pool.query(
+      `SELECT az.id AS zone_id, az.position, az.dimensions,
+              a.id AS ad_id, a.type, a.content_url, a.script_code, a.click_url
+       FROM ad_zones az
+       JOIN advertisements a ON a.zone_id = az.id
+       WHERE az.position = $1
+         AND az.is_active = true
+         AND a.is_active = true
+         AND a.start_date <= NOW()
+         AND (a.end_date IS NULL OR a.end_date >= NOW())
+       ORDER BY a.created_at DESC
+       LIMIT 1`,
+      [position]
+    );
+
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      zoneId: row.zone_id,
+      position: row.position,
+      dimensions: typeof row.dimensions === 'string' ? JSON.parse(row.dimensions) : row.dimensions,
+      adId: row.ad_id,
+      type: row.type,
+      contentUrl: row.content_url ?? undefined,
+      scriptCode: row.script_code ?? undefined,
+      clickUrl: row.click_url ?? undefined,
+    };
+  }
+
   // Private helper methods
 
   /**
@@ -749,6 +811,8 @@ export class AdvertisementService {
       zoneId: row.zone_id,
       type: row.type,
       contentUrl: row.content_url,
+      scriptCode: row.script_code,
+      clickUrl: row.click_url,
       targeting:
         typeof row.targeting === 'string'
           ? JSON.parse(row.targeting)

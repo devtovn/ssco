@@ -240,26 +240,41 @@ export class CategoryManagementService {
    * Get category tree (hierarchical structure)
    */
   async getCategoryTree(rootId?: string): Promise<CategoryTree[]> {
-    const query = rootId
-      ? 'SELECT * FROM categories WHERE parent_id = $1 AND is_active = true ORDER BY display_order ASC, name_vi'
-      : 'SELECT * FROM categories WHERE parent_id IS NULL AND is_active = true ORDER BY display_order ASC, name_vi';
-    
-    const params = rootId ? [rootId] : [];
-    const result = await queryRead(query, params);
-    
-    const trees: CategoryTree[] = [];
-    
+    const result = await queryRead(
+      `WITH RECURSIVE tree AS (
+        SELECT *, 0 AS depth
+        FROM categories
+        WHERE ${rootId ? 'parent_id = $1' : 'parent_id IS NULL'}
+          AND is_active = true
+        UNION ALL
+        SELECT c.*, t.depth + 1
+        FROM categories c
+        INNER JOIN tree t ON c.parent_id = t.id
+        WHERE c.is_active = true
+      )
+      SELECT * FROM tree
+      ORDER BY depth, display_order ASC, name_vi`,
+      rootId ? [rootId] : []
+    );
+
+    // Build tree from flat result in one pass
+    const map = new Map<string, CategoryTree>();
+    const roots: CategoryTree[] = [];
+
     for (const row of result.rows) {
-      const category = this.mapRowToCategory(row);
-      const children = await this.getCategoryTree(category.id);
-      
-      trees.push({
-        category,
-        children,
-      });
+      map.set(row.id, { category: this.mapRowToCategory(row), children: [] });
     }
-    
-    return trees;
+
+    for (const row of result.rows) {
+      const node = map.get(row.id)!;
+      if (row.parent_id && map.has(row.parent_id)) {
+        map.get(row.parent_id)!.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+
+    return roots;
   }
 
   /**
@@ -326,12 +341,12 @@ export class CategoryManagementService {
       categoryIds = [categoryId, ...descendants];
     }
     
-    // Get products
+    // Get products — use materialized view for cheapest price (no per-row subquery)
     const productsQuery = `
-      SELECT DISTINCT p.*,
-        (SELECT MIN(pe.price) FROM price_entries pe WHERE pe.product_id = p.id AND pe.is_available = true) as lowest_price
+      SELECT DISTINCT p.*, cp.price AS lowest_price
       FROM products p
       INNER JOIN product_categories pc ON p.id = pc.product_id
+      LEFT JOIN cheapest_prices cp ON cp.product_id = p.id
       WHERE pc.category_id = ANY($1::text[])
         AND p.is_active = true
       ORDER BY p.created_at DESC

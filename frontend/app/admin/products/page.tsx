@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { getToken } from '@/lib/auth';
 import { buildApiUrl } from '@/lib/api/client';
 import type { CategoryTree } from '@price-comparison/types';
@@ -14,6 +15,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 interface Product {
   id: string;
+  slug: string;
   name: string;
   brand: string;
   model: string;
@@ -354,7 +356,13 @@ export default function AdminProductsPage() {
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-medium text-slate-800 line-clamp-1">{p.name}</p>
+                        <Link
+                          href={`/san-pham/${p.slug ?? p.id}`}
+                          target="_blank"
+                          className="font-medium text-slate-800 hover:text-primary-600 line-clamp-1 block transition-colors"
+                        >
+                          {p.name}
+                        </Link>
                         <p className="text-xs text-slate-400">{p.brand} · {p.model}</p>
                       </td>
                       <td className="px-4 py-3">

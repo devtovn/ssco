@@ -668,75 +668,91 @@ export class AffiliateLinkService {
       throw new Error(`Affiliate config not found for platform: ${platformId}`);
     }
 
-    // Get total clicks and conversions
-    const totalsResult = await this.pool.query(
-      `SELECT 
-         COUNT(*) as total_clicks,
-         COUNT(*) FILTER (WHERE is_conversion = true) as total_conversions,
-         COALESCE(SUM(conversion_value), 0) as total_revenue
-       FROM affiliate_link_clicks
-       WHERE affiliate_config_id = $1
-       AND clicked_at >= $2
-       AND clicked_at <= $3`,
+    // Single query with CTEs — replaces 3 separate round-trips to the same table
+    const perfResult = await this.pool.query(
+      `WITH base AS (
+         SELECT
+           clicked_at,
+           is_conversion,
+           conversion_value,
+           product_id
+         FROM affiliate_link_clicks
+         WHERE affiliate_config_id = $1
+           AND clicked_at >= $2
+           AND clicked_at <= $3
+       ),
+       totals AS (
+         SELECT
+           COUNT(*)                                    AS total_clicks,
+           COUNT(*) FILTER (WHERE is_conversion = true) AS total_conversions,
+           COALESCE(SUM(conversion_value), 0)          AS total_revenue
+         FROM base
+       ),
+       by_date AS (
+         SELECT
+           DATE(clicked_at)                              AS date,
+           COUNT(*)                                      AS clicks,
+           COUNT(*) FILTER (WHERE is_conversion = true)  AS conversions
+         FROM base
+         GROUP BY DATE(clicked_at)
+         ORDER BY date ASC
+       ),
+       top_products AS (
+         SELECT
+           product_id,
+           COUNT(*)                                      AS clicks,
+           COUNT(*) FILTER (WHERE is_conversion = true)  AS conversions,
+           COALESCE(SUM(conversion_value), 0)            AS revenue
+         FROM base
+         WHERE product_id IS NOT NULL
+         GROUP BY product_id
+         ORDER BY clicks DESC
+         LIMIT 10
+       )
+       SELECT
+         'totals'                AS section,
+         t.total_clicks::text    AS col1,
+         t.total_conversions::text AS col2,
+         t.total_revenue::text   AS col3,
+         NULL                    AS col4,
+         NULL                    AS col5
+       FROM totals t
+       UNION ALL
+       SELECT 'date', d.date::text, d.clicks::text, d.conversions::text, NULL, NULL
+       FROM by_date d
+       UNION ALL
+       SELECT 'product', p.product_id, p.clicks::text, p.conversions::text, p.revenue::text, NULL
+       FROM top_products p`,
       [config.id, dateRange.startDate, dateRange.endDate]
     );
 
-    const totals = totalsResult.rows[0];
-    const totalClicks = parseInt(totals.total_clicks);
-    const totalConversions = parseInt(totals.total_conversions);
-    const estimatedRevenue = parseFloat(totals.total_revenue);
+    const totalsRow = perfResult.rows.find((r) => r.section === 'totals')!;
+    const totalClicks = parseInt(totalsRow.col1);
+    const totalConversions = parseInt(totalsRow.col2);
+    const estimatedRevenue = parseFloat(totalsRow.col3);
     const conversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
 
-    // Get clicks by date
-    const clicksByDateResult = await this.pool.query(
-      `SELECT 
-         DATE(clicked_at) as date,
-         COUNT(*) as clicks,
-         COUNT(*) FILTER (WHERE is_conversion = true) as conversions
-       FROM affiliate_link_clicks
-       WHERE affiliate_config_id = $1
-       AND clicked_at >= $2
-       AND clicked_at <= $3
-       GROUP BY DATE(clicked_at)
-       ORDER BY date ASC`,
-      [config.id, dateRange.startDate, dateRange.endDate]
-    );
+    const clicksByDate: ClickData[] = perfResult.rows
+      .filter((r) => r.section === 'date')
+      .map((row) => ({
+        date: row.col1,
+        clicks: parseInt(row.col2),
+        conversions: parseInt(row.col3),
+      }));
 
-    const clicksByDate: ClickData[] = clicksByDateResult.rows.map((row) => ({
-      date: row.date.toISOString().split('T')[0],
-      clicks: parseInt(row.clicks),
-      conversions: parseInt(row.conversions),
-    }));
-
-    // Get top products by performance
-    const topProductsResult = await this.pool.query(
-      `SELECT 
-         product_id,
-         COUNT(*) as clicks,
-         COUNT(*) FILTER (WHERE is_conversion = true) as conversions,
-         COALESCE(SUM(conversion_value), 0) as revenue
-       FROM affiliate_link_clicks
-       WHERE affiliate_config_id = $1
-       AND clicked_at >= $2
-       AND clicked_at <= $3
-       AND product_id IS NOT NULL
-       GROUP BY product_id
-       ORDER BY clicks DESC
-       LIMIT 10`,
-      [config.id, dateRange.startDate, dateRange.endDate]
-    );
-
-    const topProducts: ProductPerformance[] = topProductsResult.rows.map((row) => {
-      const clicks = parseInt(row.clicks);
-      const conversions = parseInt(row.conversions);
-      return {
-        productId: row.product_id,
-        clicks,
-        conversions,
-        conversionRate: clicks > 0 ? (conversions / clicks) * 100 : 0,
-        revenue: parseFloat(row.revenue),
-      };
-    });
+    const topProducts: ProductPerformance[] = perfResult.rows
+      .filter((r) => r.section === 'product')
+      .map((row) => {
+        const clicks = parseInt(row.col2);
+        const conversions = parseInt(row.col3);
+        return {
+          productId: row.col1,
+          clicks,
+          conversions,
+          conversionRate: clicks > 0 ? (conversions / clicks) * 100 : 0,
+          revenue: parseFloat(row.col4),
+        };
+      });
 
     return {
       platformId: config.platformId,

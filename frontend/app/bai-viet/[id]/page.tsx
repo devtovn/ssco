@@ -5,6 +5,7 @@ import { PublicLayout } from '@/components/layout/PublicLayout';
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
 import { JsonLd } from '@/components/shared/JsonLd';
 import { getPublishedArticle, getPublishedArticles } from '@/lib/api/content';
+import { getSiteConfig } from '@/lib/api/site-config';
 import { formatDate } from '@/lib/utils/format';
 import { AdZone } from '@/components/ads/AdZone';
 import { AdSidebarLayout } from '@/components/ads/AdSidebarLayout';
@@ -34,7 +35,8 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       },
     };
   } catch {
-    return { title: 'Bài viết | SSCO' };
+    const { siteName } = await getSiteConfig();
+    return { title: `Bài viết | ${siteName}` };
   }
 }
 

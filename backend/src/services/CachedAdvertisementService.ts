@@ -15,6 +15,7 @@ import {
   AdEvent,
   AdMetrics,
   AdPosition,
+  ActiveAdResult,
 } from './AdvertisementService';
 import { CacheService, CacheKeys, CacheTTL } from '../utils/cache';
 
@@ -107,7 +108,9 @@ export class CachedAdvertisementService {
     contentUrl: string,
     startDate: Date,
     endDate?: Date,
-    targeting?: AdTargeting
+    targeting?: AdTargeting,
+    scriptCode?: string,
+    clickUrl?: string
   ): Promise<Advertisement> {
     const ad = await this.advertisementService.createAdvertisement(
       zoneId,
@@ -115,7 +118,9 @@ export class CachedAdvertisementService {
       contentUrl,
       startDate,
       endDate,
-      targeting
+      targeting,
+      scriptCode,
+      clickUrl
     );
 
     // Invalidate active ads cache for this zone
@@ -210,10 +215,21 @@ export class CachedAdvertisementService {
   /**
    * Update advertisement and invalidate cache
    */
+  async getActiveAdByPosition(position: AdPosition): Promise<ActiveAdResult | null> {
+    const cacheKey = `ads:active-by-position:${position}`;
+    const cached = await this.cache.get<ActiveAdResult>(cacheKey);
+    if (cached) return cached;
+    const result = await this.advertisementService.getActiveAdByPosition(position);
+    if (result) await this.cache.set(cacheKey, result, CacheTTL.AD_ZONES);
+    return result;
+  }
+
   async updateAdvertisement(
     adId: string,
     updates: {
       contentUrl?: string;
+      scriptCode?: string;
+      clickUrl?: string;
       targeting?: AdTargeting;
       startDate?: Date;
       endDate?: Date;

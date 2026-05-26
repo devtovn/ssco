@@ -110,6 +110,7 @@ import categoryRoutes from './routes/categories';
 import searchRoutes from './routes/search';
 import priceRoutes from './routes/prices';
 import adminRoutes from './routes/admin';
+import seedRoutes from './routes/seed';
 import adRoutes from './routes/ads';
 import analyticsRoutes from './routes/analytics';
 import contentRoutes from './routes/content';
@@ -122,6 +123,7 @@ app.use(`${API_PREFIX}/search`, searchRateLimiter, searchRoutes);
 app.use(`${API_PREFIX}/products`, priceRoutes);
 app.use(`${API_PREFIX}`, priceRoutes); // For /deals endpoint
 app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/admin/seed`, seedRoutes);
 app.use(`${API_PREFIX}/ads`, adRoutes);
 app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/content`, contentRoutes);
@@ -132,6 +134,15 @@ if (process.env.DATA_COLLECTION_ENABLED === 'true') {
   dataCollectionService.initializeQueue();
   console.log('📦 Data collection queue worker started');
 }
+
+// Refresh materialized view for cheapest prices every 30 minutes
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+const refreshCheapestPrices = () => {
+  pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY cheapest_prices')
+    .then(() => logger.info('Refreshed materialized view cheapest_prices'))
+    .catch((err) => logger.error('Failed to refresh cheapest_prices view', { error: err.message }));
+};
+setInterval(refreshCheapestPrices, REFRESH_INTERVAL_MS);
 
 // TODO: Add more routes
 // app.use(`${API_PREFIX}/content`, contentRoutes);

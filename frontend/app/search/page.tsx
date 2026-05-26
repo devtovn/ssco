@@ -4,6 +4,7 @@ import { PublicLayout } from '@/components/layout/PublicLayout';
 import { SearchResults } from '@/components/search/SearchResults';
 import { JsonLd } from '@/components/shared/JsonLd';
 import { searchProducts, trackSearch } from '@/lib/api/search';
+import { getSiteConfig } from '@/lib/api/site-config';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -20,13 +21,14 @@ interface SearchPageProps {
 }
 
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
+  const { siteName } = await getSiteConfig();
   const keyword = searchParams.q?.trim() || '';
   const title = keyword
-    ? `Kết quả tìm kiếm "${keyword}" | SSCO`
-    : 'Tìm kiếm sản phẩm | SSCO';
+    ? `Kết quả tìm kiếm "${keyword}" | ${siteName}`
+    : `Tìm kiếm sản phẩm | ${siteName}`;
   const description = keyword
     ? `So sánh giá sản phẩm "${keyword}" từ Tiki, Lazada, Shopee và nhiều sàn khác.`
-    : 'Tìm kiếm và so sánh giá sản phẩm trên SSCO.';
+    : `Tìm kiếm và so sánh giá sản phẩm trên ${siteName}.`;
 
   return {
     title,

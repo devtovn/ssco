@@ -1,10 +1,11 @@
 /**
  * API Integrator Service
- * Handles API integration with e-commerce platforms (Tiki, Lazada, TikTok Shop)
+ * Handles API integration with e-commerce platforms (Tiki, Lazada, Shopee, TikTok Shop)
  * Implements rate limiting, exponential backoff, API key rotation, and data normalization
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { createHmac } from 'crypto';
 
 /**
  * Normalized product data structure
@@ -552,6 +553,100 @@ export class LazadaAPIClient extends BaseAPIClient {
 }
 
 /**
+ * Shopee API Client
+ * Uses HMAC-SHA256 per-request signing via query params (Shopee Open Platform v2)
+ */
+export class ShopeeAPIClient extends BaseAPIClient {
+  private readonly partnerId: string;
+  private readonly partnerKey: string;
+
+  constructor(partnerId: string, partnerKey: string) {
+    super(
+      process.env.SHOPEE_API_URL || 'https://partner.shopeemobile.com',
+      `${partnerId}:${partnerKey}`,
+      'shopee',
+      { maxRequests: 100, windowMs: 60000 }
+    );
+    this.partnerId = partnerId;
+    this.partnerKey = partnerKey;
+
+    // Shopee requires HMAC-SHA256 signing injected as query params.
+    // Request interceptors run LIFO, so this runs before the base injectAPIKey interceptor.
+    this.client.interceptors.request.use((config) => {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const path = (config.url || '').split('?')[0];
+      const baseString = `${this.partnerId}${path}${timestamp}`;
+      const sign = createHmac('sha256', this.partnerKey).update(baseString).digest('hex');
+      config.params = { ...config.params, partner_id: Number(this.partnerId), timestamp, sign };
+      return config;
+    });
+  }
+
+  // Shopee auth is via query param signature; no header key needed.
+  protected injectAPIKey(_headers: any, _apiKey: string): void {}
+
+  protected normalizeProduct(rawData: any): NormalizedProduct {
+    const itemId = rawData.item_id?.toString() || rawData.itemid?.toString() || '';
+    const shopId = rawData.shop_id?.toString() || '';
+    return {
+      externalId: itemId,
+      name: rawData.item_name || rawData.name || '',
+      description: rawData.description || '',
+      brand: rawData.brand || '',
+      model: rawData.tier_variation?.[0]?.name || '',
+      // Shopee price is stored as actualVND * 100000
+      price: (rawData.price_min || rawData.price || 0) / 100000,
+      currency: 'VND',
+      isAvailable: rawData.item_status === 'NORMAL' || (rawData.stock ?? 0) > 0,
+      images: this.extractImages(rawData),
+      sourceUrl: shopId && itemId ? `https://shopee.vn/product/${shopId}/${itemId}` : '',
+      source: 'shopee',
+      specifications: rawData.attributes?.reduce((acc: Record<string, string>, attr: any) => {
+        acc[attr.attribute_name] = attr.attribute_value_list?.[0]?.attribute_value || '';
+        return acc;
+      }, {}) || {},
+      metadata: {
+        rating: rawData.item_rating?.rating_star || 0,
+        reviewCount: rawData.item_rating?.rating_count?.[0] || 0,
+        seller: rawData.shop_name || shopId,
+        originalPrice: (rawData.price_max || rawData.price || 0) / 100000,
+      },
+    };
+  }
+
+  private extractImages(rawData: any): string[] {
+    const hashes: string[] = rawData.image ?? rawData.images ?? [];
+    return [...new Set(hashes.map((h: string) =>
+      h.startsWith('http') ? h : `https://cf.shopee.vn/file/${h}`
+    ))];
+  }
+
+  async searchProducts(keyword: string, limit: number = 20): Promise<APIResponse<NormalizedProduct[]>> {
+    return this.makeRequest(async () => {
+      const response = await this.client.get('/api/v2/product/search_item', {
+        params: { keyword, limit },
+      });
+      const items = response.data?.response?.item || response.data?.items || [];
+      return items.map((item: any) => this.normalizeProduct(item));
+    });
+  }
+
+  async getProduct(productId: string): Promise<APIResponse<NormalizedProduct>> {
+    return this.makeRequest(async () => {
+      const [shopId, itemId] = productId.includes(':') ? productId.split(':') : [null, productId];
+      const response = await this.client.get('/api/v2/product/get_item_base_info', {
+        params: {
+          item_id_list: itemId,
+          ...(shopId ? { shop_id: shopId } : {}),
+        },
+      });
+      const item = response.data?.response?.item_list?.[0] || response.data;
+      return this.normalizeProduct(item);
+    });
+  }
+}
+
+/**
  * TikTok Shop API Client
  */
 export class TikTokShopAPIClient extends BaseAPIClient {
@@ -651,10 +746,10 @@ export class TikTokShopAPIClient extends BaseAPIClient {
 export class APIIntegratorService {
   private tikiClient?: TikiAPIClient;
   private lazadaClient?: LazadaAPIClient;
+  private shopeeClient?: ShopeeAPIClient;
   private tiktokClient?: TikTokShopAPIClient;
 
   constructor() {
-    // Initialize clients if API keys are available
     if (process.env.TIKI_API_KEY) {
       this.tikiClient = new TikiAPIClient(process.env.TIKI_API_KEY);
     }
@@ -663,148 +758,98 @@ export class APIIntegratorService {
       this.lazadaClient = new LazadaAPIClient(process.env.LAZADA_API_KEY);
     }
 
+    if (process.env.SHOPEE_PARTNER_ID && process.env.SHOPEE_PARTNER_KEY) {
+      this.shopeeClient = new ShopeeAPIClient(
+        process.env.SHOPEE_PARTNER_ID,
+        process.env.SHOPEE_PARTNER_KEY
+      );
+    }
+
     if (process.env.TIKTOK_SHOP_API_KEY) {
       this.tiktokClient = new TikTokShopAPIClient(process.env.TIKTOK_SHOP_API_KEY);
     }
   }
 
-  /**
-   * Search products across all platforms
-   */
   async searchAllPlatforms(
     keyword: string,
     limit: number = 20
   ): Promise<{
     tiki?: APIResponse<NormalizedProduct[]>;
     lazada?: APIResponse<NormalizedProduct[]>;
+    shopee?: APIResponse<NormalizedProduct[]>;
     tiktok?: APIResponse<NormalizedProduct[]>;
   }> {
     const results: any = {};
-
-    // Execute searches in parallel
     const promises: Promise<void>[] = [];
 
     if (this.tikiClient) {
-      promises.push(
-        this.tikiClient.searchProducts(keyword, limit).then((response) => {
-          results.tiki = response;
-        })
-      );
+      promises.push(this.tikiClient.searchProducts(keyword, limit).then((r) => { results.tiki = r; }));
     }
-
     if (this.lazadaClient) {
-      promises.push(
-        this.lazadaClient.searchProducts(keyword, limit).then((response) => {
-          results.lazada = response;
-        })
-      );
+      promises.push(this.lazadaClient.searchProducts(keyword, limit).then((r) => { results.lazada = r; }));
     }
-
+    if (this.shopeeClient) {
+      promises.push(this.shopeeClient.searchProducts(keyword, limit).then((r) => { results.shopee = r; }));
+    }
     if (this.tiktokClient) {
-      promises.push(
-        this.tiktokClient.searchProducts(keyword, limit).then((response) => {
-          results.tiktok = response;
-        })
-      );
+      promises.push(this.tiktokClient.searchProducts(keyword, limit).then((r) => { results.tiktok = r; }));
     }
 
     await Promise.allSettled(promises);
-
     return results;
   }
 
-  /**
-   * Get product from specific platform
-   */
   async getProduct(
-    platform: 'tiki' | 'lazada' | 'tiktok_shop',
+    platform: 'tiki' | 'lazada' | 'shopee' | 'tiktok_shop',
     productId: string
   ): Promise<APIResponse<NormalizedProduct>> {
     switch (platform) {
       case 'tiki':
-        if (!this.tikiClient) {
-          return {
-            success: false,
-            error: 'Tiki API client not initialized',
-            source: 'tiki',
-            timestamp: new Date(),
-          };
-        }
+        if (!this.tikiClient) return this.notInitialized('tiki');
         return this.tikiClient.getProduct(productId);
 
       case 'lazada':
-        if (!this.lazadaClient) {
-          return {
-            success: false,
-            error: 'Lazada API client not initialized',
-            source: 'lazada',
-            timestamp: new Date(),
-          };
-        }
+        if (!this.lazadaClient) return this.notInitialized('lazada');
         return this.lazadaClient.getProduct(productId);
 
+      case 'shopee':
+        if (!this.shopeeClient) return this.notInitialized('shopee');
+        return this.shopeeClient.getProduct(productId);
+
       case 'tiktok_shop':
-        if (!this.tiktokClient) {
-          return {
-            success: false,
-            error: 'TikTok Shop API client not initialized',
-            source: 'tiktok_shop',
-            timestamp: new Date(),
-          };
-        }
+        if (!this.tiktokClient) return this.notInitialized('tiktok_shop');
         return this.tiktokClient.getProduct(productId);
 
       default:
-        return {
-          success: false,
-          error: `Unknown platform: ${platform}`,
-          source: platform,
-          timestamp: new Date(),
-        };
+        return { success: false, error: `Unknown platform: ${platform}`, source: platform, timestamp: new Date() };
     }
   }
 
-  /**
-   * Get all available products from all platforms
-   */
   async getAllProducts(keyword: string, limit: number = 20): Promise<NormalizedProduct[]> {
     const results = await this.searchAllPlatforms(keyword, limit);
-    const allProducts: NormalizedProduct[] = [];
-
-    // Collect successful results
-    if (results.tiki?.success && results.tiki.data) {
-      allProducts.push(...results.tiki.data);
-    }
-
-    if (results.lazada?.success && results.lazada.data) {
-      allProducts.push(...results.lazada.data);
-    }
-
-    if (results.tiktok?.success && results.tiktok.data) {
-      allProducts.push(...results.tiktok.data);
-    }
-
-    return allProducts;
+    const all: NormalizedProduct[] = [];
+    if (results.tiki?.success && results.tiki.data) all.push(...results.tiki.data);
+    if (results.lazada?.success && results.lazada.data) all.push(...results.lazada.data);
+    if (results.shopee?.success && results.shopee.data) all.push(...results.shopee.data);
+    if (results.tiktok?.success && results.tiktok.data) all.push(...results.tiktok.data);
+    return all;
   }
 
-  /**
-   * Check if any API clients are available
-   */
   hasAvailableClients(): boolean {
-    return !!(this.tikiClient || this.lazadaClient || this.tiktokClient);
+    return !!(this.tikiClient || this.lazadaClient || this.shopeeClient || this.tiktokClient);
   }
 
-  /**
-   * Get list of available platforms
-   */
   getAvailablePlatforms(): string[] {
     const platforms: string[] = [];
-
     if (this.tikiClient) platforms.push('tiki');
     if (this.lazadaClient) platforms.push('lazada');
+    if (this.shopeeClient) platforms.push('shopee');
     if (this.tiktokClient) platforms.push('tiktok_shop');
-
     return platforms;
+  }
+
+  private notInitialized(source: string): APIResponse<NormalizedProduct> {
+    return { success: false, error: `${source} API client not initialized`, source, timestamp: new Date() };
   }
 }
 

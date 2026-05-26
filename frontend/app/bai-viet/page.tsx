@@ -3,11 +3,15 @@ import Link from 'next/link';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { getPublishedArticles } from '@/lib/api/content';
 import { formatDate } from '@/lib/utils/format';
+import { getSiteConfig } from '@/lib/api/site-config';
 
-export const metadata: Metadata = {
-  title: 'Bài viết | SSCO',
-  description: 'Tin tức, đánh giá và hướng dẫn mua sắm thông minh.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName } = await getSiteConfig();
+  return {
+    title: `Bài viết | ${siteName}`,
+    description: 'Tin tức, đánh giá và hướng dẫn mua sắm thông minh.',
+  };
+}
 
 export default async function ArticlesIndexPage() {
   const articles = await getPublishedArticles(20).catch(() => []);

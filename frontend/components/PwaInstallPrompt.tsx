@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -8,6 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PwaInstallPrompt() {
+  const { siteName } = useSiteConfig();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -24,7 +26,7 @@ export function PwaInstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-primary-200 bg-white p-4 shadow-lg md:left-auto">
-      <p className="text-sm font-medium text-slate-800">Cài đặt ứng dụng SSCO trên điện thoại</p>
+      <p className="text-sm font-medium text-slate-800">Cài đặt ứng dụng {siteName} trên điện thoại</p>
       <p className="mt-1 text-xs text-slate-500">Truy cập nhanh, trải nghiệm như app native</p>
       <div className="mt-3 flex gap-2">
         <button

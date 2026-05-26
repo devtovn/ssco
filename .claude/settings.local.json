@@ -54,7 +54,9 @@
       "Bash(curl -s -X POST http://localhost:4000/api/analytics/track -H \"Content-Type: application/json\" -d '{\"eventType\":\"product_view\",\"productId\":\"01KSCKG7TRES5VEHG4TK9VTBE1\",\"pagePath\":\"/san-pham/apple-iphone-15-pro-max-256gb\",\"userSession\":\"test-session\"}')",
       "Bash(curl -sv -X POST http://localhost:4000/api/analytics/track -H \"Content-Type: application/json\" -d '{\"eventType\":\"product_view\",\"productId\":\"01KSCKG7TRES5VEHG4TK9VTBE1\",\"pagePath\":\"/san-pham/test\",\"userSession\":\"s1\"}')",
       "Bash(curl -s -X POST http://localhost:4000/api/analytics/track -H \"Content-Type: application/json\" -d '{\"eventType\":\"product_view\",\"productId\":\"01KSCKG7TRES5VEHG4TK9VTBE1\",\"pagePath\":\"/san-pham/apple-iphone-15-pro-max-256gb\",\"userSession\":\"s1\"}')",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/admin)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/admin)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Dev\\\\SSCO\" -Recurse -Include \"*ad*\" -Name)",
+      "Bash(Select-Object -First 50)"
     ],
     "additionalDirectories": [
       "\\tmp",

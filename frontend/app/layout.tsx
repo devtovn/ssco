@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
+import { SiteConfigProvider } from '@/context/SiteConfigContext';
+import { getSiteConfig } from '@/lib/api/site-config';
 
 const inter = Inter({
   subsets: ['latin', 'vietnamese'],
@@ -34,11 +36,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { siteName } = await getSiteConfig();
+
   return (
     <html lang="vi" className={inter.variable}>
       <head>
@@ -46,8 +50,10 @@ export default function RootLayout({
         <link rel="dns-prefetch" href={apiUrl} />
       </head>
       <body className="font-sans antialiased">
-        <ErrorBoundary>{children}</ErrorBoundary>
-        <PwaInstallPrompt />
+        <SiteConfigProvider siteName={siteName}>
+          <ErrorBoundary>{children}</ErrorBoundary>
+          <PwaInstallPrompt />
+        </SiteConfigProvider>
       </body>
     </html>
   );

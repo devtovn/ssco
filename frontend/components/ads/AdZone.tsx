@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getAdZones, type AdPosition, type AdZoneRecord } from '@/lib/api/ads';
-import { GoogleAd } from './GoogleAd';
+import { useEffect, useRef, useState } from 'react';
+import { getActiveAd, type AdPosition, type ActiveAdResult } from '@/lib/api/ads';
 import { BannerAd } from './BannerAd';
 
 interface AdZoneProps {
@@ -10,32 +9,46 @@ interface AdZoneProps {
   className?: string;
 }
 
+function ScriptAd({ scriptCode, width, height }: { scriptCode: string; width: number; height: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.innerHTML = '';
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = scriptCode;
+    const scripts = Array.from(wrapper.querySelectorAll('script'));
+    const nonScripts = Array.from(wrapper.childNodes).filter((n) => n.nodeName !== 'SCRIPT');
+    nonScripts.forEach((n) => ref.current!.appendChild(n.cloneNode(true)));
+    scripts.forEach((s) => {
+      const el = document.createElement('script');
+      if (s.src) el.src = s.src;
+      if (s.async) el.async = true;
+      if (s.crossOrigin) el.crossOrigin = s.crossOrigin;
+      el.textContent = s.textContent;
+      ref.current!.appendChild(el);
+    });
+  }, [scriptCode]);
+  return <div ref={ref} style={{ minHeight: height, maxWidth: width }} />;
+}
+
 export function AdZone({ position, className = '' }: AdZoneProps) {
-  const [zone, setZone] = useState<AdZoneRecord | null>(null);
+  const [ad, setAd] = useState<ActiveAdResult | null | undefined>(undefined);
 
   useEffect(() => {
-    getAdZones({ isActive: true, position })
-      .then((zones) => setZone(zones[0] ?? null))
-      .catch(() => setZone(null));
+    getActiveAd(position).then(setAd).catch(() => setAd(null));
   }, [position]);
 
-  if (!zone) return null;
+  if (ad === undefined || ad === null) return null;
 
-  const width = zone.dimensions?.width ?? (position === 'sidebar' ? 300 : 728);
-  const height = zone.dimensions?.height ?? (position === 'sidebar' ? 250 : 90);
-  const isGoogle = zone.name.toLowerCase().includes('google');
+  const width = ad.dimensions?.width ?? (position === 'sidebar' ? 300 : 728);
+  const height = ad.dimensions?.height ?? (position === 'sidebar' ? 250 : 90);
 
   return (
-    <section
-      className={className}
-      aria-label={zone.name}
-      data-ad-zone={zone.id}
-      style={{ minHeight: height }}
-    >
-      {isGoogle ? (
-        <GoogleAd width={width} height={height} />
+    <section className={className} aria-label="Quảng cáo" data-ad-zone={ad.zoneId} style={{ minHeight: height }}>
+      {(ad.type === 'html_embed' || ad.type === 'google_ads') && ad.scriptCode ? (
+        <ScriptAd scriptCode={ad.scriptCode} width={width} height={height} />
       ) : (
-        <BannerAd width={width} height={height} />
+        <BannerAd imageUrl={ad.contentUrl} clickUrl={ad.clickUrl} width={width} height={height} />
       )}
     </section>
   );

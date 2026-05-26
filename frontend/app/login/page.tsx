@@ -4,9 +4,11 @@ import { FormEvent, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/auth';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 
 function LoginForm() {
   const searchParams = useSearchParams();
+  const { siteName } = useSiteConfig();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -41,7 +43,7 @@ function LoginForm() {
     <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-lg">
       <div className="mb-8 text-center">
         <Link href="/" className="text-2xl font-bold text-primary-700">
-          SSCO
+          {siteName}
         </Link>
         <p className="mt-2 text-sm text-slate-600">Đăng nhập quản trị</p>
       </div>
