@@ -244,18 +244,27 @@ export class PlatformAPIService {
   }
 
   /**
-   * Search a keyword across all no-key platforms (Tiki, Shopee).
-   * When official API clients are configured, the caller should merge those results too.
+   * Platforms that work server-side without an API key.
+   * Shopee/Lazada/TikTok block all non-browser requests (403 / anti-bot redirect).
+   */
+  static readonly NO_KEY_PLATFORMS = ['tiki'] as const;
+
+  /**
+   * Platforms that require an official API key (blocked server-side without one).
+   */
+  static readonly KEY_REQUIRED_PLATFORMS = [
+    { platform: 'shopee', envVars: 'SHOPEE_PARTNER_ID + SHOPEE_PARTNER_KEY' },
+    { platform: 'lazada', envVars: 'LAZADA_API_KEY' },
+    { platform: 'tiktok', envVars: 'TIKTOK_SHOP_API_KEY' },
+  ] as const;
+
+  /**
+   * Search a keyword on platforms accessible without an API key (currently only Tiki).
+   * Shopee/Lazada/TikTok block all server-side requests — they require official API keys.
    */
   async searchAllNoKeyPlatforms(keyword: string, limit = 5): Promise<PlatformSearchResult[]> {
-    const [tikiProducts, shopeeProducts] = await Promise.all([
-      this.searchTiki(keyword, limit).catch(() => [] as NormalizedProduct[]),
-      this.searchShopee(keyword, limit).catch(() => [] as NormalizedProduct[]),
-    ]);
-    return [
-      { platform: 'tiki', products: tikiProducts },
-      { platform: 'shopee', products: shopeeProducts },
-    ];
+    const tikiProducts = await this.searchTiki(keyword, limit).catch(() => [] as NormalizedProduct[]);
+    return [{ platform: 'tiki', products: tikiProducts }];
   }
 }
 

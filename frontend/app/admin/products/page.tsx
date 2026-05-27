@@ -161,6 +161,24 @@ export default function AdminProductsPage() {
     setSelected(allSelected ? new Set() : new Set(products.map((p) => p.id)));
   }
 
+  async function bulkDelete() {
+    if (!window.confirm(`Xóa ${selected.size} sản phẩm? Hành động này không thể hoàn tác.`)) return;
+    setSaving(true);
+    setActionError(null);
+    try {
+      await adminFetch(buildApiUrl('/admin/products/bulk'), {
+        method: 'DELETE',
+        body: JSON.stringify({ ids: [...selected] }),
+      });
+      setProducts((prev) => prev.filter((p) => !selected.has(p.id)));
+      setSelected(new Set());
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Lỗi xóa');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function bulkSetActive(isActive: boolean) {
     setSaving(true);
     setActionError(null);
@@ -268,6 +286,12 @@ export default function AdminProductsPage() {
       {/* Bulk Action Bar */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3">
+          <button
+            onClick={() => setSelected(new Set())}
+            className="rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:text-slate-600"
+          >
+            Bỏ chọn
+          </button>
           <span className="text-sm font-medium text-primary-800">
             Đã chọn {selected.size} sản phẩm
           </span>
@@ -290,10 +314,11 @@ export default function AdminProductsPage() {
               Ẩn
             </button>
             <button
-              onClick={() => setSelected(new Set())}
-              className="rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:text-slate-600"
+              onClick={bulkDelete}
+              disabled={saving}
+              className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
             >
-              Bỏ chọn
+              Xóa
             </button>
           </div>
         </div>

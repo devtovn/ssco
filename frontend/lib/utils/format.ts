@@ -1,5 +1,5 @@
 export function formatPrice(value?: number | null): string {
-  if (value == null || Number.isNaN(value)) return 'Liên hệ';
+  if (value == null || Number.isNaN(value) || value <= 0) return '—';
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 }
 

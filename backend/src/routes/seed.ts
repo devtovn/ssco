@@ -10,6 +10,7 @@ import { authenticateJWT, requireRole, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { z } from 'zod';
 import { dataCollectionService } from '../services/DataCollectionService';
+import { PlatformAPIService } from '../services/PlatformAPIService';
 
 const router = Router();
 
@@ -73,14 +74,22 @@ router.post(
 
     const body = PreviewSchema.parse(req.body);
 
+    // Platforms that need an official API key (check env vars)
+    const unavailable = PlatformAPIService.KEY_REQUIRED_PLATFORMS.filter((p) => {
+      if (p.platform === 'shopee') return !process.env.SHOPEE_PARTNER_ID || !process.env.SHOPEE_PARTNER_KEY;
+      if (p.platform === 'lazada') return !process.env.LAZADA_API_KEY;
+      if (p.platform === 'tiktok') return !process.env.TIKTOK_SHOP_API_KEY;
+      return true;
+    });
+
     if (body.type === 'url') {
       const result = await dataCollectionService.previewFromUrl(body.url);
-      return res.json(result);
+      return res.json({ ...result, unavailable });
     }
 
     // keyword mode
     const results = await dataCollectionService.previewFromKeyword(body.keyword);
-    return res.json({ primary: null, platformResults: results });
+    return res.json({ primary: null, platformResults: results, unavailable });
   })
 );
 

@@ -542,7 +542,7 @@ export class DataCollectionService {
    * Save: upsert one canonical product + all selected platform price entries.
    */
   async upsertSeedProduct(payload: SeedSavePayload): Promise<SeedSaveResult> {
-    const { primary, entries, categoryId } = payload;
+    const { primary, entries, categoryId, categorySlug } = payload;
     const client = await this.pool.connect();
 
     try {
@@ -562,13 +562,14 @@ export class DataCollectionService {
            brand       = EXCLUDED.brand,
            images      = EXCLUDED.images,
            description = EXCLUDED.description,
+           category    = EXCLUDED.category,
            updated_at  = NOW()
          RETURNING id`,
         [
           primary.name,
           slug,
           primary.description ?? null,
-          'general',
+          categorySlug,
           primary.brand ?? null,
           primary.model ?? null,
           primary.specifications ? JSON.stringify(primary.specifications) : null,

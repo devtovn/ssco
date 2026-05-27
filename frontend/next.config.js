@@ -12,7 +12,23 @@ const nextConfig = {
   // Enable standalone output for Docker production builds
   output: 'standalone',
   images: {
-    domains: ['salt.tikicdn.com', 'laz-img-cdn.alicdn.com', 'down-vn.img.susercontent.com'],
+    remotePatterns: [
+      // Tiki
+      { protocol: 'https', hostname: '**.tikicdn.com' },
+      { protocol: 'https', hostname: '**.tiki.vn' },
+      // Shopee
+      { protocol: 'https', hostname: '**.shopee.vn' },
+      { protocol: 'https', hostname: '**.susercontent.com' },
+      { protocol: 'https', hostname: 'cf.shopee.vn' },
+      // Lazada
+      { protocol: 'https', hostname: '**.alicdn.com' },
+      { protocol: 'https', hostname: '**.lazada.vn' },
+      { protocol: 'https', hostname: '**.lazcdn.com' },
+      // TikTok Shop
+      { protocol: 'https', hostname: '**.tiktok.com' },
+      { protocol: 'https', hostname: '**.tiktokcdn.com' },
+      { protocol: 'https', hostname: '**.tiktokcdn-us.com' },
+    ],
     formats: ['image/avif', 'image/webp'],
   },
   // Configure headers for better caching

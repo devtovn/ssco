@@ -28,9 +28,15 @@ interface PlatformResult {
   error?: string;
 }
 
+interface UnavailablePlatform {
+  platform: string;
+  envVars: string;
+}
+
 interface PreviewResponse {
   primary: NormalizedProduct | null;
   platformResults: PlatformResult[];
+  unavailable?: UnavailablePlatform[];
 }
 
 interface Category {
@@ -418,6 +424,25 @@ export default function SeedPage() {
                 isPrimary={isPrimary(preview.primary)}
               />
             </section>
+          )}
+
+          {/* Unavailable platforms notice */}
+          {preview.unavailable && preview.unavailable.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-medium text-amber-800">Các sàn cần cấu hình API key</p>
+              <p className="mt-1 text-xs text-amber-700">
+                Shopee, Lazada, TikTok chặn mọi request từ server — phải dùng API key chính thức.
+                Thêm vào <code className="rounded bg-amber-100 px-1">backend/.env</code>:
+              </p>
+              <ul className="mt-2 space-y-1">
+                {preview.unavailable.map((u) => (
+                  <li key={u.platform} className="text-xs text-amber-700">
+                    <span className="font-semibold capitalize">{u.platform}</span>:{' '}
+                    <code className="rounded bg-amber-100 px-1">{u.envVars}</code>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {/* Cross-platform results */}

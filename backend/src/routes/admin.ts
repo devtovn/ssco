@@ -668,8 +668,8 @@ router.get(
        LEFT JOIN categories c ON c.slug = p.category
        LEFT JOIN price_entries pe ON pe.product_id = p.id AND pe.is_available = true
        ${where}
-       GROUP BY p.id, p.name, p.brand, p.model, p.category, c.name_vi, p.is_active, p.created_at, p.hidden_sources
-       ORDER BY p.created_at DESC
+       GROUP BY p.id, p.name, p.brand, p.model, p.category, c.name_vi, p.is_active, p.created_at, p.updated_at, p.hidden_sources
+       ORDER BY COALESCE(p.updated_at, p.created_at) DESC
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params
     );
@@ -720,6 +720,20 @@ router.patch(
     );
 
     res.json({ updated: ids.length });
+  })
+);
+
+router.delete(
+  '/products/bulk',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await requireAdmin(req, res);
+    if (res.headersSent) return;
+
+    const { ids } = z.object({ ids: z.array(z.string().min(1)).min(1).max(200) }).parse(req.body);
+    const pool = req.app.get('pool') as Pool;
+
+    await pool.query(`DELETE FROM products WHERE id = ANY($1::text[])`, [ids]);
+    res.json({ deleted: ids.length });
   })
 );
 
