@@ -123,7 +123,7 @@ function ArticlesTab() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <Link
-                  href={`/reviewer/articles/${article.id}`}
+                  href={`/admin/articles/${article.id}`}
                   className="font-semibold text-slate-900 hover:text-primary-600"
                 >
                   {article.title}

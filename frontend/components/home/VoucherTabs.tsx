@@ -112,23 +112,23 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
               const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/70';
               return (
                 <div key={v.code} className={`border-b border-slate-100 last:border-0 ${rowBg}`}>
-                  {/* Mobile: 2-row layout */}
+                  {/* Mobile: 3-row layout */}
                   <div className="px-3 pb-2.5 pt-3 sm:hidden">
                     <p className="text-sm font-medium text-slate-800">{v.desc}</p>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-1.5 flex items-center gap-2">
                       <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
                       <span className="text-xs text-slate-400">HSD: {v.expires}</span>
-                      <div className="ml-auto flex items-center gap-2">
-                        <code className="rounded-md border border-dashed border-slate-300 bg-white px-2 py-1 text-xs font-bold tracking-wider text-slate-800">
-                          {v.code}
-                        </code>
-                        <button
-                          onClick={() => copy(v.code)}
-                          className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-primary-600 hover:text-white'}`}
-                        >
-                          {isCopied ? '✓' : 'Sao'}
-                        </button>
-                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <code className="rounded-md border border-dashed border-slate-300 bg-white px-2 py-1 text-xs font-bold tracking-wider text-slate-800">
+                        {v.code}
+                      </code>
+                      <button
+                        onClick={() => copy(v.code)}
+                        className={`inline-flex w-12 shrink-0 items-center justify-center rounded-md py-1 text-xs font-semibold transition ${isCopied ? 'bg-green-500 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                      >
+                        {isCopied ? '✓ OK' : 'Copy'}
+                      </button>
                     </div>
                   </div>
 
@@ -145,7 +145,7 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
                       </code>
                       <button
                         onClick={() => copy(v.code)}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-primary-600 hover:text-white'}`}
+                        className={`inline-flex w-20 shrink-0 items-center justify-center rounded-lg py-1.5 text-xs font-semibold transition ${isCopied ? 'bg-green-500 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
                       >
                         {isCopied ? '✓ Đã sao' : 'Sao chép'}
                       </button>

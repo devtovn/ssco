@@ -27,7 +27,7 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
           ? requiredRole.includes(me.role)
           : me.role === requiredRole;
         if (!allowed) {
-          window.location.assign(me.role === 'Administrator' ? '/admin' : '/reviewer');
+          window.location.assign('/admin');
           return;
         }
         setUser(me);

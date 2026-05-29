@@ -142,8 +142,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <p className="mt-3 text-3xl font-bold text-primary-700">
                   {formatPrice(comparison.lowestPrice.price)}
                 </p>
-                <p className="mt-1 text-sm text-green-600">
-                  Giá thấp nhất trên <span className="font-bold capitalize">{comparison.lowestPrice.source}</span>
+                <p className="mt-1 flex items-center gap-1.5 text-sm text-green-600">
+                  Giá thấp nhất trên
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-extrabold capitalize tracking-wide text-green-800 ring-1 ring-green-300">
+                    {comparison.lowestPrice.source}
+                  </span>
                 </p>
               </>
             )}
@@ -158,7 +161,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             )}
 
             <div className="mt-6">
-              <VoucherTable source={lowestSource} />
+              <VoucherTable source={lowestSource} isLowest />
             </div>
 
             <div className="mt-5">

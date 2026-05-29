@@ -17,15 +17,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith('/admin')) {
-    if (!token || role !== 'Administrator') {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
-  if (pathname.startsWith('/reviewer')) {
-    if (!token || role !== 'Reviewer') {
+    if (!token || (role !== 'Administrator' && role !== 'Reviewer')) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('from', pathname);
       return NextResponse.redirect(loginUrl);
@@ -36,5 +28,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/reviewer/:path*'],
+  matcher: ['/admin/:path*'],
 };

@@ -30,9 +30,10 @@ const VOUCHER_COLORS = {
 
 interface VoucherTableProps {
   source: string;
+  isLowest?: boolean;
 }
 
-export function VoucherTable({ source }: VoucherTableProps) {
+export function VoucherTable({ source, isLowest = false }: VoucherTableProps) {
   const { siteName } = useSiteConfig();
   const key = source.toLowerCase().replace(/\s+/g, '').replace('tiktokshop', 'tiktok');
   const vouchers = VOUCHERS[key] || VOUCHERS['tiki'];
@@ -48,9 +49,19 @@ export function VoucherTable({ source }: VoucherTableProps) {
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-3">
         <h3 className="text-sm font-bold text-slate-900">Mã giảm giá</h3>
-        <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium capitalize text-slate-600">
-          {source}
-        </span>
+        <div className="flex items-center gap-2">
+          {isLowest && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700 ring-1 ring-green-300">
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Giá thấp nhất
+            </span>
+          )}
+          <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${isLowest ? 'border-green-300 bg-green-50 text-green-800' : 'border-slate-200 bg-white text-slate-600'}`}>
+            {source}
+          </span>
+        </div>
       </div>
 
       <div>
@@ -61,23 +72,23 @@ export function VoucherTable({ source }: VoucherTableProps) {
 
           return (
             <div key={v.code} className={`border-b border-slate-100 last:border-0 ${rowBg}`}>
-              {/* Mobile: 2-row layout */}
+              {/* Mobile: 3-row layout */}
               <div className="px-3 pb-2.5 pt-3 sm:hidden">
                 <p className="text-sm font-medium text-slate-700">{v.desc}</p>
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-1.5 flex items-center gap-2">
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
                   <span className="text-xs text-slate-400">HSD: {v.expires}</span>
-                  <div className="ml-auto flex items-center gap-1.5">
-                    <code className="rounded border border-dashed border-slate-300 bg-white px-2 py-0.5 text-xs font-bold tracking-wider text-slate-800">
-                      {v.code}
-                    </code>
-                    <button
-                      onClick={() => copy(v.code)}
-                      className={`inline-flex min-w-[44px] shrink-0 items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
-                    >
-                      {isCopied ? '✓' : 'Copy'}
-                    </button>
-                  </div>
+                </div>
+                <div className="mt-2 flex items-center gap-1.5">
+                  <code className="rounded border border-dashed border-slate-300 bg-white px-2 py-0.5 text-xs font-bold tracking-wider text-slate-800">
+                    {v.code}
+                  </code>
+                  <button
+                    onClick={() => copy(v.code)}
+                    className={`inline-flex w-12 shrink-0 items-center justify-center rounded-md py-0.5 text-xs font-semibold transition ${isCopied ? 'bg-green-500 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                  >
+                    {isCopied ? '✓ OK' : 'Copy'}
+                  </button>
                 </div>
               </div>
 
@@ -92,9 +103,9 @@ export function VoucherTable({ source }: VoucherTableProps) {
                   </code>
                   <button
                     onClick={() => copy(v.code)}
-                    className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold transition ${isCopied ? 'bg-green-600 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                    className={`inline-flex w-12 shrink-0 items-center justify-center rounded-md py-0.5 text-xs font-semibold transition ${isCopied ? 'bg-green-500 text-white' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
                   >
-                    {isCopied ? '✓' : 'Copy'}
+                    {isCopied ? '✓ OK' : 'Copy'}
                   </button>
                 </div>
               </div>

@@ -1,31 +1,17 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { AuthGuard } from '@/components/dashboard/AuthGuard';
-import { Sidebar, type SidebarItem } from '@/components/dashboard/Sidebar';
-import { logout } from '@/lib/auth';
+import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
-const reviewerNav: SidebarItem[] = [
-  { href: '/reviewer', label: 'Tổng quan' },
-  { href: '/reviewer/generate', label: 'Tạo bài viết' },
-  { href: '/reviewer/articles', label: 'Bài viết' },
-  { href: '/reviewer/pending', label: 'Chờ duyệt' },
-];
-
+// All reviewer routes have been consolidated under /admin/
 export default function ReviewerLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
-  async function handleLogout() {
-    await logout();
-    router.push('/login');
-  }
+  useEffect(() => {
+    const adminPath = pathname.replace(/^\/reviewer/, '/admin');
+    router.replace(adminPath);
+  }, [pathname, router]);
 
-  return (
-    <AuthGuard requiredRole={['Reviewer', 'Administrator']}>
-      <div className="flex min-h-screen bg-slate-100">
-        <Sidebar title="Biên tập" items={reviewerNav} onLogout={handleLogout} />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
-      </div>
-    </AuthGuard>
-  );
+  return null;
 }
