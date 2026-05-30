@@ -22,6 +22,8 @@ export interface NormalizedProduct {
   images: string[];
   sourceUrl: string;
   source: string;
+  /** Pre-generated affiliate link — stored at seed time, used at redirect. */
+  affiliateUrl?: string;
   specifications?: Record<string, any>;
   metadata?: Record<string, any>;
 }

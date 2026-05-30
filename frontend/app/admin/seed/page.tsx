@@ -18,9 +18,19 @@ interface NormalizedProduct {
   images: string[];
   sourceUrl: string;
   source: string;
+  /** Pre-generated affiliate link — stored at seed time */
+  affiliateUrl?: string;
   specifications?: Record<string, any>;
   metadata?: Record<string, any>;
 }
+
+// Affiliate URL hints per platform
+const AFFILIATE_HINTS: Record<string, string> = {
+  tiki: 'Tự động: ?ref=CODE từ cấu hình affiliate',
+  shopee: 'Dán link s.shopee.vn/XXX từ Shopee Affiliate Dashboard',
+  lazada: 'Dán link c.lazada.vn/XXX từ Lazada Affiliate Portal',
+  tiktok: 'Dán link affiliate từ TikTok Shop Affiliate',
+};
 
 interface PlatformResult {
   platform: string;
@@ -74,6 +84,76 @@ async function adminFetch(url: string, options: RequestInit = {}) {
   const json = await res.json();
   if (!res.ok) throw new Error(json.error?.message ?? json.message ?? 'Lỗi máy chủ');
   return json;
+}
+
+// ── Affiliate URL input ───────────────────────────────────────────────────────
+
+function AffiliateUrlInput({
+  product,
+  affiliateUrls,
+  setAffiliateUrls,
+}: {
+  product: NormalizedProduct;
+  affiliateUrls: Record<string, string>;
+  setAffiliateUrls: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+}) {
+  const key = `${product.source}::${product.externalId}`;
+  const value = affiliateUrls[key] ?? '';
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState('');
+  const isAutoFilled = !!value;
+
+  async function handleGenerate() {
+    setGenerating(true);
+    setGenError('');
+    try {
+      const res = await adminFetch(buildApiUrl('/admin/seed/generate-affiliate'), {
+        method: 'POST',
+        body: JSON.stringify({ sourceUrl: product.sourceUrl, platformId: product.source }),
+      });
+      setAffiliateUrls((prev) => ({ ...prev, [key]: res.affiliateUrl }));
+    } catch (e: any) {
+      setGenError(e.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <div className="ml-3 rounded-b-lg border border-t-0 border-slate-200 bg-slate-50 px-3 py-2">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-slate-600">
+          🔗 Affiliate URL{' '}
+          {isAutoFilled && (
+            <span className="ml-1 rounded bg-green-100 px-1.5 py-0.5 text-green-700">
+              {value.includes('?ref=') ? 'Tự động (Tiki)' : 'Đã có link'}
+            </span>
+          )}
+        </label>
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={generating}
+          className="rounded bg-primary-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-primary-700 disabled:opacity-40"
+        >
+          {generating ? '…' : '⚡ Tạo link'}
+        </button>
+      </div>
+      <input
+        type="url"
+        value={value}
+        onChange={(e) => setAffiliateUrls((prev) => ({ ...prev, [key]: e.target.value }))}
+        placeholder="Tự động tạo bằng nút trên, hoặc dán link thủ công từ dashboard sàn"
+        className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-primary-500 focus:outline-none"
+      />
+      {genError && <p className="mt-1 text-xs text-red-600">{genError}</p>}
+      {value && !genError && (
+        <a href={value} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-block text-xs text-primary-600 underline">
+          Kiểm tra link ↗
+        </a>
+      )}
+    </div>
+  );
 }
 
 // ── Product card ──────────────────────────────────────────────────────────────
@@ -150,6 +230,11 @@ export default function SeedPage() {
   // In keyword mode, also track which product is "primary" (used for product name)
   const [primaryKey, setPrimaryKey] = useState<string | null>(null);
 
+  // Affiliate URLs: key = `${source}::${externalId}` → affiliate URL string
+  const [affiliateUrls, setAffiliateUrls] = useState<Record<string, string>>({});
+  // Tiki ref code fetched from affiliate config
+  const [tikiRefCode, setTikiRefCode] = useState<string | null>(null);
+
   // Save state
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<{
@@ -158,6 +243,18 @@ export default function SeedPage() {
     productSlug: string;
     priceEntriesCount: number;
   } | null>(null);
+
+  // ── Load Tiki affiliate ref code ─────────────────────────────────────────────
+
+  useEffect(() => {
+    fetch(buildApiUrl('/affiliate/configs'))
+      .then((r) => r.json())
+      .then((data: any[]) => {
+        const tiki = data.find((c) => c.platformId === 'tiki' && c.isEnabled !== false);
+        if (tiki?.referCode) setTikiRefCode(tiki.referCode);
+      })
+      .catch(() => {});
+  }, []);
 
   // ── Load categories ──────────────────────────────────────────────────────────
 
@@ -206,19 +303,36 @@ export default function SeedPage() {
 
       // Auto-select all returned products
       const initSelected = new Set<string>();
+      const initAffUrls: Record<string, string> = {};
+
+      function autoFillAffiliate(p: NormalizedProduct) {
+        const key = `${p.source}::${p.externalId}`;
+        // Tiki: auto-generate if ref code is available
+        if (p.source === 'tiki' && tikiRefCode) {
+          try {
+            const u = new URL(p.sourceUrl);
+            u.searchParams.set('ref', tikiRefCode);
+            initAffUrls[key] = u.toString();
+          } catch {}
+        }
+      }
+
       if (result.primary) {
         const key = `${result.primary.source}::${result.primary.externalId}`;
         initSelected.add(key);
         setPrimaryKey(key);
+        autoFillAffiliate(result.primary);
       }
       for (const r of result.platformResults) {
         if (r.products.length > 0) {
           const best = r.products[0];
           initSelected.add(`${best.source}::${best.externalId}`);
           if (!primaryKey && !result.primary) setPrimaryKey(`${best.source}::${best.externalId}`);
+          autoFillAffiliate(best);
         }
       }
       setSelected(initSelected);
+      setAffiliateUrls(initAffUrls);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -239,10 +353,14 @@ export default function SeedPage() {
       if (preview.primary) allProducts.push(preview.primary);
       for (const r of preview.platformResults) allProducts.push(...r.products);
 
-      // Filter selected
-      const entries = allProducts.filter((p) =>
-        selected.has(`${p.source}::${p.externalId}`)
-      );
+      // Filter selected + attach affiliate URLs
+      const entries = allProducts
+        .filter((p) => selected.has(`${p.source}::${p.externalId}`))
+        .map((p) => {
+          const key = `${p.source}::${p.externalId}`;
+          const affiliateUrl = affiliateUrls[key]?.trim() || undefined;
+          return affiliateUrl ? { ...p, affiliateUrl } : p;
+        });
 
       // Determine primary product
       let primary = entries.find((p) => `${p.source}::${p.externalId}` === primaryKey);
@@ -423,6 +541,9 @@ export default function SeedPage() {
                 onToggle={() => toggleProduct(preview.primary!)}
                 isPrimary={isPrimary(preview.primary)}
               />
+              {isSelected(preview.primary) && (
+                <AffiliateUrlInput product={preview.primary} affiliateUrls={affiliateUrls} setAffiliateUrls={setAffiliateUrls} />
+              )}
             </section>
           )}
 
@@ -459,20 +580,25 @@ export default function SeedPage() {
               {r.products.length > 0 && (
                 <div className="space-y-2">
                   {r.products.map((p) => (
-                    <div key={p.externalId} className="relative">
-                      <ProductCard
-                        product={p}
-                        selected={isSelected(p)}
-                        onToggle={() => toggleProduct(p)}
-                        isPrimary={isPrimary(p)}
-                      />
-                      {isSelected(p) && !isPrimary(p) && (
-                        <button
-                          onClick={() => makePrimary(p)}
-                          className="absolute right-3 top-3 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200 hover:text-primary-600"
-                        >
-                          Đặt làm chính
-                        </button>
+                    <div key={p.externalId} className="space-y-1">
+                      <div className="relative">
+                        <ProductCard
+                          product={p}
+                          selected={isSelected(p)}
+                          onToggle={() => toggleProduct(p)}
+                          isPrimary={isPrimary(p)}
+                        />
+                        {isSelected(p) && !isPrimary(p) && (
+                          <button
+                            onClick={() => makePrimary(p)}
+                            className="absolute right-3 top-3 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200 hover:text-primary-600"
+                          >
+                            Đặt làm chính
+                          </button>
+                        )}
+                      </div>
+                      {isSelected(p) && (
+                        <AffiliateUrlInput product={p} affiliateUrls={affiliateUrls} setAffiliateUrls={setAffiliateUrls} />
                       )}
                     </div>
                   ))}

@@ -7,6 +7,8 @@ export interface PriceEntry {
   productId: number;
   source: string;
   sourceUrl: string;
+  /** Pre-generated affiliate link stored at seed time. Use for redirect if set. */
+  affiliateUrl?: string;
   price: number;
   currency: string;
   isAvailable: boolean;

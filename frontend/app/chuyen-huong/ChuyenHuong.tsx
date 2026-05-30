@@ -45,11 +45,23 @@ export function ChuyenHuong() {
     async function run() {
       let finalUrl = to;
       try {
-        const { affiliateLink } = await generateAffiliateLink({
-          productUrl: to,
-          platformId: source || 'unknown',
-        });
-        finalUrl = affiliateLink;
+        // If `to` is already a pre-generated affiliate link (stored at seed time),
+        // skip the runtime generateAffiliateLink call — just use it directly.
+        // Detection: affiliate links for known platforms have distinct patterns.
+        const isPreGeneratedAffiliate =
+          to.includes('s.shopee.vn') ||
+          to.includes('shope.ee') ||
+          to.includes('c.lazada.vn') ||
+          (to.includes('tiki.vn') && to.includes('ref='));
+
+        if (!isPreGeneratedAffiliate) {
+          // Fallback: try to generate affiliate link at runtime (Tiki only works reliably)
+          const { affiliateLink } = await generateAffiliateLink({
+            productUrl: to,
+            platformId: source || 'unknown',
+          });
+          finalUrl = affiliateLink;
+        }
 
         void trackClick({
           platformId: source,

@@ -11,6 +11,11 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { z } from 'zod';
 import { dataCollectionService } from '../services/DataCollectionService';
 import { PlatformAPIService } from '../services/PlatformAPIService';
+import {
+  generateAffiliateLinkForPlatform,
+  PlatformCredentials,
+} from '../services/PlatformAffiliateService';
+import { CachedAffiliateLinkService } from '../services/CachedAffiliateLinkService';
 
 const router = Router();
 
@@ -51,6 +56,7 @@ const NormalizedProductSchema = z.object({
   images: z.array(z.string()),
   sourceUrl: z.string(),
   source: z.string(),
+  affiliateUrl: z.string().url().optional().or(z.literal('')),
   specifications: z.record(z.any()).optional(),
   metadata: z.record(z.any()).optional(),
 });
@@ -125,6 +131,53 @@ router.post(
     const { id } = req.params;
     const result = await dataCollectionService.refreshProductPrices(id);
     return res.json(result);
+  })
+);
+
+// ── POST /generate-affiliate ──────────────────────────────────────────────────
+// Called from the seed page to generate an affiliate URL at seed time.
+// Looks up stored credentials for the platform, calls the appropriate API,
+// returns { affiliateUrl } to be pasted into the entry before saving.
+
+const GenerateAffiliateSchema = z.object({
+  sourceUrl: z.string().url(),
+  platformId: z.enum(['tiki', 'shopee', 'tiktok', 'lazada']),
+});
+
+router.post(
+  '/generate-affiliate',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await requireAdmin(req, res);
+    if (res.headersSent) return;
+
+    const body = GenerateAffiliateSchema.parse(req.body);
+    const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
+
+    // Load stored credentials for this platform
+    const config = await affiliateService.getAffiliateConfigByPlatform(body.platformId);
+    if (!config || !config.isEnabled) {
+      return res.status(404).json({
+        error: `Chưa cấu hình affiliate cho sàn "${body.platformId}". Vào Admin → Affiliate để thêm.`,
+      });
+    }
+
+    const rawCreds = (config as any).credentials;
+    if (!rawCreds) {
+      return res.status(400).json({
+        error: `Thiếu credentials cho "${body.platformId}". Vào Admin → Affiliate để cập nhật.`,
+      });
+    }
+
+    // Build typed credentials
+    let creds: PlatformCredentials;
+    try {
+      creds = { platform: body.platformId, ...rawCreds } as PlatformCredentials;
+    } catch {
+      return res.status(400).json({ error: 'Credentials không hợp lệ.' });
+    }
+
+    const result = await generateAffiliateLinkForPlatform(body.sourceUrl, creds);
+    return res.json({ affiliateUrl: result.affiliateUrl, method: result.method });
   })
 );
 

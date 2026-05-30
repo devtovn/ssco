@@ -1,41 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSiteConfig } from '@/context/SiteConfigContext';
-
-const VOUCHERS = {
-  tiki: [
-    { code: 'TIKIBACK10', desc: 'Hoàn 10% tối đa 100k cho đơn từ 500k', expires: '31/05/2026', type: 'cashback' as const },
-    { code: 'FREESHIP99', desc: 'Miễn phí vận chuyển toàn quốc', expires: '30/05/2026', type: 'shipping' as const },
-    { code: 'DEAL15OFF', desc: 'Giảm 15% tối đa 200k cho Điện thoại', expires: '25/05/2026', type: 'discount' as const },
-  ],
-  lazada: [
-    { code: 'LAZSAVE50K', desc: 'Giảm 50k cho đơn từ 500k', expires: '28/05/2026', type: 'discount' as const },
-    { code: 'LAZFS0', desc: 'Freeship không giới hạn', expires: '31/05/2026', type: 'shipping' as const },
-  ],
-  shopee: [
-    { code: 'SPBACK15', desc: 'Hoàn xu 15% tối đa 150k', expires: '29/05/2026', type: 'cashback' as const },
-    { code: 'SPSAVE200', desc: 'Giảm 200k cho đơn từ 1 triệu', expires: '26/05/2026', type: 'discount' as const },
-  ],
-  tiktok: [
-    { code: 'TTKNEW30', desc: 'Giảm 30% cho lần đầu mua trên TikTok Shop', expires: '31/05/2026', type: 'discount' as const },
-  ],
-};
+import { fetchVouchers, type Voucher, type VoucherSource } from '@/lib/api/vouchers';
 
 const VOUCHER_COLORS = {
   cashback: { badge: 'bg-amber-100 text-amber-800', label: 'Hoàn tiền' },
-  shipping: { badge: 'bg-green-100 text-green-800', label: 'Freeship' },
-  discount: { badge: 'bg-primary-100 text-primary-800', label: 'Giảm giá' },
+  shipping:  { badge: 'bg-green-100 text-green-800', label: 'Freeship' },
+  discount:  { badge: 'bg-primary-100 text-primary-800', label: 'Giảm giá' },
 };
 
-const TABS = [
-  { key: 'tiki' as const, label: 'Tiki' },
-  { key: 'shopee' as const, label: 'Shopee' },
-  { key: 'tiktok' as const, label: 'TikTok Shop' },
-  { key: 'lazada' as const, label: 'Lazada' },
+const ALL_TABS: { key: VoucherSource; label: string }[] = [
+  { key: 'tiki',   label: 'Tiki' },
+  { key: 'shopee', label: 'Shopee' },
+  { key: 'tiktok', label: 'TikTok Shop' },
+  { key: 'lazada', label: 'Lazada' },
 ];
-
-type TabKey = keyof typeof VOUCHERS;
 
 interface VoucherTabsProps {
   className?: string;
@@ -44,9 +24,27 @@ interface VoucherTabsProps {
 
 export function VoucherTabs({ className = '', featured = false }: VoucherTabsProps) {
   const { siteName } = useSiteConfig();
-  const [active, setActive] = useState<TabKey>('tiki');
   const [copied, setCopied] = useState<string | null>(null);
-  const vouchers = VOUCHERS[active] || [];
+  const [allVouchers, setAllVouchers] = useState<Voucher[]>([]);
+  const [active, setActive] = useState<VoucherSource>('tiki');
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    fetchVouchers().then((data) => {
+      setAllVouchers(data);
+      // Set active to first tab that has vouchers
+      const first = ALL_TABS.find((t) => data.some((v) => v.source === t.key));
+      if (first) setActive(first.key);
+      setReady(true);
+    });
+  }, []);
+
+  if (!ready) return null;
+
+  const validTabs = ALL_TABS.filter((t) => allVouchers.some((v) => v.source === t.key));
+  if (validTabs.length === 0) return null;
+
+  const vouchers = allVouchers.filter((v) => v.source === active);
 
   function copy(code: string) {
     try { navigator.clipboard.writeText(code); } catch {}
@@ -80,9 +78,9 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
         )}
 
         <div className="flex overflow-x-auto border-b border-slate-200 [scrollbar-width:none]">
-          {TABS.map(({ key, label }) => {
+          {validTabs.map(({ key, label }) => {
             const isActive = active === key;
-            const count = VOUCHERS[key]?.length ?? 0;
+            const count = allVouchers.filter((v) => v.source === key).length;
             return (
               <button
                 key={key}
@@ -114,7 +112,7 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
                 <div key={v.code} className={`border-b border-slate-100 last:border-0 ${rowBg}`}>
                   {/* Mobile: 3-row layout */}
                   <div className="px-3 pb-2.5 pt-3 sm:hidden">
-                    <p className="text-sm font-medium text-slate-800">{v.desc}</p>
+                    <p className="text-sm font-medium text-slate-800">{v.description}</p>
                     <div className="mt-1.5 flex items-center gap-2">
                       <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
                       <span className="text-xs text-slate-400">HSD: {v.expires}</span>
@@ -136,7 +134,7 @@ export function VoucherTabs({ className = '', featured = false }: VoucherTabsPro
                   <div className="hidden items-center gap-4 px-5 py-4 sm:flex">
                     <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-800">{v.desc}</p>
+                      <p className="text-sm font-medium text-slate-800">{v.description}</p>
                       <p className="mt-0.5 text-xs text-slate-400">HSD: {v.expires}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">

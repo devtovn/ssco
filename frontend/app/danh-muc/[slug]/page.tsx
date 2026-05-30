@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
 import { ProductCard, type ProductCardData } from '@/components/shared/ProductCard';
@@ -7,6 +8,8 @@ import { JsonLd } from '@/components/shared/JsonLd';
 import { VoucherTabs } from '@/components/home/VoucherTabs';
 import { getCategoryBySlug, getCategoryProducts } from '@/lib/api/categories';
 import { getSiteConfig } from '@/lib/api/site-config';
+import { formatPrice } from '@/lib/utils/format';
+import Link from 'next/link';
 
 const CATEGORY_ICONS: Record<string, string> = {
   'dien-lanh': '❄️',
@@ -111,7 +114,69 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
         <VoucherTabs className="mt-8" />
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+        {/* ── Mobile: 3-row horizontal scroll carousel (vertical card layout) ── */}
+        <div
+          className="-mx-4 mt-6 overflow-x-auto pb-2 sm:hidden"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            scrollSnapType: 'x mandatory',
+            scrollPaddingLeft: '1rem',
+          }}
+        >
+          <div
+            className="grid grid-rows-3 grid-flow-col gap-3 pl-4 pr-2"
+            style={{
+              gridAutoColumns:
+                products.length > 3
+                  ? 'calc(100vw - 2.75rem)'
+                  : 'calc(100vw - 2rem)',
+            }}
+          >
+            {products.map((p) => {
+              const card = toProductCard(p);
+              const price = card.lowestPrice ?? card.priceMin;
+              return (
+                <div key={String(p.id)} style={{ scrollSnapAlign: 'start' }}>
+                  <Link
+                    href={`/san-pham/${card.slug ?? card.id}`}
+                    className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-primary-300 hover:shadow-md"
+                  >
+                    <div className="relative flex aspect-square w-full items-center justify-center bg-slate-100">
+                      {card.image ? (
+                        <Image
+                          src={card.image}
+                          alt={card.name}
+                          fill
+                          className="object-cover"
+                          sizes="97vw"
+                        />
+                      ) : (
+                        <span className="text-4xl" aria-hidden>📦</span>
+                      )}
+                    </div>
+                    <div className="flex flex-1 flex-col p-3">
+                      {card.categoryName && (
+                        <p className="text-xs text-slate-400">{card.categoryName}</p>
+                      )}
+                      <h3 className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-slate-900 group-hover:text-primary-700">
+                        {card.name}
+                      </h3>
+                      {card.brand && (
+                        <p className="mt-1 text-xs text-slate-400">{card.brand}</p>
+                      )}
+                      <p className="mt-auto pt-2 text-base font-bold text-primary-600">
+                        {formatPrice(price)}
+                      </p>
+                    </div>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Desktop: standard grid ── */}
+        <div className="mt-8 hidden sm:grid sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
           {products.map((p) => (
             <ProductCard key={String(p.id)} product={toProductCard(p)} />
           ))}

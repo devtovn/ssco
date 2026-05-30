@@ -13,7 +13,9 @@ interface PriceComparisonTableProps {
 
 function redirectUrl(entry: PriceEntry, productId: string, productName?: string, productImage?: string): string {
   const source = entry.source.toLowerCase();
-  let url = `/chuyen-huong?to=${encodeURIComponent(entry.sourceUrl)}&source=${source}&pid=${encodeURIComponent(productId)}`;
+  // Use pre-generated affiliate URL if available; fall back to raw sourceUrl
+  const dest = entry.affiliateUrl || entry.sourceUrl;
+  let url = `/chuyen-huong?to=${encodeURIComponent(dest)}&source=${source}&pid=${encodeURIComponent(productId)}`;
   if (productName) url += `&name=${encodeURIComponent(productName)}`;
   if (productImage) url += `&img=${encodeURIComponent(productImage)}`;
   return url;
@@ -38,6 +40,7 @@ export function PriceComparisonTable({ comparison, productId, productName, produ
           const isLowest = entry.id === lowestId && entry.isAvailable;
           return (
             <div key={entry.id} className={`p-4 ${isLowest ? 'bg-primary-50/50' : ''}`}>
+              {/* Row 1: source name + còn hàng */}
               <div className="flex items-center justify-between">
                 <span className="font-semibold capitalize text-slate-900">
                   {entry.source}
@@ -47,21 +50,22 @@ export function PriceComparisonTable({ comparison, productId, productName, produ
                     </span>
                   )}
                 </span>
-                <span className={`text-xs ${entry.isAvailable ? 'text-green-600' : 'text-slate-400'}`}>
+                <span className={`text-xs font-medium ${entry.isAvailable ? 'text-green-600' : 'text-slate-400'}`}>
                   {entry.isAvailable ? 'Còn hàng' : 'Hết hàng'}
                 </span>
               </div>
-              <p className="mt-1 text-lg font-bold text-primary-700">{formatPrice(entry.price)}</p>
-              <div className="mt-3">
+              {/* Row 2: giá (trái) + nút tới nơi bán (phải) */}
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-lg font-bold text-primary-700">{formatPrice(entry.price)}</p>
                 {entry.isAvailable ? (
                   <Link
                     href={redirectUrl(entry, productId, productName, productImage)}
-                    className="block w-full rounded-xl bg-primary-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-primary-700"
+                    className="shrink-0 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
                   >
                     Tới nơi bán →
                   </Link>
                 ) : (
-                  <span className="block w-full rounded-xl bg-slate-100 px-4 py-2.5 text-center text-sm font-semibold text-slate-400">
+                  <span className="shrink-0 rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-400">
                     Hết hàng
                   </span>
                 )}

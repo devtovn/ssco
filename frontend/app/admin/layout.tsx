@@ -50,6 +50,12 @@ const adminNav: SidebarGroup[] = [
     ],
   },
   {
+    group: 'Tiện ích',
+    items: [
+      { href: '/admin/vouchers', label: 'Voucher' },
+    ],
+  },
+  {
     group: 'Hệ thống',
     items: [
       { href: '/admin/config', label: 'Cấu hình' },

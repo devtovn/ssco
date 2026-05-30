@@ -1,327 +1,316 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiFetchWithAuth } from '@/lib/auth';
+
+// ── Platform credential definitions ──────────────────────────────────────────
+
+interface CredentialField {
+  key: string;
+  label: string;
+  placeholder: string;
+  secret?: boolean;
+}
+
+interface PlatformDef {
+  id: string;
+  name: string;
+  logo: string;
+  howToGet: string;
+  dashboardUrl: string;
+  credentialFields: CredentialField[];
+  /** For Tiki: can auto-generate URL; for others: need API call */
+  autoGenerate: boolean;
+}
+
+const PLATFORMS: PlatformDef[] = [
+  {
+    id: 'tiktok',
+    name: 'TikTok Shop',
+    logo: '🎵',
+    howToGet: 'Đăng ký tại affiliate.tiktokshop.com → Open Platform → tạo App → lấy App Key và Access Token',
+    dashboardUrl: 'https://affiliate.tiktokshop.com',
+    autoGenerate: true,
+    credentialFields: [
+      { key: 'appKey',      label: 'App Key',      placeholder: 'App Key từ TikTok Open Platform' },
+      { key: 'accessToken', label: 'Access Token',  placeholder: 'Access Token', secret: true },
+    ],
+  },
+  {
+    id: 'tiki',
+    name: 'Tiki',
+    logo: '🛍️',
+    howToGet: 'Đăng ký tại affiliate.tiki.vn → Dashboard → Mã giới thiệu (Ref Code)',
+    dashboardUrl: 'https://affiliate.tiki.vn',
+    autoGenerate: true,
+    credentialFields: [
+      { key: 'refCode', label: 'Ref Code', placeholder: 'Mã giới thiệu từ Tiki Affiliate' },
+    ],
+  },
+  {
+    id: 'lazada',
+    name: 'Lazada',
+    logo: '💙',
+    howToGet: 'Đăng ký tại accesstrade.vn → chọn campaign Lazada → lấy App Token và Campaign ID',
+    dashboardUrl: 'https://accesstrade.vn',
+    autoGenerate: true,
+    credentialFields: [
+      { key: 'appToken',    label: 'App Token',    placeholder: 'App Token từ AccessTrade', secret: true },
+      { key: 'campaignId', label: 'Campaign ID',  placeholder: 'Campaign ID của Lazada' },
+    ],
+  },
+  {
+    id: 'shopee',
+    name: 'Shopee',
+    logo: '🧡',
+    howToGet: 'Đăng ký tại affiliate.shopee.vn → Open Platform → Publisher ID và Access Token',
+    dashboardUrl: 'https://affiliate.shopee.vn',
+    autoGenerate: true,
+    credentialFields: [
+      { key: 'pubId',       label: 'Publisher ID', placeholder: 'Publisher ID từ Shopee Affiliate' },
+      { key: 'accessToken', label: 'Access Token', placeholder: 'Access Token', secret: true },
+    ],
+  },
+];
 
 interface AffiliateConfig {
   platformId: string;
-  platformName: string;
-  referCode: string;
-  linkTemplate: string;
   isEnabled?: boolean;
-  priority?: number;
-  linkFormat?: {
-    type: string;
-    parameterName?: string;
-    template: string;
-    exampleUrl: string;
-  };
+  credentials?: Record<string, string>;
+  referCode?: string;
 }
 
-const LINK_FORMAT_TYPES = ['query_param', 'path_param', 'subdomain', 'custom'] as const;
-
 export default function AdminAffiliatePage() {
-  const [configs, setConfigs] = useState<AffiliateConfig[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [configs, setConfigs]   = useState<Record<string, AffiliateConfig>>({});
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedId, setSavedId]   = useState<string | null>(null);
 
-  // Create form
-  const [showCreate, setShowCreate] = useState(false);
-  const [newPlatformId, setNewPlatformId] = useState('');
-  const [newPlatformName, setNewPlatformName] = useState('');
-  const [newReferCode, setNewReferCode] = useState('');
-  const [newLinkTemplate, setNewLinkTemplate] = useState('');
-  const [newFormatType, setNewFormatType] = useState<string>('query_param');
-  const [newFormatTemplate, setNewFormatTemplate] = useState('');
-  const [newFormatExampleUrl, setNewFormatExampleUrl] = useState('');
+  // Per-platform credential inputs: { [platformId]: { [fieldKey]: value } }
+  const [creds, setCreds] = useState<Record<string, Record<string, string>>>({});
+  const [enabled, setEnabled] = useState<Record<string, boolean>>({});
 
-  // Edit state
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editReferCode, setEditReferCode] = useState('');
-  const [editLinkTemplate, setEditLinkTemplate] = useState('');
-
-  async function loadConfigs() {
+  async function load() {
     setLoading(true);
     try {
       const data = await apiFetchWithAuth<AffiliateConfig[]>('/affiliate/configs');
-      setConfigs(Array.isArray(data) ? data : []);
+      const map: Record<string, AffiliateConfig> = {};
+      const credMap: Record<string, Record<string, string>> = {};
+      const enMap: Record<string, boolean> = {};
+      for (const c of data) {
+        map[c.platformId] = c;
+        credMap[c.platformId] = c.credentials ?? {};
+        enMap[c.platformId] = c.isEnabled !== false;
+      }
+      setConfigs(map);
+      setCreds(credMap);
+      setEnabled(enMap);
       setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không tải được cấu hình');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Lỗi tải dữ liệu');
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    loadConfigs();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault();
+  function setField(platformId: string, key: string, value: string) {
+    setCreds(prev => ({
+      ...prev,
+      [platformId]: { ...(prev[platformId] ?? {}), [key]: value },
+    }));
+  }
+
+  async function handleSave(p: PlatformDef) {
+    const platformCreds = creds[p.id] ?? {};
+    // Check all required fields are filled
+    const missing = p.credentialFields.filter(f => !platformCreds[f.key]?.trim());
+    if (missing.length > 0) {
+      setError(`Vui lòng điền: ${missing.map(f => f.label).join(', ')}`);
+      return;
+    }
+    setError('');
+    setSavingId(p.id);
+
     try {
-      await apiFetchWithAuth('/affiliate/configs', {
-        method: 'POST',
-        body: JSON.stringify({
-          platformId: newPlatformId,
-          platformName: newPlatformName,
-          referCode: newReferCode,
-          linkTemplate: newLinkTemplate,
-          linkFormat: {
-            type: newFormatType,
-            template: newFormatTemplate,
-            exampleUrl: newFormatExampleUrl,
-          },
-        }),
-      });
-      setShowCreate(false);
-      setNewPlatformId('');
-      setNewPlatformName('');
-      setNewReferCode('');
-      setNewLinkTemplate('');
-      setNewFormatType('query_param');
-      setNewFormatTemplate('');
-      setNewFormatExampleUrl('');
-      await loadConfigs();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Tạo cấu hình thất bại');
+      const isExisting = !!configs[p.id];
+      const referCode = platformCreds['refCode'] ?? platformCreds['pubId'] ?? platformCreds['appKey'] ?? '';
+
+      // Build a minimal linkFormat so the existing schema validation passes
+      const linkFormat = {
+        type: 'custom' as const,
+        template: `{product_url}`,
+        exampleUrl: `https://${p.id}.vn/product/example`,
+      };
+
+      const body = {
+        platformId: p.id,
+        platformName: p.name,
+        referCode,
+        linkTemplate: linkFormat.exampleUrl,
+        linkFormat,
+        credentials: platformCreds,
+        isEnabled: enabled[p.id] !== false,
+      };
+
+      if (isExisting) {
+        await apiFetchWithAuth(`/affiliate/configs/${p.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ referCode, credentials: platformCreds, isEnabled: enabled[p.id] !== false }),
+        });
+      } else {
+        await apiFetchWithAuth('/affiliate/configs', { method: 'POST', body: JSON.stringify(body) });
+      }
+
+      setSavedId(p.id);
+      setTimeout(() => setSavedId(null), 2000);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Lưu thất bại');
+    } finally {
+      setSavingId(null);
     }
   }
 
-  function startEdit(config: AffiliateConfig) {
-    setEditingId(config.platformId);
-    setEditReferCode(config.referCode);
-    setEditLinkTemplate(config.linkTemplate);
-  }
-
-  async function handleUpdate(platformId: string) {
+  async function handleToggle(p: PlatformDef) {
+    const next = !(enabled[p.id] !== false);
+    setEnabled(prev => ({ ...prev, [p.id]: next }));
     try {
-      await apiFetchWithAuth(`/affiliate/configs/${platformId}`, {
+      await apiFetchWithAuth(`/affiliate/configs/${p.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ referCode: editReferCode, linkTemplate: editLinkTemplate }),
+        body: JSON.stringify({ isEnabled: next }),
       });
-      setEditingId(null);
-      await loadConfigs();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cập nhật thất bại');
+    } catch {
+      setEnabled(prev => ({ ...prev, [p.id]: !next }));
     }
   }
 
-  async function handleDelete(platformId: string, platformName: string) {
-    if (!confirm(`Xóa cấu hình affiliate "${platformName}"?`)) return;
+  async function handleDelete(p: PlatformDef) {
+    if (!confirm(`Xoá cấu hình affiliate ${p.name}?`)) return;
     try {
-      await apiFetchWithAuth(`/affiliate/configs/${platformId}`, { method: 'DELETE' });
-      await loadConfigs();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Xóa thất bại');
+      await apiFetchWithAuth(`/affiliate/configs/${p.id}`, { method: 'DELETE' });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Xoá thất bại');
     }
   }
+
+  if (loading) return <div className="p-8 text-sm text-slate-500">Đang tải...</div>;
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Affiliate</h1>
-          <p className="mt-1 text-sm text-slate-600">Cấu hình liên kết tiếp thị theo sàn</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowCreate(!showCreate)}
-          className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-        >
-          Thêm sàn
-        </button>
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-slate-900">Cấu hình Affiliate</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Nhập credentials để hệ thống tự động tạo affiliate link khi bạn seed sản phẩm.
+        </p>
       </div>
 
       {error && (
-        <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
 
-      {showCreate && (
-        <form
-          onSubmit={handleCreate}
-          className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-        >
-          <h2 className="font-semibold text-slate-900">Thêm cấu hình affiliate</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <input
-              required
-              placeholder="Platform ID (vd: tiki)"
-              value={newPlatformId}
-              onChange={(e) => setNewPlatformId(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <input
-              required
-              placeholder="Tên sàn (vd: Tiki)"
-              value={newPlatformName}
-              onChange={(e) => setNewPlatformName(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <input
-              required
-              placeholder="Mã giới thiệu"
-              value={newReferCode}
-              onChange={(e) => setNewReferCode(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <input
-              required
-              placeholder="Mẫu link (vd: https://tiki.vn/...)"
-              value={newLinkTemplate}
-              onChange={(e) => setNewLinkTemplate(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <p className="mt-4 text-xs font-medium text-slate-700">Định dạng link</p>
-          <div className="mt-2 grid gap-3 sm:grid-cols-3">
-            <select
-              value={newFormatType}
-              onChange={(e) => setNewFormatType(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            >
-              {LINK_FORMAT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <input
-              required
-              placeholder="Template định dạng"
-              value={newFormatTemplate}
-              onChange={(e) => setNewFormatTemplate(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <input
-              required
-              type="url"
-              placeholder="URL ví dụ (https://...)"
-              value={newFormatExampleUrl}
-              onChange={(e) => setNewFormatExampleUrl(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="submit"
-              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-            >
-              Lưu
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCreate(false)}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Hủy
-            </button>
-          </div>
-        </form>
-      )}
+      <div className="space-y-5">
+        {PLATFORMS.map((p) => {
+          const config    = configs[p.id];
+          const isConfigured = !!config;
+          const isOn      = enabled[p.id] !== false;
+          const isSaving  = savingId === p.id;
+          const isSaved   = savedId === p.id;
+          const platformCreds = creds[p.id] ?? {};
+          const allFilled = p.credentialFields.every(f => platformCreds[f.key]?.trim());
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        {loading ? (
-          <p className="p-5 text-sm text-slate-600">Đang tải...</p>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 font-medium">Sàn</th>
-                <th className="px-4 py-3 font-medium">Mã giới thiệu</th>
-                <th className="px-4 py-3 font-medium">Mẫu link</th>
-                <th className="px-4 py-3 font-medium">Trạng thái</th>
-                <th className="px-4 py-3 font-medium">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {configs.map((c) => (
-                <tr key={c.platformId} className="border-b border-slate-100">
-                  <td className="px-4 py-3 font-medium">{c.platformName}</td>
-                  <td className="px-4 py-3">
-                    {editingId === c.platformId ? (
-                      <input
-                        value={editReferCode}
-                        onChange={(e) => setEditReferCode(e.target.value)}
-                        className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
-                      />
-                    ) : (
-                      c.referCode
-                    )}
-                  </td>
-                  <td className="max-w-xs truncate px-4 py-3 text-slate-600">
-                    {editingId === c.platformId ? (
-                      <input
-                        value={editLinkTemplate}
-                        onChange={(e) => setEditLinkTemplate(e.target.value)}
-                        className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
-                      />
-                    ) : (
-                      c.linkTemplate
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        c.isEnabled !== false
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {c.isEnabled !== false ? 'Bật' : 'Tắt'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      {editingId === c.platformId ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdate(c.platformId)}
-                            className="text-primary-600 hover:underline"
-                          >
-                            Lưu
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingId(null)}
-                            className="text-slate-600 hover:underline"
-                          >
-                            Hủy
-                          </button>
-                        </>
+          return (
+            <div key={p.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{p.logo}</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-semibold text-slate-900">{p.name}</h2>
+                      {isConfigured ? (
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isOn ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {isOn ? 'Đang bật' : 'Tắt'}
+                        </span>
                       ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => startEdit(c)}
-                            className="text-primary-600 hover:underline"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(c.platformId, c.platformName)}
-                            className="text-red-600 hover:underline"
-                          >
-                            Xóa
-                          </button>
-                        </>
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          Chưa cấu hình
+                        </span>
                       )}
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {!configs.length && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                    Chưa có cấu hình affiliate
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
+                  </div>
+                </div>
+                {isConfigured && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleToggle(p)}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${isOn ? 'bg-primary-600' : 'bg-slate-200'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isOn ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                    <button type="button" onClick={() => handleDelete(p)} className="text-xs text-red-500 hover:underline">
+                      Xoá
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* How to get credentials */}
+              <div className="mt-3 flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                <span>📌</span>
+                <span>
+                  {p.howToGet}{' '}
+                  <a href={p.dashboardUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">
+                    Mở dashboard ↗
+                  </a>
+                </span>
+              </div>
+
+              {/* Credential fields */}
+              <div className="mt-3 space-y-2">
+                {p.credentialFields.map(f => (
+                  <div key={f.key}>
+                    <label className="block text-xs font-medium text-slate-700">{f.label}</label>
+                    <input
+                      type={f.secret ? 'password' : 'text'}
+                      value={platformCreds[f.key] ?? ''}
+                      onChange={e => setField(p.id, f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      className="mt-0.5 w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none"
+                      autoComplete="off"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Save button */}
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleSave(p)}
+                  disabled={!allFilled || isSaving}
+                  className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-40"
+                >
+                  {isSaving ? '…' : isSaved ? '✓ Đã lưu' : isConfigured ? 'Cập nhật' : 'Lưu'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* How it works */}
+      <div className="mt-8 rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
+        <p className="font-semibold">Luồng hoạt động</p>
+        <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs">
+          <li>Cấu hình credentials cho từng sàn ở trang này</li>
+          <li>Khi seed sản phẩm: click <strong>"Tạo affiliate link"</strong> → hệ thống gọi API sàn → lưu link vào DB</li>
+          <li>User click "Tới nơi bán" → đọc link đã lưu → redirect ngay, không có API call nào tại thời điểm đó</li>
+        </ol>
       </div>
     </div>
   );

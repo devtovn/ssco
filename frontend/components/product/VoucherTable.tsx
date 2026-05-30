@@ -1,31 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSiteConfig } from '@/context/SiteConfigContext';
-
-const VOUCHERS: Record<string, { code: string; desc: string; expires: string; type: 'cashback' | 'shipping' | 'discount' }[]> = {
-  tiki: [
-    { code: 'TIKIBACK10', desc: 'Hoàn 10% tối đa 100k cho đơn từ 500k', expires: '31/05/2026', type: 'cashback' },
-    { code: 'FREESHIP99', desc: 'Miễn phí vận chuyển toàn quốc', expires: '30/05/2026', type: 'shipping' },
-    { code: 'DEAL15OFF', desc: 'Giảm 15% tối đa 200k cho Điện thoại', expires: '25/05/2026', type: 'discount' },
-  ],
-  lazada: [
-    { code: 'LAZSAVE50K', desc: 'Giảm 50k cho đơn từ 500k', expires: '28/05/2026', type: 'discount' },
-    { code: 'LAZFS0', desc: 'Freeship không giới hạn', expires: '31/05/2026', type: 'shipping' },
-  ],
-  shopee: [
-    { code: 'SPBACK15', desc: 'Hoàn xu 15% tối đa 150k', expires: '29/05/2026', type: 'cashback' },
-    { code: 'SPSAVE200', desc: 'Giảm 200k cho đơn từ 1 triệu', expires: '26/05/2026', type: 'discount' },
-  ],
-  tiktok: [
-    { code: 'TTKNEW30', desc: 'Giảm 30% cho lần đầu mua trên TikTok Shop', expires: '31/05/2026', type: 'discount' },
-  ],
-};
+import { fetchVouchers, type Voucher } from '@/lib/api/vouchers';
 
 const VOUCHER_COLORS = {
   cashback: { badge: 'bg-amber-100 text-amber-800', label: 'Hoàn tiền' },
-  shipping: { badge: 'bg-green-100 text-green-800', label: 'Freeship' },
-  discount: { badge: 'bg-primary-100 text-primary-800', label: 'Giảm giá' },
+  shipping:  { badge: 'bg-green-100 text-green-800', label: 'Freeship' },
+  discount:  { badge: 'bg-primary-100 text-primary-800', label: 'Giảm giá' },
 };
 
 interface VoucherTableProps {
@@ -36,8 +18,18 @@ interface VoucherTableProps {
 export function VoucherTable({ source, isLowest = false }: VoucherTableProps) {
   const { siteName } = useSiteConfig();
   const key = source.toLowerCase().replace(/\s+/g, '').replace('tiktokshop', 'tiktok');
-  const vouchers = VOUCHERS[key] || VOUCHERS['tiki'];
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [ready, setReady] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchVouchers(key).then((data) => {
+      setVouchers(data);
+      setReady(true);
+    });
+  }, [key]);
+
+  if (!ready || vouchers.length === 0) return null;
 
   function copy(code: string) {
     try { navigator.clipboard.writeText(code); } catch {}
@@ -74,7 +66,7 @@ export function VoucherTable({ source, isLowest = false }: VoucherTableProps) {
             <div key={v.code} className={`border-b border-slate-100 last:border-0 ${rowBg}`}>
               {/* Mobile: 3-row layout */}
               <div className="px-3 pb-2.5 pt-3 sm:hidden">
-                <p className="text-sm font-medium text-slate-700">{v.desc}</p>
+                <p className="text-sm font-medium text-slate-700">{v.description}</p>
                 <div className="mt-1.5 flex items-center gap-2">
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
                   <span className="text-xs text-slate-400">HSD: {v.expires}</span>
@@ -95,7 +87,7 @@ export function VoucherTable({ source, isLowest = false }: VoucherTableProps) {
               {/* Desktop: single-row table layout */}
               <div className="hidden items-center gap-2 px-3 py-2.5 sm:flex">
                 <span className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-semibold ${c.badge}`}>{c.label}</span>
-                <span className="min-w-0 flex-1 px-1 text-xs leading-snug text-slate-700">{v.desc}</span>
+                <span className="min-w-0 flex-1 px-1 text-xs leading-snug text-slate-700">{v.description}</span>
                 <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">{v.expires}</span>
                 <div className="ml-2 flex shrink-0 items-center gap-1.5">
                   <code className="whitespace-nowrap rounded border border-dashed border-slate-300 bg-white px-1.5 py-0.5 font-mono text-xs font-bold tracking-wide text-slate-800">

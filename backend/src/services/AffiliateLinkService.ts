@@ -7,6 +7,14 @@ export interface AffiliateConfig {
   referCode: string;
   linkTemplate: string;
   linkFormat: AffiliateLinkFormat;
+  /**
+   * Platform-specific API credentials (stored as JSONB).
+   * tiki:    { refCode }
+   * shopee:  { pubId, accessToken }
+   * tiktok:  { appKey, accessToken }
+   * lazada:  { appToken, campaignId }
+   */
+  credentials?: Record<string, string>;
   isEnabled: boolean;
   priority: number;
   createdAt: Date;
@@ -26,6 +34,7 @@ export interface AffiliateConfigInput {
   referCode: string;
   linkTemplate: string;
   linkFormat: AffiliateLinkFormat;
+  credentials?: Record<string, string>;
   priority?: number;
 }
 
@@ -34,6 +43,7 @@ export interface AffiliateConfigUpdate {
   referCode?: string;
   linkTemplate?: string;
   linkFormat?: AffiliateLinkFormat;
+  credentials?: Record<string, string>;
   isEnabled?: boolean;
   priority?: number;
 }
@@ -103,9 +113,9 @@ export class AffiliateLinkService {
     }
 
     const result = await this.pool.query(
-      `INSERT INTO affiliate_configs 
-       (platform_id, platform_name, refer_code, link_template, link_format, priority, is_enabled)
-       VALUES ($1, $2, $3, $4, $5, $6, true)
+      `INSERT INTO affiliate_configs
+       (platform_id, platform_name, refer_code, link_template, link_format, credentials, priority, is_enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
        RETURNING *`,
       [
         input.platformId,
@@ -113,6 +123,7 @@ export class AffiliateLinkService {
         input.referCode,
         input.linkTemplate,
         JSON.stringify(input.linkFormat),
+        input.credentials ? JSON.stringify(input.credentials) : null,
         input.priority || 0,
       ]
     );
@@ -171,6 +182,10 @@ export class AffiliateLinkService {
     if (updates.isEnabled !== undefined) {
       updateFields.push(`is_enabled = $${paramIndex++}`);
       values.push(updates.isEnabled);
+    }
+    if (updates.credentials !== undefined) {
+      updateFields.push(`credentials = $${paramIndex++}`);
+      values.push(JSON.stringify(updates.credentials));
     }
     if (updates.priority !== undefined) {
       updateFields.push(`priority = $${paramIndex++}`);
@@ -326,9 +341,12 @@ export class AffiliateLinkService {
       platformName: row.platform_name,
       referCode: row.refer_code,
       linkTemplate: row.link_template,
-      linkFormat: typeof row.link_format === 'string' 
-        ? JSON.parse(row.link_format) 
+      linkFormat: typeof row.link_format === 'string'
+        ? JSON.parse(row.link_format)
         : row.link_format,
+      credentials: row.credentials
+        ? (typeof row.credentials === 'string' ? JSON.parse(row.credentials) : row.credentials)
+        : undefined,
       isEnabled: row.is_enabled,
       priority: row.priority,
       createdAt: row.created_at,

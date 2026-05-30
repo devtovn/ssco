@@ -544,4 +544,60 @@ router.get(
   })
 );
 
+// ── GET /go/:priceEntryId — redirect with affiliate tracking ─────────────────
+//
+// Public endpoint. Called when user clicks "Tới nơi bán".
+// 1. Load source_url + source_name from price_entries
+// 2. Generate affiliate link (appends refer code if configured)
+// 3. Track the click
+// 4. 302 redirect
+
+router.get(
+  '/go/:priceEntryId',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { priceEntryId } = req.params;
+    const productId = (req.query.pid as string) || '';
+
+    // 1. Load price entry
+    const db: import('pg').Pool = req.app.get('pool');
+    const entryResult = await db.query(
+      'SELECT source_url, source_name FROM price_entries WHERE id = $1 LIMIT 1',
+      [priceEntryId]
+    );
+
+    if (entryResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Price entry not found' });
+    }
+
+    const { source_url: sourceUrl, source_name: platformId } = entryResult.rows[0];
+
+    // 2. Generate affiliate link (falls back to sourceUrl if no config)
+    const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
+    let destUrl = sourceUrl;
+    try {
+      destUrl = await affiliateService.generateAffiliateLink(sourceUrl, platformId);
+    } catch {
+      // no config → use raw URL
+    }
+
+    // 3. Track click (fire-and-forget, don't block redirect)
+    try {
+      await affiliateService.trackAffiliateLinkClick(platformId, destUrl, {
+        productId,
+        userSession: (req.query.sid as string) || 'anonymous',
+        userAgent: req.headers['user-agent'] || '',
+        referrer: req.headers.referer,
+      });
+    } catch {
+      // tracking failure must not block the user
+    }
+
+    // 4. Redirect or return JSON (redirect=0 → used by countdown page)
+    if (req.query.redirect === '0') {
+      return res.json({ destUrl, platformId, sourceUrl });
+    }
+    return res.redirect(302, destUrl);
+  })
+);
+
 export default router;

@@ -115,6 +115,7 @@ import adRoutes from './routes/ads';
 import analyticsRoutes from './routes/analytics';
 import contentRoutes from './routes/content';
 import publicRoutes from './routes/public';
+import voucherRoutes from './routes/vouchers';
 
 app.use(`${API_PREFIX}/auth`, authRateLimiter, authRoutes);
 app.use(`${API_PREFIX}/affiliate`, affiliateRoutes);
@@ -128,6 +129,7 @@ app.use(`${API_PREFIX}/ads`, adRoutes);
 app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/content`, contentRoutes);
 app.use(`${API_PREFIX}/public`, publicRoutes);
+app.use(`${API_PREFIX}/vouchers`, voucherRoutes);
 
 // Initialize data collection queue worker (optional)
 if (process.env.DATA_COLLECTION_ENABLED === 'true') {
