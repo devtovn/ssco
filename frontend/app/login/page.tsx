@@ -55,12 +55,12 @@ function LoginForm() {
           </label>
           <input
             id="email"
-            type="email"
+            type="text"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
-            placeholder="admin@pricecompare.vn"
+            placeholder="admin"
           />
         </div>
 

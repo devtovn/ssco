@@ -15,13 +15,13 @@ describe('ContentManagementService', () => {
   let service: ContentManagementService;
 
   const mockArticleRow = {
-    id: 'article-uuid',
+    id: '01ARYZ6S41ARTICLE00000000A',
     product_id: null,
     title: 'Review iPhone',
     content: '# iPhone\nContent here',
     seo_metadata: { metaTitle: 'Review', metaDescription: 'Desc', keywords: ['iphone'] },
     status: 'draft',
-    created_by: 'user-uuid',
+    created_by: '01ARYZ6S41USER0000000000U',
     reviewer_id: null,
     rejection_reason: null,
     version: 1,
@@ -57,7 +57,7 @@ describe('ContentManagementService', () => {
 
       const article = await service.generateArticle({
         keyword: 'iphone',
-        createdBy: 'user-uuid',
+        createdBy: '01ARYZ6S41USER0000000000U',
       });
 
       expect(ai.generateArticleContent).toHaveBeenCalled();
@@ -72,7 +72,7 @@ describe('ContentManagementService', () => {
         rows: [{ ...mockArticleRow, status: 'pending_review' }],
       });
 
-      const article = await service.submitForReview('article-uuid', 'user-uuid');
+      const article = await service.submitForReview('01ARYZ6S41ARTICLE00000000A', '01ARYZ6S41USER0000000000U');
       expect(article.status).toBe('pending_review');
     });
   });
@@ -80,10 +80,10 @@ describe('ContentManagementService', () => {
   describe('approveArticle', () => {
     it('should approve pending article', async () => {
       pool.query.mockResolvedValue({
-        rows: [{ ...mockArticleRow, status: 'approved', reviewer_id: 'reviewer-uuid' }],
+        rows: [{ ...mockArticleRow, status: 'approved', reviewer_id: '01ARYZ6S41REVIEWER000000R' }],
       });
 
-      const article = await service.approveArticle('article-uuid', 'reviewer-uuid');
+      const article = await service.approveArticle('01ARYZ6S41ARTICLE00000000A', '01ARYZ6S41REVIEWER000000R');
       expect(article.status).toBe('approved');
     });
   });
@@ -94,7 +94,7 @@ describe('ContentManagementService', () => {
         rows: [{ ...mockArticleRow, status: 'published', published_at: new Date() }],
       });
 
-      const article = await service.publishArticle('article-uuid', 'reviewer-uuid');
+      const article = await service.publishArticle('01ARYZ6S41ARTICLE00000000A', '01ARYZ6S41REVIEWER000000R');
       expect(article.status).toBe('published');
     });
   });

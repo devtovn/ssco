@@ -22,6 +22,20 @@ const VoucherSchema = z.object({
 
 const UpdateVoucherSchema = VoucherSchema.partial();
 
+// Helper: run auth + role check inside asyncHandler (same pattern as other routes)
+async function requireAdmin(req: AuthRequest, res: Response): Promise<boolean> {
+  const authService = req.app.get('authService');
+  const authed = await new Promise<boolean>((resolve) =>
+    authenticateJWT(authService)(req, res, (err?: unknown) => resolve(!err))
+  );
+  if (!authed) return false;
+
+  const allowed = await new Promise<boolean>((resolve) =>
+    requireRole('Administrator')(req, res, (err?: unknown) => resolve(!err))
+  );
+  return allowed;
+}
+
 // ─── PUBLIC ────────────────────────────────────────────────────────────────
 
 /**
@@ -53,12 +67,12 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 
 // ─── ADMIN CRUD ─────────────────────────────────────────────────────────────
 
-router.use(authenticateJWT, requireRole(['Administrator']));
-
 /**
- * GET /api/v1/vouchers/all — all vouchers including expired (admin)
+ * GET /api/v1/vouchers/all — all vouchers including expired (admin only)
  */
-router.get('/all', asyncHandler(async (_req: Request, res: Response) => {
+router.get('/all', asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!await requireAdmin(req, res)) return;
+
   const result = await queryRead(
     `SELECT id, code, description, source, type, is_active,
             TO_CHAR(expires_at, 'DD/MM/YYYY') AS expires,
@@ -74,6 +88,8 @@ router.get('/all', asyncHandler(async (_req: Request, res: Response) => {
  * POST /api/v1/vouchers
  */
 router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!await requireAdmin(req, res)) return;
+
   const data = VoucherSchema.parse(req.body);
   const result = await query(
     `INSERT INTO vouchers (code, description, source, type, expires_at, is_active)
@@ -89,21 +105,20 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
  * PUT /api/v1/vouchers/:id
  */
 router.put('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!await requireAdmin(req, res)) return;
+
   const data = UpdateVoucherSchema.parse(req.body);
   const { id } = req.params;
 
-  const fields = Object.entries(data)
-    .filter(([, v]) => v !== undefined)
-    .map(([k], i) => `${k} = $${i + 2}`);
+  const entries = Object.entries(data).filter(([, v]) => v !== undefined);
+  if (entries.length === 0) return res.status(400).json({ error: 'No fields to update' });
 
-  if (fields.length === 0) {
-    return res.status(400).json({ error: 'No fields to update' });
-  }
+  const fields = entries.map(([k], i) => `${k} = $${i + 2}`).join(', ');
+  const values = entries.map(([, v]) => v);
 
-  const values = Object.values(data).filter((v) => v !== undefined);
   const result = await query(
     `UPDATE vouchers
-     SET ${fields.join(', ')}, updated_at = NOW()
+     SET ${fields}, updated_at = NOW()
      WHERE id = $1
      RETURNING id, code, description, source, type, is_active,
                TO_CHAR(expires_at,'DD/MM/YYYY') AS expires, expires_at::text AS expires_iso`,
@@ -118,6 +133,8 @@ router.put('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  * DELETE /api/v1/vouchers/:id
  */
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!await requireAdmin(req, res)) return;
+
   const result = await query(
     `DELETE FROM vouchers WHERE id = $1 RETURNING id`,
     [req.params.id]

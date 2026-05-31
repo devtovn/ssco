@@ -58,7 +58,7 @@ function Sidebar({ title, items, activeHref, onNav, onLogout }) {
 
 // ─── Login ─────────────────────────────────────────────────────────
 const ACCOUNTS = [
-  { email: "admin@pricecompare.vn", password: "Admin@123456", role: "Administrator", redirect: "/admin" },
+  { email: "admin", password: "Admin@123456", role: "Administrator", redirect: "/admin" },
   { email: "reviewer@pricecompare.vn", password: "Reviewer@123", role: "Reviewer", redirect: "/reviewer" },
 ];
 
@@ -104,9 +104,9 @@ function LoginScreen({ onSuccess }) {
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
             <input
-              type="email" required value={email}
+              type="text" required value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@pricecompare.vn"
+              placeholder="admin"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
             />
           </div>

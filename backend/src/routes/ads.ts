@@ -515,8 +515,8 @@ router.delete(
  *             properties:
  *               adId:
  *                 type: string
- *                 format: uuid
- *                 example: 123e4567-e89b-12d3-a456-426614174000
+ *                 pattern: '^[0-9A-Z]{26}$'
+ *                 example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
  *               type:
  *                 type: string
  *                 enum: [impression, click]

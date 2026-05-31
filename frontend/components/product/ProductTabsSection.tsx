@@ -5,14 +5,17 @@ import { getAdZones } from '@/lib/api/ads';
 import { AdZone } from '@/components/ads/AdZone';
 import { ProductDetailTabs } from './ProductDetailTabs';
 import type { PriceComparison, PriceHistory } from '@price-comparison/types';
+import type { GadgetSpecs } from '@/lib/api/gadget';
 
 interface ProductTabsSectionProps {
   comparison: PriceComparison;
   history: PriceHistory;
   productId: string;
+  gadgetSpecs?: GadgetSpecs;
+  gadgetSlug?: string;
 }
 
-export function ProductTabsSection({ comparison, history, productId }: ProductTabsSectionProps) {
+export function ProductTabsSection({ comparison, history, productId, gadgetSpecs, gadgetSlug }: ProductTabsSectionProps) {
   const [hasSidebar, setHasSidebar] = useState(false);
 
   useEffect(() => {
@@ -21,7 +24,7 @@ export function ProductTabsSection({ comparison, history, productId }: ProductTa
       .catch(() => {});
   }, []);
 
-  const tabs = <ProductDetailTabs comparison={comparison} history={history} productId={productId} />;
+  const tabs = <ProductDetailTabs comparison={comparison} history={history} productId={productId} gadgetSpecs={gadgetSpecs} gadgetSlug={gadgetSlug} />;
 
   if (!hasSidebar) return tabs;
 

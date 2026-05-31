@@ -10,7 +10,7 @@ async function main(): Promise<void> {
 
   const { rows } = await pool.query(
     'SELECT email, password_hash FROM users WHERE email = $1',
-    ['admin@pricecompare.vn']
+    ['admin']
   );
 
   if (!rows.length) {

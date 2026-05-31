@@ -80,14 +80,14 @@ describe('DataCollectionService', () => {
       mockClient.query
         .mockResolvedValueOnce({ rows: [] }) // BEGIN - actually first is BEGIN
         .mockResolvedValueOnce({ rows: [] }) // existing product check
-        .mockResolvedValueOnce({ rows: [{ id: 'uuid-1' }] }) // insert product
+        .mockResolvedValueOnce({ rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] }) // insert product
         .mockResolvedValueOnce({ rows: [] }); // insert price
 
       // Simplify: mock connect to handle transaction
       mockClient.query.mockImplementation(async (sql: string) => {
         if (sql === 'BEGIN' || sql === 'COMMIT') return { rows: [] };
         if (sql.includes('SELECT p.id')) return { rows: [] };
-        if (sql.includes('INSERT INTO products')) return { rows: [{ id: 'uuid-1' }] };
+        if (sql.includes('INSERT INTO products')) return { rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] };
         if (sql.includes('INSERT INTO price_entries')) return { rows: [] };
         if (sql.includes('UPDATE price_sources')) return { rows: [] };
         return { rows: [] };
@@ -119,7 +119,7 @@ describe('DataCollectionService', () => {
 
       const mockClient = {
         query: jest.fn().mockImplementation(async (sql: string) => {
-          if (sql.includes('INSERT INTO products')) return { rows: [{ id: 'uuid-1' }] };
+          if (sql.includes('INSERT INTO products')) return { rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] };
           return { rows: [] };
         }),
         release: jest.fn(),
@@ -154,7 +154,7 @@ describe('DataCollectionService', () => {
 
       const mockClient = {
         query: jest.fn().mockImplementation(async (sql: string) => {
-          if (sql.includes('INSERT INTO products')) return { rows: [{ id: 'uuid-1' }] };
+          if (sql.includes('INSERT INTO products')) return { rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] };
           return { rows: [] };
         }),
         release: jest.fn(),
@@ -174,7 +174,7 @@ describe('DataCollectionService', () => {
       pool.query.mockResolvedValue({
         rows: [
           {
-            id: 'uuid-1',
+            id: '01ARYZ6S41TSV4RRFFQ69G5FAV',
             name: 'Tiki API',
             source_type: 'api',
             platform: 'tiki',

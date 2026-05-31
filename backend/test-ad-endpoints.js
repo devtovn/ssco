@@ -31,7 +31,7 @@ async function testAdEndpoints() {
     let adminToken = '';
     try {
       const loginResponse = await axios.post(`${BASE_URL}/auth/login`, {
-        email: 'admin@pricecompare.vn',
+        email: 'admin',
         password: 'Admin@123456'
       });
       adminToken = loginResponse.data.tokens.accessToken;
@@ -187,7 +187,7 @@ async function testAdEndpoints() {
     console.log('  Note: This will fail if no advertisements exist in the database');
     try {
       const trackResponse = await axios.post(`${BASE_URL}/ads/track`, {
-        adId: '00000000-0000-0000-0000-000000000000', // Dummy UUID
+        adId: '00000000000000000000000000', // Dummy ULID
         type: 'impression',
         metadata: {
           userSession: 'test-session-123',

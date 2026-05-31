@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcrypt';
 import { Pool } from 'pg';
 
-const email = process.env.ADMIN_EMAIL || 'admin@pricecompare.vn';
+const email = process.env.ADMIN_EMAIL || 'admin';
 const password = process.env.ADMIN_PASSWORD || 'Admin@123456';
 
 async function main(): Promise<void> {

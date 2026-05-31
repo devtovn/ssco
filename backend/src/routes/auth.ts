@@ -8,7 +8,7 @@ const router = Router();
 
 // Validation schemas
 const LoginSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.string().min(1, 'Email or username is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
@@ -36,7 +36,7 @@ const RefreshTokenSchema = z.object({
  *               email:
  *                 type: string
  *                 format: email
- *                 example: admin@pricecompare.vn
+ *                 example: admin
  *               password:
  *                 type: string
  *                 format: password

@@ -116,6 +116,8 @@ import analyticsRoutes from './routes/analytics';
 import contentRoutes from './routes/content';
 import publicRoutes from './routes/public';
 import voucherRoutes from './routes/vouchers';
+import gadgetRoutes from './routes/gadget';
+import adminGadgetRoutes from './routes/admin-gadget';
 
 app.use(`${API_PREFIX}/auth`, authRateLimiter, authRoutes);
 app.use(`${API_PREFIX}/affiliate`, affiliateRoutes);
@@ -125,6 +127,8 @@ app.use(`${API_PREFIX}/products`, priceRoutes);
 app.use(`${API_PREFIX}`, priceRoutes); // For /deals endpoint
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/admin/seed`, seedRoutes);
+app.use(`${API_PREFIX}/gadget`, gadgetRoutes);
+app.use(`${API_PREFIX}/admin/gadget`, adminGadgetRoutes);
 app.use(`${API_PREFIX}/ads`, adRoutes);
 app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/content`, contentRoutes);

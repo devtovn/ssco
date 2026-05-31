@@ -4,14 +4,18 @@ import { useState } from 'react';
 import type { PriceComparison, PriceHistory } from '@price-comparison/types';
 import { PriceComparisonTable } from './PriceComparisonTable';
 import { PriceHistoryChart } from './PriceHistoryChart';
+import { SpecsTable } from '@/components/gadget/SpecsTable';
+import type { GadgetSpecs } from '@/lib/api/gadget';
 
 interface ProductDetailTabsProps {
   comparison: PriceComparison;
   history: PriceHistory;
   productId: string;
+  gadgetSpecs?: GadgetSpecs;
+  gadgetSlug?: string;
 }
 
-export function ProductDetailTabs({ comparison, history, productId }: ProductDetailTabsProps) {
+export function ProductDetailTabs({ comparison, history, productId, gadgetSpecs, gadgetSlug }: ProductDetailTabsProps) {
   const [tab, setTab] = useState<'price' | 'specs'>('price');
 
   const tabs = [
@@ -61,9 +65,23 @@ export function ProductDetailTabs({ comparison, history, productId }: ProductDet
 
       {tab === 'specs' && (
         <div className="mt-6">
-          <p className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
-            Chưa có thông số kỹ thuật cho sản phẩm này.
-          </p>
+          {gadgetSpecs && Object.keys(gadgetSpecs).length > 0 ? (
+            <div>
+              {gadgetSlug && (
+                <p className="mb-4 text-xs text-slate-500">
+                  Nguồn thông số:{' '}
+                  <a href={`/gadget/${gadgetSlug}`} className="text-primary-600 hover:underline">
+                    Xem trang cấu hình đầy đủ →
+                  </a>
+                </p>
+              )}
+              <SpecsTable specs={gadgetSpecs} />
+            </div>
+          ) : (
+            <p className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
+              Chưa có thông số kỹ thuật cho sản phẩm này.
+            </p>
+          )}
         </div>
       )}
     </>

@@ -18,6 +18,6 @@ describe('PriceComparisonService', () => {
 
   it('should throw when product not found', async () => {
     (queryRead as jest.Mock).mockResolvedValueOnce({ rows: [] });
-    await expect(service.getProductPrices('missing-uuid')).rejects.toThrow('not found');
+    await expect(service.getProductPrices('01ARYZ6S41MISSING000000000')).rejects.toThrow('not found');
   });
 });

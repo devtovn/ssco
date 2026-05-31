@@ -54,12 +54,15 @@ CMD ["node", "dist/index.js"]
 FROM node:20-alpine AS development
 WORKDIR /app
 
+RUN apk add --no-cache postgresql-client
+
 COPY --from=types-builder /packages/types /packages/types
 COPY backend/package.json backend/package-lock.json* ./
 RUN npm ci
 
 COPY backend/ .
+RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 4000
 
-CMD ["npm", "run", "dev"]
+CMD ["./docker-entrypoint.sh"]

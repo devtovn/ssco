@@ -21,7 +21,7 @@ async function testAdminEndpoints() {
     let adminToken = '';
     try {
       const loginResponse = await axios.post(`${BASE_URL}/auth/login`, {
-        email: 'admin@pricecompare.vn',
+        email: 'admin',
         password: 'Admin@123456'
       });
       adminToken = loginResponse.data.tokens.accessToken;

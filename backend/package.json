@@ -15,10 +15,10 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "type-check": "tsc --noEmit",
-    "migrate": "node-pg-migrate",
-    "migrate:up": "node-pg-migrate up",
-    "migrate:down": "node-pg-migrate down",
+    "migrate:up": "tsx scripts/migrate-up.ts",
+    "migrate:down": "tsx scripts/migrate-up.ts --down",
     "migrate:create": "node-pg-migrate create",
+    "seed": "tsx scripts/seed-sample-products.ts",
     "db:reset-admin": "tsx scripts/reset-admin-password.ts"
   },
   "keywords": [
@@ -32,6 +32,7 @@
   "dependencies": {
     "@price-comparison/types": "file:../packages/types",
     "axios": "^1.6.2",
+    "cheerio": "^1.0.0",
     "bcrypt": "^5.1.1",
     "bull": "^4.12.0",
     "compression": "^1.7.4",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@types/cheerio": "^0.22.35",
     "@types/bcrypt": "^5.0.2",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",

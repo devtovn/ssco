@@ -50,6 +50,12 @@ const adminNav: SidebarGroup[] = [
     ],
   },
   {
+    group: 'Thiết bị',
+    items: [
+      { href: '/admin/gadget', label: '📱 So sánh Thiết bị' },
+    ],
+  },
+  {
     group: 'Tiện ích',
     items: [
       { href: '/admin/vouchers', label: 'Voucher' },

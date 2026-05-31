@@ -54,7 +54,7 @@ describe('AnalyticsService', () => {
       pool.query.mockResolvedValue({
         rows: [
           {
-            product_id: 'uuid-1',
+            product_id: '01ARYZ6S41TSV4RRFFQ69G5FAV',
             product_name: 'iPhone 15',
             view_count: '50',
             click_count: '10',
@@ -96,7 +96,7 @@ describe('AnalyticsService', () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              product_id: 'uuid-1',
+              product_id: '01ARYZ6S41TSV4RRFFQ69G5FAV',
               product_name: 'Test',
               view_count: '5',
               click_count: '1',

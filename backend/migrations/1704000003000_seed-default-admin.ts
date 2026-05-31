@@ -11,7 +11,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.sql(`
     INSERT INTO users (email, password_hash, role, permissions, is_active)
     VALUES (
-      'admin@pricecompare.vn',
+      'admin',
       $hash$${passwordHash}$hash$,
       'Administrator',
       '{"full_access": true, "manage_users": true, "manage_content": true, "manage_ads": true, "manage_affiliates": true, "view_analytics": true}'::jsonb,
@@ -24,7 +24,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   console.log('='.repeat(80));
   console.log('DEFAULT ADMINISTRATOR ACCOUNT CREATED');
   console.log('='.repeat(80));
-  console.log('Email:    admin@pricecompare.vn');
+  console.log('Email:    admin');
   console.log('Password: Admin@123456');
   console.log('Role:     Administrator');
   console.log('='.repeat(80));
@@ -36,6 +36,6 @@ export async function down(pgm: MigrationBuilder): Promise<void> {
   // Remove the default administrator account
   pgm.sql(`
     DELETE FROM users 
-    WHERE email = 'admin@pricecompare.vn'
+    WHERE email = 'admin'
   `);
 }

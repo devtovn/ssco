@@ -1,0 +1,441 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { apiFetchWithAuth, getToken } from '@/lib/auth';
+import { buildApiUrl } from '@/lib/api/client';
+
+interface Brand { id: string; name: string; slug: string; }
+interface SearchResult { name: string; url: string; imageUrl?: string; }
+interface CrawlResult {
+  name: string; imageUrl?: string; gsmarenaUrl: string;
+  announced?: string; released?: string; status?: string;
+  category: 'mobile' | 'tablet' | 'smartwatch';
+  specs: Record<string, Record<string, string>>;
+}
+interface Device {
+  id: string; name: string; slug: string; category: string;
+  isPublished: boolean; brandName?: string; announced?: string;
+  productId?: string; productSlug?: string;
+}
+interface ProductResult { id: string; name: string; slug: string; }
+
+async function adminPost(path: string, body: unknown) {
+  const token = getToken();
+  const res = await fetch(buildApiUrl(path), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? json.message ?? 'Lỗi server');
+  return json;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  mobile: '📱 Điện thoại', tablet: '📲 Máy tính bảng', smartwatch: '⌚ Đồng hồ',
+};
+
+type InputMode = 'keyword' | 'url';
+
+export default function AdminGadgetPage() {
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+
+  // Input state
+  const [inputMode, setInputMode] = useState<InputMode>('keyword');
+  const [keyword, setKeyword] = useState('');
+  const [url, setUrl] = useState('');
+
+  // Search results (keyword mode)
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
+
+  // Crawl
+  const [crawling, setCrawling] = useState(false);
+  const [crawlResult, setCrawlResult] = useState<CrawlResult | null>(null);
+
+  // Save
+  const [brandId, setBrandId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState('');
+
+  // Link product
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [productResults, setProductResults] = useState<ProductResult[]>([]);
+  const [linkSaving, setLinkSaving] = useState(false);
+
+  useEffect(() => {
+    fetch(buildApiUrl('/gadget/brands'))
+      .then(r => r.json()).then(setBrands).catch(() => {});
+    loadDevices();
+  }, []);
+
+  async function loadDevices() {
+    try {
+      const data = await apiFetchWithAuth<{ devices: Device[] }>('/admin/gadget/devices');
+      setDevices(data.devices ?? []);
+    } catch {}
+  }
+
+  // Step 1a: keyword search
+  async function handleSearch() {
+    if (!keyword.trim()) return;
+    setError(''); setSearchResults([]); setSelectedResult(null); setCrawlResult(null);
+    setSearching(true);
+    try {
+      const results: SearchResult[] = await adminPost('/admin/gadget/search', { keyword: keyword.trim() });
+      setSearchResults(results);
+      if (!results.length) setError('Không tìm thấy kết quả trên GSMArena.');
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  // Step 1b: select a search result → auto-fill URL
+  function handleSelectResult(r: SearchResult) {
+    setSelectedResult(r);
+    setSearchResults([]);
+  }
+
+  // Step 2: crawl the URL (either from search selection or direct URL input)
+  async function handleCrawl() {
+    const targetUrl = inputMode === 'keyword'
+      ? (selectedResult?.url ?? '')
+      : url.trim();
+    if (!targetUrl) return;
+    setError(''); setCrawlResult(null); setCrawling(true);
+    try {
+      const result: CrawlResult = await adminPost('/admin/gadget/crawl', { url: targetUrl });
+      setCrawlResult(result);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setCrawling(false);
+    }
+  }
+
+  // Step 3: save
+  async function handleSave() {
+    if (!crawlResult || !brandId) return;
+    setSaving(true); setError('');
+    try {
+      const slug = crawlResult.name
+        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const saved = await adminPost('/admin/gadget/devices', {
+        brandId, name: crawlResult.name, slug,
+        category: crawlResult.category,
+        imageUrl: crawlResult.imageUrl,
+        gsmarenaUrl: crawlResult.gsmarenaUrl,
+        announced: crawlResult.announced,
+        released: crawlResult.released,
+        status: crawlResult.status,
+        specs: crawlResult.specs,
+        isPublished: false, // server may override via auto-publish config
+      });
+      setSaved(
+        saved.isPublished
+          ? `✅ Đã publish "${crawlResult.name}"`
+          : `💾 Đã lưu "${crawlResult.name}" — chờ review và publish`
+      );
+      setCrawlResult(null); setSelectedResult(null); setKeyword(''); setUrl('');
+      await loadDevices();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePublish(id: string, published: boolean) {
+    try {
+      await adminPost(`/admin/gadget/devices/${id}/publish`, { published });
+      await loadDevices();
+    } catch (e: any) { setError(e.message); }
+  }
+
+  async function searchProducts(q: string) {
+    if (q.trim().length < 2) { setProductResults([]); return; }
+    try {
+      const token = getToken();
+      const res = await fetch(buildApiUrl('/search', { keyword: q, limit: '8' }), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      const items = json.results ?? json.data?.results ?? [];
+      setProductResults(items.map((p: any) => ({ id: String(p.id), name: p.name, slug: p.slug })));
+    } catch { setProductResults([]); }
+  }
+
+  async function handleLinkProduct(deviceId: string, productId: string | null) {
+    setLinkSaving(true);
+    try {
+      await adminPost(`/admin/gadget/devices/${deviceId}/link-product`, { productId });
+      setLinkingId(null); setProductSearch(''); setProductResults([]);
+      await loadDevices();
+    } catch (e: any) { setError(e.message); }
+    finally { setLinkSaving(false); }
+  }
+
+  const specCount = crawlResult
+    ? Object.values(crawlResult.specs).reduce((s, g) => s + Object.keys(g).length, 0)
+    : 0;
+
+  const readyToCrawl = inputMode === 'keyword'
+    ? !!selectedResult
+    : !!url.trim();
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-8 px-4 py-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-slate-900">📱 Quản lý Thiết bị</h1>
+        <a href="/gadget" target="_blank" rel="noopener noreferrer"
+           className="text-sm text-primary-600 hover:underline">Xem trang thiết bị ↗</a>
+      </div>
+
+      {/* ── Seed section ── */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 font-semibold text-slate-800">Thêm thiết bị từ GSMArena</h2>
+
+        {/* Mode toggle */}
+        <div className="mb-4 flex rounded-lg border border-slate-200 p-1 w-fit">
+          {(['keyword', 'url'] as InputMode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => { setInputMode(m); setSearchResults([]); setSelectedResult(null); setCrawlResult(null); setError(''); }}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${inputMode === m ? 'bg-primary-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              {m === 'keyword' ? '🔍 Tìm theo từ khóa' : '🔗 Nhập link trực tiếp'}
+            </button>
+          ))}
+        </div>
+
+        {/* Keyword mode */}
+        {inputMode === 'keyword' && (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={keyword}
+                onChange={e => setKeyword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                placeholder="Vd: iPhone 17 Pro Max, Galaxy S25 Ultra..."
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+              />
+              <button
+                onClick={handleSearch}
+                disabled={!keyword.trim() || searching}
+                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-40"
+              >
+                {searching ? 'Đang tìm…' : 'Tìm'}
+              </button>
+            </div>
+
+            {/* Search results */}
+            {searchResults.length > 0 && (
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-100">
+                <p className="px-4 py-2 text-xs font-medium text-slate-500">
+                  {searchResults.length} kết quả — chọn thiết bị muốn crawl:
+                </p>
+                {searchResults.map((r) => (
+                  <button
+                    key={r.url}
+                    onClick={() => handleSelectResult(r)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-primary-50"
+                  >
+                    {r.imageUrl && (
+                      <img src={r.imageUrl} alt={r.name} className="h-10 w-10 object-contain shrink-0" />
+                    )}
+                    <span className="text-sm font-medium text-slate-900">{r.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Selected result */}
+            {selectedResult && !crawlResult && (
+              <div className="flex items-center justify-between rounded-xl bg-primary-50 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  {selectedResult.imageUrl && (
+                    <img src={selectedResult.imageUrl} alt={selectedResult.name} className="h-10 w-10 object-contain" />
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{selectedResult.name}</p>
+                    <p className="text-xs text-slate-500 truncate max-w-xs">{selectedResult.url}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedResult(null)}
+                    className="text-xs text-slate-400 hover:text-red-500"
+                  >
+                    Đổi
+                  </button>
+                  <button
+                    onClick={handleCrawl}
+                    disabled={crawling}
+                    className="rounded-lg bg-primary-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-40"
+                  >
+                    {crawling ? 'Đang crawl…' : '⚡ Crawl specs'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* URL mode */}
+        {inputMode === 'url' && (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500">
+              Dán link từ GSMArena, vd:{' '}
+              <code className="rounded bg-slate-100 px-1">https://www.gsmarena.com/apple_iphone_17_pro_max-13964.php</code>
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCrawl()}
+                placeholder="https://www.gsmarena.com/..."
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+              />
+              <button
+                onClick={handleCrawl}
+                disabled={!url.trim() || crawling}
+                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-40"
+              >
+                {crawling ? 'Đang crawl…' : '⚡ Crawl'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {saved && <p className="mt-3 text-sm text-green-600">{saved}</p>}
+
+        {/* Crawl result preview + save */}
+        {crawlResult && (
+          <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 space-y-4">
+            <div className="flex items-start gap-4">
+              {crawlResult.imageUrl && (
+                <img src={crawlResult.imageUrl} alt={crawlResult.name} className="h-20 w-20 object-contain shrink-0" />
+              )}
+              <div>
+                <p className="font-semibold text-slate-900">{crawlResult.name}</p>
+                <p className="text-xs text-slate-600">
+                  {CATEGORY_LABELS[crawlResult.category]} · {specCount} thông số
+                  {crawlResult.announced && ` · ${crawlResult.announced}`}
+                </p>
+                {crawlResult.status && <p className="text-xs text-slate-500">{crawlResult.status}</p>}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={brandId}
+                onChange={e => setBrandId(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+              >
+                <option value="">— Chọn hãng —</option>
+                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <button
+                onClick={handleSave}
+                disabled={!brandId || saving}
+                className="rounded-lg bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-40"
+              >
+                {saving ? 'Đang lưu…' : '💾 Lưu'}
+              </button>
+              <button
+                onClick={() => { setCrawlResult(null); setSelectedResult(null); }}
+                className="text-xs text-slate-400 hover:text-red-500"
+              >
+                Huỷ
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Device list ── */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-5 py-3">
+          <h2 className="font-semibold text-slate-800">Danh sách thiết bị ({devices.length})</h2>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {devices.map(d => (
+            <div key={d.id} className="px-5 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">{d.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {d.brandName} · {CATEGORY_LABELS[d.category] ?? d.category}
+                    {d.announced && ` · ${d.announced}`}
+                  </p>
+                  {d.productSlug ? (
+                    <p className="mt-0.5 text-xs text-green-600">
+                      🔗 Liên kết: <a href={`/san-pham/${d.productSlug}`} target="_blank" rel="noopener noreferrer" className="underline">{d.productSlug}</a>
+                      <button onClick={() => handleLinkProduct(d.id, null)} className="ml-2 text-red-400 hover:text-red-600">✕ Huỷ</button>
+                    </p>
+                  ) : (
+                    <button onClick={() => { setLinkingId(d.id); setProductSearch(''); setProductResults([]); }}
+                      className="mt-0.5 text-xs text-amber-600 hover:underline">
+                      ⚠️ Chưa liên kết sản phẩm — Click để liên kết
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${d.isPublished ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {d.isPublished ? 'Published' : 'Draft'}
+                  </span>
+                  <button onClick={() => handlePublish(d.id, !d.isPublished)} className="text-xs text-primary-600 hover:underline">
+                    {d.isPublished ? 'Unpublish' : 'Publish'}
+                  </button>
+                  <a href={`/gadget/${d.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-primary-600">Xem ↗</a>
+                </div>
+              </div>
+
+              {/* Inline product link search */}
+              {linkingId === d.id && (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <p className="mb-2 text-xs font-medium text-amber-800">Tìm và liên kết với sản phẩm trong DB:</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={e => { setProductSearch(e.target.value); searchProducts(e.target.value); }}
+                      placeholder="Nhập tên sản phẩm..."
+                      className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                      autoFocus
+                    />
+                    <button onClick={() => setLinkingId(null)} className="text-xs text-slate-400 hover:text-red-500 px-2">✕</button>
+                  </div>
+                  {productResults.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-slate-200 bg-white divide-y">
+                      {productResults.map(p => (
+                        <button key={p.id} onClick={() => handleLinkProduct(d.id, p.id)}
+                          disabled={linkSaving}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-primary-50">
+                          <span className="font-medium text-slate-900">{p.name}</span>
+                          <span className="text-xs text-primary-600">Liên kết →</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          {!devices.length && (
+            <p className="px-5 py-8 text-center text-sm text-slate-500">Chưa có thiết bị nào.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

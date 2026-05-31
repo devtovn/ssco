@@ -9,6 +9,8 @@ import { RelatedProducts } from '@/components/product/RelatedProducts';
 import { YouMightAlsoLike } from '@/components/product/YouMightAlsoLike';
 import { ProductViewTracker } from '@/components/product/ProductViewTracker';
 import { getProductPrices, getPriceHistory, getProductById } from '@/lib/api/products';
+import { apiFetch } from '@/lib/api/client';
+import type { GadgetDevice } from '@/lib/api/gadget';
 import { searchProducts } from '@/lib/api/search';
 import { getBestDeals } from '@/lib/api/catalog';
 import { formatPrice } from '@/lib/utils/format';
@@ -58,9 +60,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
   }
 
   const keyword = comparison.productName.split(/\s+/).slice(0, 3).join(' ');
-  const [relatedResults, allDeals] = await Promise.all([
+  const [relatedResults, allDeals, gadgetDevice] = await Promise.all([
     searchProducts({ keyword, limit: 9 }).catch(() => null),
     getBestDeals(16).catch(() => []),
+    apiFetch<GadgetDevice | null>(`/gadget/by-product/${slug}`).catch(() => null),
   ]);
   const resolvedId = String(comparison.productId);
   const related: ProductCardData[] =
@@ -182,7 +185,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </div>
 
         <div className="mt-10">
-          <ProductTabsSection comparison={comparison} history={history} productId={resolvedId} />
+          <ProductTabsSection
+            comparison={comparison}
+            history={history}
+            productId={resolvedId}
+            gadgetSpecs={gadgetDevice?.specs}
+            gadgetSlug={gadgetDevice ? `${gadgetDevice.brandSlug}/${gadgetDevice.slug}` : undefined}
+          />
         </div>
 
         <RelatedProducts products={related} searchKeyword={keyword} />
