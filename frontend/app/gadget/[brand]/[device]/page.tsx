@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { SpecsTable } from '@/components/gadget/SpecsTable';
 import { GadgetPricePanel } from '@/components/gadget/GadgetPricePanel';
-import { getGadgetDevice } from '@/lib/api/gadget';
+import { getGadgetDevice, getGadgetBrands } from '@/lib/api/gadget';
 import { getSiteConfig } from '@/lib/api/site-config';
 
 interface Props { params: { brand: string; device: string } }
@@ -24,8 +24,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DeviceDetailPage({ params }: Props) {
   let device: Awaited<ReturnType<typeof getGadgetDevice>>;
+  let brands: Awaited<ReturnType<typeof getGadgetBrands>> = [];
   try {
-    device = await getGadgetDevice(params.device);
+    [device, brands] = await Promise.all([
+      getGadgetDevice(params.device),
+      getGadgetBrands(),
+    ]);
   } catch {
     notFound();
   }
@@ -34,7 +38,7 @@ export default async function DeviceDetailPage({ params }: Props) {
 
   return (
     <PublicLayout>
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:py-10">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:py-10">
         {/* Breadcrumb */}
         <nav className="mb-4 flex items-center gap-1 text-sm text-slate-500">
           <Link href="/gadget" className="hover:text-primary-600">Thiết bị</Link>
@@ -46,11 +50,11 @@ export default async function DeviceDetailPage({ params }: Props) {
           <span className="text-slate-800">{device.name}</span>
         </nav>
 
-        {/* Hero */}
+        {/* Hero: image + name + quick specs */}
         <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-start">
-          <div className="mx-auto flex h-56 w-56 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 sm:mx-0">
+          <div className="mx-auto flex h-56 w-56 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white sm:mx-0">
             {device.imageUrl ? (
-              <img src={device.imageUrl} alt={device.name} className="h-full w-full object-contain p-6" />
+              <img src={device.imageUrl} alt={device.name} className="h-full w-full object-contain p-4" />
             ) : (
               <span className="text-7xl">{CATEGORY_ICONS[device.category] ?? '📱'}</span>
             )}
@@ -62,14 +66,13 @@ export default async function DeviceDetailPage({ params }: Props) {
               {device.announced && <span>📅 Công bố: {device.announced}</span>}
               {device.status && <span>🟢 {device.status}</span>}
             </div>
-            {/* Quick specs summary */}
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {[
                 { label: 'Màn hình', value: device.specs.display?.size },
                 { label: 'Chipset', value: device.specs.platform?.chipset },
                 { label: 'Camera', value: device.specs.main_camera?.specs?.split(',')[0] },
                 { label: 'Pin', value: device.specs.battery?.capacity },
-                { label: 'RAM', value: device.specs.memory?.internal?.split(' ')[0] ? device.specs.memory?.internal : undefined },
+                { label: 'RAM', value: device.specs.memory?.internal },
                 { label: 'OS', value: device.specs.platform?.os },
               ].filter(s => s.value).map((s) => (
                 <div key={s.label} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
@@ -78,7 +81,6 @@ export default async function DeviceDetailPage({ params }: Props) {
                 </div>
               ))}
             </div>
-            {/* Compare button */}
             <Link
               href={`/gadget/compare?slugs=${device.slug}`}
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700"
@@ -88,12 +90,56 @@ export default async function DeviceDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Prices from marketplaces */}
+        {/* Prices */}
         <GadgetPricePanel deviceSlug={device.slug} deviceName={device.name} />
 
-        {/* Full specs */}
+        {/* Main content: brands sidebar (3/12) + specs table (9/12) */}
         <h2 className="mb-4 mt-10 text-lg font-bold text-slate-900">Thông số kỹ thuật đầy đủ</h2>
-        <SpecsTable specs={device.specs} />
+
+        <div className="flex gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+          {/* Left sidebar: all brands — 3/12 */}
+          <aside className="hidden w-3/12 shrink-0 border-r border-slate-200 bg-slate-50 md:block">
+            <div className="sticky top-0 overflow-y-auto" style={{ maxHeight: '80vh' }}>
+              <h3 className="border-b border-slate-200 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                Hãng sản xuất
+              </h3>
+              <ul>
+                {brands.map((b) => {
+                  const isActive = b.slug === params.brand;
+                  return (
+                    <li key={b.id}>
+                      <Link
+                        href={`/gadget/${b.slug}`}
+                        className={`flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 text-sm transition-colors ${
+                          isActive
+                            ? 'bg-primary-50 font-bold text-primary-700 border-l-4 border-l-primary-600'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {b.logoUrl ? (
+                          <img src={b.logoUrl} alt={b.name} className="h-5 w-5 object-contain" />
+                        ) : (
+                          <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-200 text-[10px] font-bold text-slate-600">
+                            {b.name[0]}
+                          </span>
+                        )}
+                        <span className="flex-1">{b.name}</span>
+                        {b.deviceCount != null && b.deviceCount > 0 && (
+                          <span className="text-xs text-slate-400">{b.deviceCount}</span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </aside>
+
+          {/* Right: specs table — 9/12 */}
+          <div className="w-full md:w-9/12">
+            <SpecsTable specs={device.specs} />
+          </div>
+        </div>
 
         {device.gsmarenaUrl && (
           <p className="mt-6 text-xs text-slate-400">

@@ -344,7 +344,9 @@ export class SearchService {
         MAX(searched_at) as last_searched_at
       FROM search_logs
       WHERE searched_at >= NOW() - INTERVAL '7 days'
+        AND LENGTH(query) >= 5
       GROUP BY query
+      HAVING COUNT(*) >= 2
       ORDER BY search_count DESC
       LIMIT $1
     `;

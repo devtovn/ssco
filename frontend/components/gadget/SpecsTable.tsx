@@ -2,63 +2,46 @@
 
 import type { GadgetSpecs } from '@/lib/api/gadget';
 
-// Human-readable section labels (same order as GSMArena)
-const SECTION_LABELS: Record<string, string> = {
-  network:       'Mạng',
-  launch:        'Ra mắt',
-  body:          'Ngoại hình',
-  display:       'Màn hình',
-  platform:      'Nền tảng',
-  memory:        'Bộ nhớ',
-  main_camera:   'Camera sau',
-  selfie_camera: 'Camera trước',
-  sound:         'Âm thanh',
-  comms:         'Kết nối',
-  features:      'Tính năng',
-  battery:       'Pin',
-  misc:          'Khác',
-  tests:         'Kiểm tra',
-};
+/**
+ * GSMArena-style specs table.
+ * Each section: section label (red, left) | field rows (label | value).
+ */
 
-const SECTION_ORDER = Object.keys(SECTION_LABELS);
+const SECTIONS: { key: string; label: string }[] = [
+  { key: 'network',       label: 'NETWORK' },
+  { key: 'launch',        label: 'LAUNCH' },
+  { key: 'body',          label: 'BODY' },
+  { key: 'display',       label: 'DISPLAY' },
+  { key: 'platform',      label: 'PLATFORM' },
+  { key: 'memory',        label: 'MEMORY' },
+  { key: 'main_camera',   label: 'MAIN CAMERA' },
+  { key: 'selfie_camera', label: 'SELFIE CAMERA' },
+  { key: 'sound',         label: 'SOUND' },
+  { key: 'comms',         label: 'COMMS' },
+  { key: 'features',      label: 'FEATURES' },
+  { key: 'battery',       label: 'BATTERY' },
+  { key: 'misc',          label: 'MISC' },
+  { key: 'tests',         label: 'TESTS' },
+];
 
-// Human-readable field labels
 const FIELD_LABELS: Record<string, string> = {
-  technology:       'Công nghệ',
-  announced:        'Công bố',
-  status:           'Tình trạng',
-  dimensions:       'Kích thước',
-  weight:           'Trọng lượng',
-  build:            'Chất liệu',
-  sim:              'SIM',
-  water_resistance: 'Kháng nước',
-  type:             'Loại',
-  size:             'Kích thước màn hình',
-  resolution:       'Độ phân giải',
-  features:         'Tính năng',
-  os:               'Hệ điều hành',
-  chipset:          'Chipset',
-  cpu:              'CPU',
-  gpu:              'GPU',
-  card_slot:        'Thẻ nhớ',
-  internal:         'Bộ nhớ trong',
-  specs:            'Thông số',
-  video:            'Video',
-  loudspeaker:      'Loa ngoài',
-  '3_5mm_jack':     'Jack 3.5mm',
-  wlan:             'Wi-Fi',
-  bluetooth:        'Bluetooth',
-  gps:              'GPS',
-  nfc:              'NFC',
-  usb:              'USB',
-  sensors:          'Cảm biến',
-  capacity:         'Dung lượng',
-  charging:         'Sạc',
-  colors:           'Màu sắc',
-  models:           'Model',
-  sar_us:           'SAR (Mỹ)',
-  sar_eu:           'SAR (EU)',
-  price:            'Giá',
+  technology: 'Technology', announced: 'Announced', status: 'Status',
+  dimensions: 'Dimensions', weight: 'Weight', build: 'Build', sim: 'SIM',
+  water_resistance: 'Water resistance',
+  type: 'Type', size: 'Size', resolution: 'Resolution', protection: 'Protection',
+  features: 'Features', refresh_rate: 'Refresh rate',
+  os: 'OS', chipset: 'Chipset', cpu: 'CPU', gpu: 'GPU',
+  card_slot: 'Card slot', internal: 'Internal',
+  specs: 'Specs', modules: 'Modules', video: 'Video',
+  loudspeaker: 'Loudspeaker', '3_5mm_jack': '3.5mm jack',
+  wlan: 'WLAN', bluetooth: 'Bluetooth', positioning: 'Positioning',
+  gps: 'Positioning', nfc: 'NFC', radio: 'Radio', usb: 'USB',
+  sensors: 'Sensors', other: 'Other',
+  capacity: 'Capacity', charging: 'Charging',
+  colors: 'Colors', models: 'Models',
+  sar_us: 'SAR', sar_eu: 'SAR EU', price: 'Price',
+  speed: 'Speed', bands_2g: '2G bands', bands_3g: '3G bands',
+  bands_4g: '4G bands', bands_5g: '5G bands',
 };
 
 function labelFor(key: string): string {
@@ -67,12 +50,16 @@ function labelFor(key: string): string {
 
 interface SpecsTableProps {
   specs: GadgetSpecs;
+  brandName?: string;
 }
 
 export function SpecsTable({ specs }: SpecsTableProps) {
+  const knownKeys = SECTIONS.map((s) => s.key);
   const orderedSections = [
-    ...SECTION_ORDER.filter((k) => specs[k]),
-    ...Object.keys(specs).filter((k) => !SECTION_ORDER.includes(k) && specs[k]),
+    ...SECTIONS.filter((s) => specs[s.key] && Object.keys(specs[s.key]).length),
+    ...Object.keys(specs)
+      .filter((k) => !knownKeys.includes(k) && specs[k] && Object.keys(specs[k]).length)
+      .map((k) => ({ key: k, label: k.replace(/_/g, ' ').toUpperCase() })),
   ];
 
   if (!orderedSections.length) {
@@ -80,37 +67,51 @@ export function SpecsTable({ specs }: SpecsTableProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {orderedSections.map((section) => {
-        const fields = specs[section];
-        if (!fields || !Object.keys(fields).length) return null;
+    <div>
+      {orderedSections.map((section, sIdx) => {
+        const fields = specs[section.key];
+        if (!fields) return null;
+        const entries = Object.entries(fields);
+
         return (
-          <div key={section} className="overflow-hidden rounded-2xl border border-slate-200">
-            {/* Section header */}
-            <div className="bg-slate-800 px-4 py-2">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
-                {SECTION_LABELS[section] ?? section}
-              </h3>
-            </div>
-            {/* Fields */}
-            <table className="w-full text-sm">
-              <tbody>
-                {Object.entries(fields).map(([key, value], idx) => (
-                  <tr
-                    key={key}
-                    className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}
-                  >
-                    <td className="w-2/5 px-4 py-2.5 font-medium text-slate-600">
-                      {labelFor(key)}
+          <table
+            key={section.key}
+            className="w-full border-collapse text-sm"
+            style={{ tableLayout: 'fixed' }}
+          >
+            <colgroup>
+              <col className="w-[140px]" />
+              <col className="w-[140px]" />
+              <col />
+            </colgroup>
+            <tbody>
+              {entries.map(([fieldKey, value], fIdx) => (
+                <tr
+                  key={fieldKey}
+                  className={`border-b border-slate-200${fIdx % 2 === 1 ? ' bg-slate-50/50' : ''} hover:bg-amber-50/40 transition-colors`}
+                >
+                  {/* Section label — first row only, rowSpan */}
+                  {fIdx === 0 && (
+                    <td
+                      rowSpan={entries.length}
+                      className={`border-r border-slate-200 px-4 py-2.5 align-top font-black text-[13px] tracking-wider${sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''}`}
+                      style={{ color: '#a0192d', verticalAlign: 'top' }}
+                    >
+                      {section.label}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-900">
-                      {value}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                  {/* Field label */}
+                  <td className={`border-r border-slate-100 px-4 py-2.5 align-top font-semibold text-slate-700${fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''}`}>
+                    {labelFor(fieldKey)}
+                  </td>
+                  {/* Value */}
+                  <td className={`px-4 py-2.5 text-slate-900 leading-relaxed${fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''}`}>
+                    {value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         );
       })}
     </div>

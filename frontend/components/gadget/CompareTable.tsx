@@ -1,32 +1,47 @@
 'use client';
 
-import type { GadgetDevice, GadgetSpecs } from '@/lib/api/gadget';
+import type { GadgetDevice } from '@/lib/api/gadget';
 
-const SECTION_LABELS: Record<string, string> = {
-  network: 'Mạng', launch: 'Ra mắt', body: 'Ngoại hình', display: 'Màn hình',
-  platform: 'Nền tảng', memory: 'Bộ nhớ', main_camera: 'Camera sau',
-  selfie_camera: 'Camera trước', sound: 'Âm thanh', comms: 'Kết nối',
-  features: 'Tính năng', battery: 'Pin', misc: 'Khác',
-};
-
-const SECTION_ORDER = Object.keys(SECTION_LABELS);
+const SECTIONS: { key: string; label: string }[] = [
+  { key: 'network',       label: 'NETWORK' },
+  { key: 'launch',        label: 'LAUNCH' },
+  { key: 'body',          label: 'BODY' },
+  { key: 'display',       label: 'DISPLAY' },
+  { key: 'platform',      label: 'PLATFORM' },
+  { key: 'memory',        label: 'MEMORY' },
+  { key: 'main_camera',   label: 'MAIN CAMERA' },
+  { key: 'selfie_camera', label: 'SELFIE CAMERA' },
+  { key: 'sound',         label: 'SOUND' },
+  { key: 'comms',         label: 'COMMS' },
+  { key: 'features',      label: 'FEATURES' },
+  { key: 'battery',       label: 'BATTERY' },
+  { key: 'misc',          label: 'MISC' },
+  { key: 'tests',         label: 'TESTS' },
+];
 
 const FIELD_LABELS: Record<string, string> = {
-  technology: 'Công nghệ', announced: 'Công bố', status: 'Tình trạng',
-  dimensions: 'Kích thước', weight: 'Trọng lượng', build: 'Chất liệu', sim: 'SIM',
-  water_resistance: 'Kháng nước', type: 'Loại', size: 'Màn hình', resolution: 'Độ phân giải',
-  os: 'Hệ điều hành', chipset: 'Chipset', cpu: 'CPU', gpu: 'GPU',
-  card_slot: 'Thẻ nhớ', internal: 'Bộ nhớ trong', specs: 'Thông số', video: 'Video',
-  loudspeaker: 'Loa ngoài', '3_5mm_jack': 'Jack 3.5mm', wlan: 'Wi-Fi',
-  bluetooth: 'Bluetooth', gps: 'GPS', nfc: 'NFC', usb: 'USB', sensors: 'Cảm biến',
-  capacity: 'Dung lượng', charging: 'Sạc', colors: 'Màu sắc', price: 'Giá',
+  technology: 'Technology', announced: 'Announced', status: 'Status',
+  dimensions: 'Dimensions', weight: 'Weight', build: 'Build', sim: 'SIM',
+  water_resistance: 'Water resistance',
+  type: 'Type', size: 'Size', resolution: 'Resolution', protection: 'Protection',
+  features: 'Features', refresh_rate: 'Refresh rate',
+  os: 'OS', chipset: 'Chipset', cpu: 'CPU', gpu: 'GPU',
+  card_slot: 'Card slot', internal: 'Internal',
+  specs: 'Specs', modules: 'Modules', video: 'Video',
+  loudspeaker: 'Loudspeaker', '3_5mm_jack': '3.5mm jack',
+  wlan: 'WLAN', bluetooth: 'Bluetooth', positioning: 'Positioning',
+  gps: 'Positioning', nfc: 'NFC', radio: 'Radio', usb: 'USB',
+  sensors: 'Sensors', other: 'Other',
+  capacity: 'Capacity', charging: 'Charging',
+  colors: 'Colors', models: 'Models', sar_us: 'SAR', sar_eu: 'SAR EU',
+  price: 'Price', speed: 'Speed',
+  bands_2g: '2G bands', bands_3g: '3G bands', bands_4g: '4G bands', bands_5g: '5G bands',
 };
 
 function labelFor(key: string) {
   return FIELD_LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// Collect all field keys across all devices for a given section
 function allKeysForSection(devices: GadgetDevice[], section: string): string[] {
   const keys = new Set<string>();
   for (const d of devices) {
@@ -35,90 +50,115 @@ function allKeysForSection(devices: GadgetDevice[], section: string): string[] {
   return Array.from(keys);
 }
 
+export type CompareMode = 'full' | 'differences' | 'highlight';
+
 interface CompareTableProps {
   devices: GadgetDevice[];
-  onRemove?: (slug: string) => void;
+  mode: CompareMode;
+  /** px offset from viewport top for sticky device-name header row */
+  stickyTop?: number;
 }
 
-export function CompareTable({ devices, onRemove }: CompareTableProps) {
-  const sections = [
-    ...SECTION_ORDER.filter((s) => devices.some((d) => d.specs[s])),
-  ];
-
-  const CATEGORY_ICONS: Record<string, string> = {
-    mobile: '📱', tablet: '📲', smartwatch: '⌚',
-  };
+export function CompareTable({ devices, mode, stickyTop = 104 }: CompareTableProps) {
+  const activeSections = SECTIONS.filter((s) => devices.some((d) => d.specs[s.key]));
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
-        {/* Device header row */}
+      <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+        <colgroup>
+          <col className="w-[120px]" />
+          <col className="w-[140px]" />
+          {devices.map((d) => (
+            <col key={d.slug} />
+          ))}
+        </colgroup>
+
+        {/* Sticky device-name header — sticks below mode toggle bar */}
         <thead>
-          <tr className="border-b-2 border-slate-200">
-            <th className="w-40 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500" />
+          <tr>
+            {/* Section col — empty */}
+            <th
+              style={{ top: stickyTop }}
+              className="sticky z-10 border-b-2 border-r border-slate-300 bg-white"
+            />
+            {/* Field label col — empty */}
+            <th
+              style={{ top: stickyTop }}
+              className="sticky z-10 border-b-2 border-r border-slate-200 bg-white"
+            />
+            {/* Device name per column */}
             {devices.map((d) => (
-              <th key={d.slug} className="px-4 py-3 text-center">
-                <div className="flex flex-col items-center gap-1">
-                  {d.imageUrl ? (
-                    <img src={d.imageUrl} alt={d.name} className="mx-auto h-20 w-20 object-contain" />
-                  ) : (
-                    <span className="text-5xl">{CATEGORY_ICONS[d.category] ?? '📱'}</span>
-                  )}
-                  <span className="block text-xs text-slate-500">{d.brandName}</span>
-                  <span className="block font-semibold text-slate-900 leading-tight">{d.name}</span>
-                  {onRemove && (
-                    <button
-                      onClick={() => onRemove(d.slug)}
-                      className="mt-1 rounded px-2 py-0.5 text-xs text-red-500 hover:bg-red-50"
-                    >
-                      Xoá
-                    </button>
-                  )}
-                </div>
+              <th
+                key={d.slug}
+                style={{ top: stickyTop }}
+                className="sticky z-10 border-b-2 border-r border-slate-200 bg-white px-3 py-2 text-left last:border-r-0"
+              >
+                <span className="block text-[10px] font-normal leading-none text-slate-400">
+                  {d.brandName}
+                </span>
+                <span className="block truncate text-[13px] font-bold leading-snug text-slate-800">
+                  {d.name}
+                </span>
               </th>
             ))}
           </tr>
         </thead>
 
         <tbody>
-          {sections.map((section) => {
-            const keys = allKeysForSection(devices, section);
-            return (
-              <>
-                {/* Section heading */}
-                <tr key={`section-${section}`} className="bg-slate-800">
-                  <td
-                    colSpan={devices.length + 1}
-                    className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white"
-                  >
-                    {SECTION_LABELS[section] ?? section}
-                  </td>
-                </tr>
+          {activeSections.map((section, sIdx) => {
+            const keys = allKeysForSection(devices, section.key);
 
-                {/* Field rows */}
-                {keys.map((key, idx) => {
-                  const values = devices.map((d) => d.specs[section]?.[key] ?? '—');
-                  return (
-                    <tr
-                      key={`${section}-${key}`}
-                      className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}
+            const filteredKeys = keys.filter((fieldKey) => {
+              if (mode === 'full' || mode === 'highlight') return true;
+              const values = devices.map((d) => d.specs[section.key]?.[fieldKey] ?? '—');
+              return values.length >= 2 && values.some((v) => v !== values[0]);
+            });
+
+            if (!filteredKeys.length) return null;
+
+            return filteredKeys.map((fieldKey, fIdx) => {
+              const values = devices.map((d) => d.specs[section.key]?.[fieldKey] ?? '—');
+              const isDiff = values.length >= 2 && values.some((v) => v !== values[0]);
+              const muted = mode === 'highlight' && !isDiff;
+
+              return (
+                <tr
+                  key={`${section.key}-${fieldKey}`}
+                  className={`border-b border-slate-200 transition-colors${
+                    fIdx % 2 === 1 ? ' bg-slate-50/50' : ''
+                  } hover:bg-amber-50/30`}
+                >
+                  {fIdx === 0 && (
+                    <td
+                      rowSpan={filteredKeys.length}
+                      className={`border-r border-slate-200 px-3 py-2 align-top font-black text-[13px] tracking-wider${sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''}`}
+                      style={{ color: '#a0192d', verticalAlign: 'top' }}
                     >
-                      <td className="px-4 py-2.5 font-medium text-slate-600">
-                        {labelFor(key)}
-                      </td>
-                      {values.map((val, i) => (
-                        <td
-                          key={i}
-                          className="px-4 py-2.5 text-center text-slate-900"
-                        >
-                          {val}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
-              </>
-            );
+                      {section.label}
+                    </td>
+                  )}
+
+                  <td
+                    className={`border-r border-slate-100 px-3 py-2 align-top font-semibold${
+                      fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''
+                    }${muted ? ' text-slate-400' : ' text-slate-700'}`}
+                  >
+                    {labelFor(fieldKey)}
+                  </td>
+
+                  {values.map((val, i) => (
+                    <td
+                      key={i}
+                      className={`border-r border-slate-100 px-3 py-2 leading-relaxed last:border-r-0${
+                        fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''
+                      }${muted ? ' text-slate-400' : ' text-slate-900'}`}
+                    >
+                      {val}
+                    </td>
+                  ))}
+                </tr>
+              );
+            });
           })}
         </tbody>
       </table>

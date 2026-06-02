@@ -61,6 +61,15 @@ export default function AdminGadgetPage() {
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
 
+  // Device list filters
+  const [filterName, setFilterName] = useState('');
+  const [filterBrand, setFilterBrand] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'unpublished'>('all');
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   // Link product
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState('');
@@ -180,6 +189,18 @@ export default function AdminGadgetPage() {
     } catch (e: any) { setError(e.message); }
     finally { setLinkSaving(false); }
   }
+
+  const filteredDevices = devices.filter(d => {
+    if (filterName && !d.name.toLowerCase().includes(filterName.toLowerCase())) return false;
+    if (filterBrand && d.brandName !== filterBrand) return false;
+    if (filterStatus === 'published' && !d.isPublished) return false;
+    if (filterStatus === 'unpublished' && d.isPublished) return false;
+    return true;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredDevices.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedDevices = filteredDevices.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const specCount = crawlResult
     ? Object.values(crawlResult.specs).reduce((s, g) => s + Object.keys(g).length, 0)
@@ -365,10 +386,54 @@ export default function AdminGadgetPage() {
       {/* ── Device list ── */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-3">
-          <h2 className="font-semibold text-slate-800">Danh sách thiết bị ({devices.length})</h2>
+          <h2 className="font-semibold text-slate-800">
+            Danh sách thiết bị
+            <span className="ml-2 text-sm font-normal text-slate-400">
+              {filteredDevices.length !== devices.length
+                ? `${filteredDevices.length} / ${devices.length}`
+                : devices.length}
+            </span>
+          </h2>
         </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 border-b border-slate-100 px-5 py-3">
+          <input
+            type="text"
+            value={filterName}
+            onChange={e => { setFilterName(e.target.value); setPage(1); }}
+            placeholder="Tìm theo tên..."
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none w-48"
+          />
+          <select
+            value={filterBrand}
+            onChange={e => { setFilterBrand(e.target.value); setPage(1); }}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none"
+          >
+            <option value="">Tất cả hãng</option>
+            {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+          </select>
+          <select
+            value={filterStatus}
+            onChange={e => { setFilterStatus(e.target.value as typeof filterStatus); setPage(1); }}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="published">Published</option>
+            <option value="unpublished">Unpublished</option>
+          </select>
+          {(filterName || filterBrand || filterStatus !== 'all') && (
+            <button
+              onClick={() => { setFilterName(''); setFilterBrand(''); setFilterStatus('all'); setPage(1); }}
+              className="text-xs text-slate-400 hover:text-red-500"
+            >
+              Xóa bộ lọc
+            </button>
+          )}
+        </div>
+
         <div className="divide-y divide-slate-100">
-          {devices.map(d => (
+          {pagedDevices.map(d => (
             <div key={d.id} className="px-5 py-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -431,10 +496,77 @@ export default function AdminGadgetPage() {
               )}
             </div>
           ))}
-          {!devices.length && (
-            <p className="px-5 py-8 text-center text-sm text-slate-500">Chưa có thiết bị nào.</p>
+          {!filteredDevices.length && (
+            <p className="px-5 py-8 text-center text-sm text-slate-500">
+              {devices.length ? 'Không có thiết bị nào khớp bộ lọc.' : 'Chưa có thiết bị nào.'}
+            </p>
           )}
         </div>
+
+        {/* Pagination bar */}
+        {filteredDevices.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <span>Hiển thị</span>
+              <select
+                value={pageSize}
+                onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+                className="rounded border border-slate-300 px-2 py-1 text-sm"
+              >
+                {[10, 20, 50, 100, 200, 500].map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span>/ trang · {filteredDevices.length} thiết bị</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(1)}
+                disabled={safePage === 1}
+                className="rounded px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+              >«</button>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="rounded px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+              >‹</button>
+
+              {/* Page number pills */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
+                .reduce<(number | '…')[]>((acc, p, i, arr) => {
+                  if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('…');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === '…' ? (
+                    <span key={`ellipsis-${i}`} className="px-1 text-slate-400">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p as number)}
+                      className={`rounded px-2.5 py-1 text-sm ${safePage === p ? 'bg-primary-600 text-white font-medium' : 'text-slate-600 hover:bg-slate-100'}`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                className="rounded px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+              >›</button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={safePage === totalPages}
+                className="rounded px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+              >»</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

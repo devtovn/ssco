@@ -141,40 +141,68 @@ export class GadgetCrawlerService {
    * User picks one → pass URL to crawlGSMArena().
    */
   async searchGSMArena(keyword: string): Promise<SearchResult[]> {
-    const { data: html } = await axios.get(
-      `https://www.gsmarena.com/search.php3?sQuickSearch=${encodeURIComponent(keyword)}`,
-      {
+    const searchUrl = `https://www.gsmarena.com/results.php3?sQuickSearch=yes&sName=${encodeURIComponent(keyword)}`;
+    console.log(`[GadgetCrawler] Searching: ${searchUrl}`);
+
+    let html: string;
+    try {
+      const resp = await axios.get(searchUrl, {
         headers: {
           'User-Agent': UA,
-          'Accept': 'text/html',
-          'Referer': 'https://www.gsmarena.com/',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://www.gsmarena.com/search.php3',
         },
-        timeout: 12_000,
-      }
-    );
+        timeout: 15_000,
+      });
+      html = resp.data;
+      console.log(`[GadgetCrawler] Got HTML: ${html.length} chars, status: ${resp.status}`);
+    } catch (err: any) {
+      console.error(`[GadgetCrawler] Fetch failed:`, err.message);
+      return [];
+    }
 
     const $ = cheerio.load(html);
     const results: SearchResult[] = [];
 
-    // GSMArena search results: div.makers > ul > li > a
-    $('.makers ul li').each((_i, el) => {
-      const $a = $(el).find('a');
-      const href = $a.attr('href') ?? '';
-      if (!href) return;
+    // Debug: log what selectors find
+    const makersCount = $('.makers').length;
+    const liCount = $('.makers ul li').length;
+    console.log(`[GadgetCrawler] .makers: ${makersCount}, li: ${liCount}`);
 
-      const url = href.startsWith('http')
-        ? href
-        : `https://www.gsmarena.com/${href}`;
+    // If .makers not found, try alternative selectors
+    const selectors = ['.makers ul li', '#review-body ul li', '.general-menu ul li a'];
+    let matched = false;
 
-      const name = $a.find('strong span').text().trim()
-        || $a.text().trim();
+    for (const sel of selectors) {
+      if (matched) break;
+      $(sel).each((_i, el) => {
+        matched = true;
+        const $a = sel.endsWith(' a') ? $(el) : $(el).find('a');
+        const href = $a.attr('href') ?? '';
+        if (!href || href === '#') return;
 
-      const imageUrl = $a.find('img').attr('src') ?? undefined;
+        const url = href.startsWith('http')
+          ? href
+          : `https://www.gsmarena.com/${href}`;
 
-      if (name && url.includes('gsmarena.com')) {
-        results.push({ name, url, imageUrl });
-      }
-    });
+        const name = $a.find('strong').text().replace(/\s+/g, ' ').trim()
+          || $a.text().replace(/\s+/g, ' ').trim();
+
+        const imageUrl = $a.find('img').attr('src') ?? undefined;
+
+        if (name && url.includes('gsmarena.com') && url.includes('.php')) {
+          results.push({ name, url, imageUrl });
+        }
+      });
+    }
+
+    console.log(`[GadgetCrawler] Found ${results.length} results`);
+    if (results.length === 0 && html.length > 0) {
+      // Log a snippet for debugging
+      const snippet = html.substring(0, 500).replace(/\s+/g, ' ');
+      console.log(`[GadgetCrawler] HTML snippet: ${snippet}`);
+    }
 
     return results;
   }

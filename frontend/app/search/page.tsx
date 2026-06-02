@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { SearchResults } from '@/components/search/SearchResults';
 import { JsonLd } from '@/components/shared/JsonLd';
-import { searchProducts, trackSearch } from '@/lib/api/search';
+import { searchProducts } from '@/lib/api/search';
 import { getSiteConfig } from '@/lib/api/site-config';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -65,7 +65,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           | 'newest'
           | undefined,
       });
-      void trackSearch(keyword, results.results.length);
     } catch (e) {
       error = e instanceof Error ? e.message : 'Không thể tải kết quả tìm kiếm';
     }

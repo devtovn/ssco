@@ -85,6 +85,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex min-h-screen bg-slate-100">
         <Sidebar title={title} nav={nav} onLogout={handleLogout} />
         <main className="flex-1 overflow-auto p-6">{children}</main>
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1 rounded-l-lg border border-r-0 border-primary-200 bg-primary-50 px-2 py-3 text-xs font-medium text-primary-700 shadow transition hover:bg-primary-100"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          <span className="[writing-mode:vertical-rl] rotate-180">Xem website</span>
+        </a>
       </div>
     </AuthGuard>
   );
