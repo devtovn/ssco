@@ -20,7 +20,8 @@ export async function getSiteConfig(): Promise<SiteConfig> {
       tagline: data.tagline ?? null,
       logoUrl: data.logoUrl ?? null,
     };
-  } catch {
+  } catch (err) {
+    console.error('[getSiteConfig]', err);
     return { siteName: FALLBACK, tagline: null, logoUrl: null };
   }
 }

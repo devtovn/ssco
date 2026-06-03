@@ -17,7 +17,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${device.name} - Thông số kỹ thuật | ${siteName}`,
       description: `Xem đầy đủ thông số kỹ thuật ${device.name}. So sánh với các thiết bị khác.`,
     };
-  } catch {
+  } catch (err) {
+    console.error('[DeviceDetailPage] generateMetadata', err);
     return { title: `Thiết bị | ${siteName}` };
   }
 }

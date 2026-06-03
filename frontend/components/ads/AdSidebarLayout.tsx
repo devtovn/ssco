@@ -14,7 +14,7 @@ export function AdSidebarLayout({ children }: AdSidebarLayoutProps) {
   useEffect(() => {
     getAdZones({ isActive: true, position: 'sidebar' })
       .then((zones) => setShowSidebar(zones.length > 0))
-      .catch(() => {});
+      .catch((err) => { console.error('[AdSidebarLayout]', err); });
   }, []);
 
   if (!showSidebar) {

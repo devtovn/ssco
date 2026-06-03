@@ -253,7 +253,7 @@ export default function SeedPage() {
         const tiki = data.find((c) => c.platformId === 'tiki' && c.isEnabled !== false);
         if (tiki?.referCode) setTikiRefCode(tiki.referCode);
       })
-      .catch(() => {});
+      .catch((err) => { console.error('[SeedPage] load affiliate configs', err); });
   }, []);
 
   // ── Load categories ──────────────────────────────────────────────────────────
@@ -274,7 +274,7 @@ export default function SeedPage() {
         flatten(Array.isArray(data) ? data : data.data ?? []);
         setCategories(flat);
       })
-      .catch(() => {});
+      .catch((err) => { console.error('[SeedPage] load categories', err); });
   }, []);
 
   // ── Preview ──────────────────────────────────────────────────────────────────
@@ -313,7 +313,7 @@ export default function SeedPage() {
             const u = new URL(p.sourceUrl);
             u.searchParams.set('ref', tikiRefCode);
             initAffUrls[key] = u.toString();
-          } catch {}
+          } catch (err) { console.error('[autoFillAffiliate]', err); }
         }
       }
 

@@ -89,7 +89,7 @@ router.post(
       if ((cfg as any).metadata?.gadget_auto_publish === true) {
         isPublished = true;
       }
-    } catch { /* fallback to body value */ }
+    } catch (err) { console.error('[admin-gadget] getWebsiteConfig failed, falling back to body value', err); }
 
     const device = await gadgetService.upsertDevice({
       ...body,

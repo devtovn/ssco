@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DealsPage() {
-  const deals = await getBestDeals(24).catch(() => []);
+  const deals = await getBestDeals(24).catch((err) => { console.error('[DealsPage] getBestDeals', err); return []; });
 
   return (
     <PublicLayout>

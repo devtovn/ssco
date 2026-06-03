@@ -1,11 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import type { GadgetSpecs } from '@/lib/api/gadget';
-
-/**
- * GSMArena-style specs table.
- * Each section: section label (red, left) | field rows (label | value).
- */
 
 const SECTIONS: { key: string; label: string }[] = [
   { key: 'network',       label: 'NETWORK' },
@@ -54,6 +50,16 @@ interface SpecsTableProps {
 }
 
 export function SpecsTable({ specs }: SpecsTableProps) {
+  // Detect mobile (< sm = 640px) — same breakpoint as CompareTable
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const knownKeys = SECTIONS.map((s) => s.key);
   const orderedSections = [
     ...SECTIONS.filter((s) => specs[s.key] && Object.keys(specs[s.key]).length),
@@ -73,6 +79,70 @@ export function SpecsTable({ specs }: SpecsTableProps) {
         if (!fields) return null;
         const entries = Object.entries(fields);
 
+        if (isMobile) {
+          /*
+           * Mobile: vertical section label (18px) + field label (120px) + value.
+           * Same approach as CompareTable mobile — section label rotated 90°,
+           * rowspan spans the whole section, sticky left:0.
+           * Changes naturally as each <table> scrolls into view.
+           */
+          return (
+            <table
+              key={section.key}
+              className="w-full border-collapse text-sm"
+              style={{ tableLayout: 'fixed', minWidth: '100%' }}
+            >
+              <colgroup>
+                <col style={{ width: 18 }} />
+                <col style={{ width: 120 }} />
+                <col />
+              </colgroup>
+              <tbody>
+                {entries.map(([fieldKey, value], fIdx) => (
+                  <tr
+                    key={fieldKey}
+                    className={`border-b border-slate-200 transition-colors${
+                      fIdx % 2 === 1 ? ' bg-slate-50/50' : ''
+                    } hover:bg-amber-50/40`}
+                  >
+                    {/* Vertical section label — first row only, spans whole section */}
+                    {fIdx === 0 && (
+                      <td
+                        rowSpan={entries.length}
+                        className="border-r border-slate-200 bg-white p-0"
+                        style={{ verticalAlign: 'middle' }}
+                      >
+                        <span
+                          className="block font-black text-[9px] tracking-widest select-none"
+                          style={{
+                            color: '#a0192d',
+                            writingMode: 'vertical-rl',
+                            transform: 'rotate(180deg)',
+                            whiteSpace: 'nowrap',
+                            padding: '6px 3px',
+                          }}
+                        >
+                          {section.label}
+                        </span>
+                      </td>
+                    )}
+                    <td className="border-r border-slate-100 px-3 py-2 align-top font-semibold text-slate-700">
+                      {labelFor(fieldKey)}
+                    </td>
+                    <td className="px-3 py-2 text-slate-900 leading-relaxed">
+                      {value}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        }
+
+        /*
+         * Desktop / tablet: original 3-column layout
+         * (section label | field label | value)
+         */
         return (
           <table
             key={section.key}
@@ -88,24 +158,29 @@ export function SpecsTable({ specs }: SpecsTableProps) {
               {entries.map(([fieldKey, value], fIdx) => (
                 <tr
                   key={fieldKey}
-                  className={`border-b border-slate-200${fIdx % 2 === 1 ? ' bg-slate-50/50' : ''} hover:bg-amber-50/40 transition-colors`}
+                  className={`border-b border-slate-200${
+                    fIdx % 2 === 1 ? ' bg-slate-50/50' : ''
+                  } hover:bg-amber-50/40 transition-colors`}
                 >
-                  {/* Section label — first row only, rowSpan */}
                   {fIdx === 0 && (
                     <td
                       rowSpan={entries.length}
-                      className={`border-r border-slate-200 px-4 py-2.5 align-top font-black text-[13px] tracking-wider${sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''}`}
+                      className={`border-r border-slate-200 px-4 py-2.5 align-top font-black text-[13px] tracking-wider${
+                        sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''
+                      }`}
                       style={{ color: '#a0192d', verticalAlign: 'top' }}
                     >
                       {section.label}
                     </td>
                   )}
-                  {/* Field label */}
-                  <td className={`border-r border-slate-100 px-4 py-2.5 align-top font-semibold text-slate-700${fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''}`}>
+                  <td className={`border-r border-slate-100 px-4 py-2.5 align-top font-semibold text-slate-700${
+                    fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''
+                  }`}>
                     {labelFor(fieldKey)}
                   </td>
-                  {/* Value */}
-                  <td className={`px-4 py-2.5 text-slate-900 leading-relaxed${fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''}`}>
+                  <td className={`px-4 py-2.5 text-slate-900 leading-relaxed${
+                    fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''
+                  }`}>
                     {value}
                   </td>
                 </tr>

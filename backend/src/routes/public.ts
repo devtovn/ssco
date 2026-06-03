@@ -22,7 +22,8 @@ router.get(
         tagline: config.tagline ?? null,
         logoUrl: config.logoUrl ?? null,
       });
-    } catch {
+    } catch (err) {
+      console.error('[public] getWebsiteConfig failed', err);
       res.json({ siteName: null, tagline: null, logoUrl: null });
     }
   })

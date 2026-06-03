@@ -78,7 +78,7 @@ export default function AdminGadgetPage() {
 
   useEffect(() => {
     fetch(buildApiUrl('/gadget/brands'))
-      .then(r => r.json()).then(setBrands).catch(() => {});
+      .then(r => r.json()).then(setBrands).catch((err) => { console.error('[AdminGadgetPage]', err); });
     loadDevices();
   }, []);
 
@@ -86,7 +86,7 @@ export default function AdminGadgetPage() {
     try {
       const data = await apiFetchWithAuth<{ devices: Device[] }>('/admin/gadget/devices');
       setDevices(data.devices ?? []);
-    } catch {}
+    } catch (err) { console.error('[loadDevices]', err); }
   }
 
   // Step 1a: keyword search
@@ -177,7 +177,7 @@ export default function AdminGadgetPage() {
       const json = await res.json();
       const items = json.results ?? json.data?.results ?? [];
       setProductResults(items.map((p: any) => ({ id: String(p.id), name: p.name, slug: p.slug })));
-    } catch { setProductResults([]); }
+    } catch (err) { console.error('[searchProducts]', err); setProductResults([]); }
   }
 
   async function handleLinkProduct(deviceId: string, productId: string | null) {

@@ -61,9 +61,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const keyword = comparison.productName.split(/\s+/).slice(0, 3).join(' ');
   const [relatedResults, allDeals, gadgetDevice] = await Promise.all([
-    searchProducts({ keyword, limit: 9 }).catch(() => null),
-    getBestDeals(16).catch(() => []),
-    apiFetch<GadgetDevice | null>(`/gadget/by-product/${slug}`).catch(() => null),
+    searchProducts({ keyword, limit: 9 }).catch((err) => { console.error('[ProductPage] searchProducts', err); return null; }),
+    getBestDeals(16).catch((err) => { console.error('[ProductPage] getBestDeals', err); return []; }),
+    apiFetch<GadgetDevice | null>(`/gadget/by-product/${slug}`).catch((err) => { console.error('[ProductPage] gadget fetch', err); return null; }),
   ]);
   const resolvedId = String(comparison.productId);
   const related: ProductCardData[] =

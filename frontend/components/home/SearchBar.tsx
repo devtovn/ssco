@@ -25,7 +25,8 @@ export function SearchBar() {
         const data = await getSearchSuggestions(query.trim());
         setSuggestions(data);
         setIsOpen(true);
-      } catch {
+      } catch (err) {
+        console.error('[SearchBar] getSearchSuggestions', err);
         setSuggestions([]);
       } finally {
         setLoading(false);

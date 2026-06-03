@@ -48,7 +48,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
-  const moreArticles = await getPublishedArticles(5).catch(() => []);
+  const moreArticles = await getPublishedArticles(5).catch((err) => { console.error('[ArticleDetailPage] getPublishedArticles', err); return []; });
   const related = moreArticles.filter((a) => a.id !== article.id).slice(0, 3);
 
   const jsonLd = {

@@ -28,7 +28,7 @@ export default async function GadgetSearchPage({ searchParams }: Props) {
     category: searchParams.category,
     brand: searchParams.brand,
     page,
-  }).catch(() => ({ devices: [], pagination: { page: 1, limit: 24, total: 0, totalPages: 0 } }));
+  }).catch((err) => { console.error('[GadgetSearchPage] searchGadgets', err); return { devices: [], pagination: { page: 1, limit: 24, total: 0, totalPages: 0 } }; });
 
   const title = searchParams.q
     ? `Kết quả cho "${searchParams.q}"`

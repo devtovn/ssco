@@ -182,7 +182,8 @@ export default function AdminAffiliatePage() {
         method: 'PUT',
         body: JSON.stringify({ isEnabled: next }),
       });
-    } catch {
+    } catch (err) {
+      console.error('[handleToggle]', err);
       setEnabled(prev => ({ ...prev, [p.id]: !next }));
     }
   }

@@ -43,7 +43,8 @@ export default function VouchersPage() {
     try {
       setVouchers(await fetchAllVouchers());
       setError('');
-    } catch {
+    } catch (err) {
+      console.error('[VouchersPage] load', err);
       setError('Không tải được danh sách voucher');
     } finally {
       setLoading(false);

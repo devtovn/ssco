@@ -5,14 +5,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { CompareTable, type CompareMode } from '@/components/gadget/CompareTable';
-import { compareGadgets, searchGadgets, type GadgetDevice } from '@/lib/api/gadget';
+import { compareGadgets, getGadgetDevice, searchGadgets, type GadgetDevice } from '@/lib/api/gadget';
 
 const CATEGORY_ICONS: Record<string, string> = { mobile: '📱', tablet: '📲', smartwatch: '⌚' };
-
-// Header height ≈ 60px; mode bar ≈ 44px → device names thead at 104px
-const HEADER_H = 60;
-const MODE_BAR_H = 44;
-const NAMES_STICKY_TOP = HEADER_H + MODE_BAR_H; // 104
 
 /* ── Search dropdown ─────────────────────────────────────────────── */
 function CompareSearch({
@@ -36,8 +31,10 @@ function CompareSearch({
       try {
         const { devices } = await searchGadgets({ q: query });
         setResults(devices.slice(0, 8));
-      } catch { setResults([]); }
-      finally { setSearching(false); }
+      } catch (err) {
+        console.error('[CompareSearch] searchGadgets failed:', err);
+        setResults([]);
+      } finally { setSearching(false); }
     }, 300);
     return () => clearTimeout(t);
   }, [query]);
@@ -93,8 +90,8 @@ function SwapIcon() {
   );
 }
 
-/* ── Device card (always shows inline replace search) ────────────── */
-function DeviceCard({ device, onReplace }: { device: GadgetDevice; onReplace: (d: GadgetDevice) => void }) {
+/* ── Device card — shows image + name only (no inline search) ────── */
+function DeviceCard({ device }: { device: GadgetDevice }) {
   return (
     <div className="flex-1 p-4 text-center">
       <div className="flex flex-col items-center gap-1">
@@ -111,9 +108,6 @@ function DeviceCard({ device, onReplace }: { device: GadgetDevice; onReplace: (d
           {device.name}
         </Link>
       </div>
-      <div className="mt-3">
-        <CompareSearch placeholder="Tìm để thay thế..." label="" onSelect={onReplace} />
-      </div>
     </div>
   );
 }
@@ -125,7 +119,6 @@ function ModeToggle({ mode, onChange }: { mode: CompareMode; onChange: (m: Compa
     { key: 'highlight',   label: 'Highlight' },
     { key: 'differences', label: 'Khác nhau' },
   ];
-
   return (
     <div className="inline-flex overflow-hidden rounded-lg border border-slate-300">
       {modes.map((m) => (
@@ -133,9 +126,7 @@ function ModeToggle({ mode, onChange }: { mode: CompareMode; onChange: (m: Compa
           key={m.key}
           onClick={() => onChange(m.key)}
           className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${
-            mode === m.key
-              ? 'bg-slate-800 text-white'
-              : 'bg-white text-slate-600 hover:bg-slate-100'
+            mode === m.key ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
           }`}
         >
           {m.label}
@@ -153,6 +144,7 @@ function GadgetComparePage() {
   const MAX_SLOTS = 3;
   const [devices, setDevices] = useState<(GadgetDevice | null)[]>([null, null]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [mode, setMode] = useState<CompareMode>('full');
 
   const slugs = (params.get('slugs') ?? '').split(',').filter(Boolean);
@@ -160,13 +152,23 @@ function GadgetComparePage() {
   useEffect(() => {
     if (!slugs.length) { setLoading(false); return; }
     setLoading(true);
-    compareGadgets(slugs)
+
+    const load = slugs.length === 1
+      // Backend requires ≥2 slugs for /compare — use single-device endpoint
+      ? getGadgetDevice(slugs[0]).then((d) => [d])
+      : compareGadgets(slugs);
+
+    load
       .then((loaded) => {
-        const slots: (GadgetDevice | null)[] = loaded.map((d) => d);
+        const slots: (GadgetDevice | null)[] = [...loaded];
         while (slots.length < 2) slots.push(null);
         setDevices(slots);
+        setLoadError('');
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('[GadgetComparePage] load devices failed:', err);
+        setLoadError(err instanceof Error ? err.message : 'Không thể tải thiết bị');
+      })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.get('slugs')]);
@@ -209,19 +211,43 @@ function GadgetComparePage() {
   return (
     <PublicLayout>
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
-      {/* Breadcrumb */}
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/gadget" className="text-sm text-primary-600 hover:underline">← Thiết bị</Link>
-        <h1 className="text-2xl font-bold text-slate-900">So sánh thiết bị</h1>
+
+      {/* ── Header / breadcrumb ──────────────────────────────────── */}
+      {/*
+       * Mobile:  [So sánh thiết bị]  [← Thiết bị →]  (title left, link right)
+       * Desktop: [← Thiết bị]  [So sánh thiết bị]     (link then title)
+       */}
+      <div className="mb-2 flex items-center gap-3">
+        <h1 className="order-1 text-xl font-bold text-slate-900 sm:order-2 sm:text-2xl">
+          So sánh thiết bị
+        </h1>
+        <Link
+          href="/gadget"
+          className="order-2 ml-auto text-sm text-primary-600 hover:underline sm:order-1 sm:ml-0"
+        >
+          ← Thiết bị
+        </Link>
       </div>
 
+      {/* Subtitle — mobile only, always visible */}
+      <p className="mb-4 text-sm text-slate-500 sm:hidden">
+        Tìm và chọn 2 thiết bị để bắt đầu so sánh
+      </p>
+
       {loading && <p className="py-12 text-center text-slate-400">Đang tải...</p>}
+      {loadError && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{loadError}</p>
+      )}
 
       {!loading && (
         <>
-          {/* Search bars row */}
+          {/* ── Search row ─────────────────────────────────────────── */}
+          {/*
+           * Mobile:  flex-col → each input + button is full-width stacked
+           * Desktop: grid     → side-by-side columns
+           */}
           <div
-            className="mb-6 grid gap-4 rounded-lg border border-slate-200 bg-white p-4"
+            className="mb-6 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid sm:gap-4"
             style={{ gridTemplateColumns: `repeat(${devices.length}, 1fr)${devices.length < MAX_SLOTS ? ' auto' : ''}` }}
           >
             {devices.map((_, i) => (
@@ -234,7 +260,7 @@ function GadgetComparePage() {
             {devices.length < MAX_SLOTS && (
               <button
                 onClick={addSlot}
-                className="flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400 hover:border-primary-400 hover:text-primary-600 transition-colors"
+                className="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400 hover:border-primary-400 hover:text-primary-600 transition-colors sm:w-auto"
                 title="Thêm thiết bị"
               >
                 + Thêm
@@ -242,7 +268,7 @@ function GadgetComparePage() {
             )}
           </div>
 
-          {/* Device cards — NOT sticky, with swap buttons between columns */}
+          {/* ── Device cards with swap buttons ─────────────────────── */}
           <div className="mb-0 overflow-hidden rounded-t-lg border border-b-0 border-slate-200 bg-white shadow-sm">
             <div className="relative flex">
               {devices.map((device, i) => (
@@ -250,26 +276,25 @@ function GadgetComparePage() {
                   <div className={`flex-1 relative${i < devices.length - 1 ? ' border-r border-slate-200' : ''}`}>
                     {device ? (
                       <>
-                        <DeviceCard device={device} onReplace={(d) => setSlot(i, d)} />
-                        {devices.length > 2 && (
-                          <button
-                            onClick={() => removeSlot(i)}
-                            className="absolute top-2 right-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 transition"
-                            title="Xóa cột"
-                          >
-                            ✕
-                          </button>
-                        )}
+                        <DeviceCard device={device} />
+                        {/* Remove button — always show (not only for 3-slot) */}
+                        <button
+                          onClick={() => {
+                            // clear this slot
+                            const next = [...devices];
+                            next[i] = null;
+                            setDevices(next);
+                            updateUrl(next);
+                          }}
+                          className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs text-red-400 hover:bg-red-50 hover:text-red-600 transition"
+                          title="Xóa thiết bị"
+                        >
+                          ✕
+                        </button>
                       </>
                     ) : (
-                      <div className="p-8 text-center text-slate-400">
-                        <p className="text-sm mb-3">Chọn thiết bị {i + 1}</p>
-                        <CompareSearch
-                          placeholder="Tìm thiết bị..."
-                          label=""
-                          onSelect={(d) => setSlot(i, d)}
-                        />
-                      </div>
+                      /* Empty slot — minimal, no text/search box */
+                      <div className="flex min-h-[80px] items-center justify-center sm:min-h-[120px]" />
                     )}
                   </div>
 
@@ -293,29 +318,25 @@ function GadgetComparePage() {
             </div>
           </div>
 
-          {/* Mode toggle — sticky below site header */}
+          {/* ── Mode toggle ────────────────────────────────────────── */}
           {canCompare && (
-            <div
-              className="sticky z-20 flex items-center border border-slate-200 bg-white/95 px-4 py-2 backdrop-blur-sm"
-              style={{ top: HEADER_H }}
-            >
+            <div className="sticky top-[60px] z-20 flex items-center border border-slate-200 bg-white/95 px-4 py-2 backdrop-blur-sm">
               <ModeToggle mode={mode} onChange={setMode} />
             </div>
           )}
 
-          {/* Compare table */}
+          {/* ── Compare table ──────────────────────────────────────── */}
           {canCompare ? (
             <div className="overflow-hidden rounded-b-lg border border-t-0 border-slate-200 bg-white">
-              <CompareTable devices={activeDevices} mode={mode} stickyTop={NAMES_STICKY_TOP} />
-            </div>
-          ) : activeDevices.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 py-16 text-center">
-              <p className="text-slate-500">Tìm và chọn 2 thiết bị để bắt đầu so sánh</p>
+              <CompareTable devices={activeDevices} mode={mode} />
             </div>
           ) : (
-            <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              Chọn ít nhất 2 thiết bị để bắt đầu so sánh
-            </div>
+            /* "chọn thêm thiết bị" hint — desktop only (mobile sees subtitle above) */
+            activeDevices.length <= 1 && (
+              <div className="hidden rounded-2xl border border-dashed border-slate-300 py-16 text-center sm:block">
+                <p className="text-slate-500">Tìm và chọn 2 thiết bị để bắt đầu so sánh</p>
+              </div>
+            )
           )}
         </>
       )}

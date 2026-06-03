@@ -80,7 +80,8 @@ export default function AdminAdsPage() {
     try {
       const data = await apiFetchWithAuth<Advertisement[]>(`/ads/zones/${zoneId}/advertisements`);
       setZoneAds((prev) => ({ ...prev, [zoneId]: Array.isArray(data) ? data : [] }));
-    } catch {
+    } catch (err) {
+      console.error('[loadAds]', err);
       setZoneAds((prev) => ({ ...prev, [zoneId]: [] }));
     } finally {
       setAdsLoading(null);

@@ -576,8 +576,8 @@ router.get(
     let destUrl = sourceUrl;
     try {
       destUrl = await affiliateService.generateAffiliateLink(sourceUrl, platformId);
-    } catch {
-      // no config → use raw URL
+    } catch (err) {
+      console.error('[affiliate] generateAffiliateLink failed, falling back to raw URL', err);
     }
 
     // 3. Track click (fire-and-forget, don't block redirect)
@@ -588,8 +588,8 @@ router.get(
         userAgent: req.headers['user-agent'] || '',
         referrer: req.headers.referer,
       });
-    } catch {
-      // tracking failure must not block the user
+    } catch (err) {
+      console.error('[affiliate] trackAffiliateLinkClick failed', err);
     }
 
     // 4. Redirect or return JSON (redirect=0 → used by countdown page)

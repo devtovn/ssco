@@ -35,7 +35,7 @@ export function AdZone({ position, className = '' }: AdZoneProps) {
   const [ad, setAd] = useState<ActiveAdResult | null | undefined>(undefined);
 
   useEffect(() => {
-    getActiveAd(position).then(setAd).catch(() => setAd(null));
+    getActiveAd(position).then(setAd).catch((err) => { console.error('[AdZone]', err); setAd(null); });
   }, [position]);
 
   if (ad === undefined || ad === null) return null;

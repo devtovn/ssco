@@ -21,7 +21,7 @@ export function ProductTabsSection({ comparison, history, productId, gadgetSpecs
   useEffect(() => {
     getAdZones({ isActive: true, position: 'sidebar' })
       .then((zones) => setHasSidebar(zones.length > 0))
-      .catch(() => {});
+      .catch((err) => { console.error('[ProductTabsSection]', err); });
   }, []);
 
   const tabs = <ProductDetailTabs comparison={comparison} history={history} productId={productId} gadgetSpecs={gadgetSpecs} gadgetSlug={gadgetSlug} />;

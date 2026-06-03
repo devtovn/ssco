@@ -17,7 +17,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 export default async function GadgetPage() {
-  const brands = await getGadgetBrands().catch(() => []);
+  const brands = await getGadgetBrands().catch((err) => { console.error('[GadgetPage] getGadgetBrands', err); return []; });
 
   return (
     <PublicLayout>

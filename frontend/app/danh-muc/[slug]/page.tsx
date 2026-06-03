@@ -81,7 +81,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const { products, pagination } = await getCategoryProducts(category.id, {
     page,
     limit: 20,
-  }).catch(() => ({ products: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }));
+  }).catch((err) => { console.error('[CategoryPage] getCategoryProducts', err); return { products: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }; });
 
   const jsonLd = {
     '@context': 'https://schema.org',

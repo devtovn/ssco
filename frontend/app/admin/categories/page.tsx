@@ -291,7 +291,8 @@ export default function AdminCategoriesPage() {
       const json = await res.json();
       setTree(json.data ?? []);
       setError('');
-    } catch {
+    } catch (err) {
+      console.error('[loadTree]', err);
       setError('Không tải được cây danh mục');
     } finally {
       setLoading(false);

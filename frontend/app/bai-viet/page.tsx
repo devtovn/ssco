@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ArticlesIndexPage() {
-  const articles = await getPublishedArticles(20).catch(() => []);
+  const articles = await getPublishedArticles(20).catch((err) => { console.error('[ArticlesIndexPage] getPublishedArticles', err); return []; });
 
   return (
     <PublicLayout>

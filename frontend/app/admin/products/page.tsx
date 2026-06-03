@@ -129,7 +129,7 @@ export default function AdminProductsPage() {
     fetch(buildApiUrl('/categories/tree'), { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((json) => setCategories(flattenTree(json.data ?? [])))
-      .catch(() => {});
+      .catch((err) => { console.error('[AdminProductsPage] load categories', err); });
   }, []);
 
   useEffect(() => {

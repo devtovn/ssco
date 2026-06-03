@@ -110,8 +110,8 @@ export class SEOOptimizer {
           };
         }
       }
-    } catch {
-      // pg_trgm may be unavailable; title check is sufficient fallback
+    } catch (err) {
+      console.error('[SEOOptimizer] similarity check failed (pg_trgm may be unavailable)', err);
     }
 
     return { isUnique: true, similarityScore: 0 };

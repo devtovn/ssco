@@ -172,7 +172,8 @@ router.post(
     let creds: PlatformCredentials;
     try {
       creds = { platform: body.platformId, ...rawCreds } as PlatformCredentials;
-    } catch {
+    } catch (err) {
+      console.error('[seed] build credentials failed', err);
       return res.status(400).json({ error: 'Credentials không hợp lệ.' });
     }
 

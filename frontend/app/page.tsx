@@ -24,7 +24,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   /* ── Gadget tab ───────────────────────────────────────────────── */
   if (isGadget) {
-    const brands = await getGadgetBrands().catch(() => []);
+    const brands = await getGadgetBrands().catch((err) => { console.error('[HomePage] getGadgetBrands', err); return []; });
 
     return (
       <PublicLayout>
@@ -103,9 +103,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   /* ── Price comparison tab (default) ──────────────────────────── */
   const [categories, keywords, deals] = await Promise.all([
-    getCategoryTree().catch(() => []),
-    getPopularKeywords(8).catch(() => []),
-    getBestDeals(8).catch(() => []),
+    getCategoryTree().catch((err) => { console.error('[HomePage] getCategoryTree', err); return []; }),
+    getPopularKeywords(8).catch((err) => { console.error('[HomePage] getPopularKeywords', err); return []; }),
+    getBestDeals(8).catch((err) => { console.error('[HomePage] getBestDeals', err); return []; }),
   ]);
 
   return (

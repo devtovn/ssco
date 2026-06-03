@@ -107,7 +107,8 @@ export class PlatformAPIService {
         params: { platform: 'web', spid: productId },
       });
       return this.normalizeTiki(data);
-    } catch {
+    } catch (err) {
+      console.error('[getTikiProduct]', err);
       return null;
     }
   }
@@ -122,7 +123,8 @@ export class PlatformAPIService {
         const n = this.normalizeTiki(p);
         return n ? [n] : [];
       });
-    } catch {
+    } catch (err) {
+      console.error('[searchTiki]', err);
       return [];
     }
   }
@@ -166,7 +168,8 @@ export class PlatformAPIService {
         params: { itemid: itemId, shopid: shopId },
       });
       return this.normalizeShopee(data?.item, shopId);
-    } catch {
+    } catch (err) {
+      console.error('[getShopeeProduct]', err);
       return null;
     }
   }
@@ -183,7 +186,8 @@ export class PlatformAPIService {
           const n = this.normalizeShopee(item.item_basic, item.item_basic?.shopid?.toString() ?? '');
           return n ? [n] : [];
         });
-    } catch {
+    } catch (err) {
+      console.error('[searchShopee]', err);
       return [];
     }
   }
@@ -263,7 +267,7 @@ export class PlatformAPIService {
    * Shopee/Lazada/TikTok block all server-side requests — they require official API keys.
    */
   async searchAllNoKeyPlatforms(keyword: string, limit = 5): Promise<PlatformSearchResult[]> {
-    const tikiProducts = await this.searchTiki(keyword, limit).catch(() => [] as NormalizedProduct[]);
+    const tikiProducts = await this.searchTiki(keyword, limit).catch((err) => { console.error('[searchAllNoKeyPlatforms]', err); return [] as NormalizedProduct[]; });
     return [{ platform: 'tiki', products: tikiProducts }];
   }
 }

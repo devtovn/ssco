@@ -696,7 +696,8 @@ export class DataCollectionService {
       try {
         const r = await this.refreshProductPrices(row.id);
         updated += r.updated;
-      } catch {
+      } catch (err) {
+        console.error('[refreshAllProductPrices] failed for product', row.id, err);
         failed++;
       }
     }

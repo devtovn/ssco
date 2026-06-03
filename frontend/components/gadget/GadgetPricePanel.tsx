@@ -45,7 +45,7 @@ export function GadgetPricePanel({ deviceSlug, deviceName }: GadgetPricePanelPro
   useEffect(() => {
     apiFetch<PricesResult | null>(`/gadget/devices/${deviceSlug}/prices`)
       .then(setData)
-      .catch(() => setData(null));
+      .catch((err) => { console.error('[GadgetPricePanel]', err); setData(null); });
   }, [deviceSlug]);
 
   if (data === 'loading') {

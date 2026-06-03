@@ -79,8 +79,8 @@ export function ChuyenHuong() {
           pagePath: window.location.pathname,
           userSession: getUserSession(),
         });
-      } catch {
-        // affiliate generation failed — fall back to raw URL
+      } catch (err) {
+        console.error('[ChuyenHuong] affiliate generation failed, falling back to raw URL', err);
       }
 
       if (!cancelled) setDestUrl(finalUrl);
