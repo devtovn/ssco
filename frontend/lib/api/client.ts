@@ -54,7 +54,7 @@ export async function apiFetch<T>(
     );
   }
 
-  return (json.data ?? json) as T;
+  return (json === null ? null : (json?.data ?? json)) as T;
 }
 
 export async function apiPost<T>(
@@ -84,7 +84,7 @@ export async function apiPost<T>(
     );
   }
 
-  return (json.data ?? json) as T;
+  return (json === null ? null : (json?.data ?? json)) as T;
 }
 
 export interface ApiListResponse<T> {

@@ -28,6 +28,9 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.tiktok.com' },
       { protocol: 'https', hostname: '**.tiktokcdn.com' },
       { protocol: 'https', hostname: '**.tiktokcdn-us.com' },
+      // GSMArena
+      { protocol: 'https', hostname: '**.gsmarena.com' },
+      { protocol: 'https', hostname: 'fdn2.gsmarena.com' },
     ],
     formats: ['image/avif', 'image/webp'],
   },

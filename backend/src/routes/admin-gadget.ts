@@ -91,10 +91,23 @@ router.post(
       }
     } catch (err) { console.error('[admin-gadget] getWebsiteConfig failed, falling back to body value', err); }
 
-    const device = await gadgetService.upsertDevice({
-      ...body,
-      imageUrl: body.imageUrl || undefined,
-      gsmarenaUrl: body.gsmarenaUrl || undefined,
+    // Resolve brand name (needed to populate products.brand)
+    const brands = await gadgetService.listBrands(true);
+    const brand = brands.find((b) => b.id === body.brandId);
+    const brandName = brand?.name ?? '';
+
+    const device = await gadgetService.saveFromCrawl({
+      brandId:    body.brandId,
+      brandName,
+      name:       body.name,
+      slug:       body.slug,
+      category:   body.category,
+      imageUrl:   body.imageUrl || undefined,
+      gsmarenaUrl:body.gsmarenaUrl || undefined,
+      announced:  body.announced,
+      released:   body.released,
+      status:     body.status,
+      specs:      body.specs,
       isPublished,
     });
     return res.status(201).json(device);
@@ -133,7 +146,8 @@ router.put(
     if (res.headersSent) return;
 
     const body = DeviceSchema.partial().parse(req.body);
-    if (body.specs) {
+    if (body.specs && Object.keys(body.specs).length > 0) {
+      // updateSpecs resolves product_id internally and writes to typed spec tables
       await gadgetService.updateSpecs(req.params.id, body.specs as any);
     }
     if (body.isPublished !== undefined) {

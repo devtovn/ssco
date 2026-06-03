@@ -14,7 +14,7 @@ interface CrawlResult {
 }
 interface Device {
   id: string; name: string; slug: string; category: string;
-  isPublished: boolean; brandName?: string; announced?: string;
+  isPublished: boolean; brandName?: string; brandSlug?: string; announced?: string;
   productId?: string; productSlug?: string;
 }
 interface ProductResult { id: string; name: string; slug: string; }
@@ -163,6 +163,19 @@ export default function AdminGadgetPage() {
   async function handlePublish(id: string, published: boolean) {
     try {
       await adminPost(`/admin/gadget/devices/${id}/publish`, { published });
+      await loadDevices();
+    } catch (e: any) { setError(e.message); }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Xóa thiết bị "${name}"? Hành động này không thể hoàn tác.`)) return;
+    try {
+      const token = getToken();
+      const res = await fetch(buildApiUrl(`/admin/gadget/devices/${id}`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { const j = await res.json(); throw new Error(j.error ?? 'Lỗi xóa'); }
       await loadDevices();
     } catch (e: any) { setError(e.message); }
   }
@@ -461,7 +474,10 @@ export default function AdminGadgetPage() {
                   <button onClick={() => handlePublish(d.id, !d.isPublished)} className="text-xs text-primary-600 hover:underline">
                     {d.isPublished ? 'Unpublish' : 'Publish'}
                   </button>
-                  <a href={`/gadget/${d.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-primary-600">Xem ↗</a>
+                  {d.brandSlug && (
+                    <a href={`/gadget/${d.brandSlug}/${d.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-primary-600">Xem ↗</a>
+                  )}
+                  <button onClick={() => handleDelete(d.id, d.name)} className="text-xs text-red-400 hover:text-red-600">Xóa</button>
                 </div>
               </div>
 

@@ -397,8 +397,8 @@ export class DataCollectionService {
         );
       } else {
         const insertResult = await client.query(
-          `INSERT INTO products (name, description, category, brand, model, specifications, images, keywords)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `INSERT INTO products (name, description, category, brand, model, specifications, images, keywords, source_type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'others')
            RETURNING id`,
           [
             product.name,
@@ -555,8 +555,8 @@ export class DataCollectionService {
       // Upsert product (ON CONFLICT on slug)
       const upsert = await client.query<{ id: string }>(
         `INSERT INTO products
-           (name, slug, description, category, brand, model, specifications, images, keywords, is_active, hidden_sources)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, '{}')
+           (name, slug, description, category, brand, model, specifications, images, keywords, is_active, hidden_sources, source_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, '{}', 'others')
          ON CONFLICT (slug) DO UPDATE SET
            name        = EXCLUDED.name,
            brand       = EXCLUDED.brand,
