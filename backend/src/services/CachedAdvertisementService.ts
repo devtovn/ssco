@@ -71,11 +71,8 @@ export class CachedAdvertisementService {
     // Try cache first
     const cached = await this.cache.get<AdMetrics>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-
-    console.log(`Cache MISS: ${cacheKey}`);
 
     // Cache miss - fetch from service
     const metrics = await this.advertisementService.getPerformanceMetrics(zoneId, days);
@@ -140,11 +137,8 @@ export class CachedAdvertisementService {
     // Try cache first
     const cached = await this.cache.get<AdZone[]>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-
-    console.log(`Cache MISS: ${cacheKey}`);
 
     // Cache miss - fetch from service
     const zones = await this.advertisementService.getAdZones(filters);
@@ -164,11 +158,8 @@ export class CachedAdvertisementService {
     // Try cache first
     const cached = await this.cache.get<AdZone>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-
-    console.log(`Cache MISS: ${cacheKey}`);
 
     // Cache miss - fetch from service
     const zone = await this.advertisementService.getAdZoneById(zoneId);
@@ -197,11 +188,8 @@ export class CachedAdvertisementService {
     // Try cache first
     const cached = await this.cache.get<Advertisement[]>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-
-    console.log(`Cache MISS: ${cacheKey}`);
 
     // Cache miss - fetch from service
     const ads = await this.advertisementService.getActiveAdvertisements(zoneId);
@@ -262,7 +250,6 @@ export class CachedAdvertisementService {
       this.cache.deletePattern('ads:zones:*'),
       this.cache.deletePattern('ads:zone:*'),
     ]);
-    console.log('Ad zone caches invalidated');
   }
 
   /**
@@ -270,7 +257,6 @@ export class CachedAdvertisementService {
    */
   async warmCache(): Promise<void> {
     try {
-      console.log('Warming up advertisement cache...');
 
       // Warm up all active ad zones
       const activeZones = await this.advertisementService.getAdZones({ isActive: true });
@@ -297,7 +283,7 @@ export class CachedAdvertisementService {
         })
       );
 
-      console.log(`✅ Warmed advertisement cache: ${activeZones.length} zones`);
+
     } catch (error) {
       console.error('Error warming advertisement cache:', error);
     }
@@ -308,6 +294,5 @@ export class CachedAdvertisementService {
    */
   async clearCache(): Promise<void> {
     await this.cache.deletePattern('ads:*');
-    console.log('✅ Cleared all advertisement caches');
   }
 }

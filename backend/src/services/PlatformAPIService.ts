@@ -84,13 +84,13 @@ export class PlatformAPIService {
   constructor() {
     this.tiki = axios.create({
       baseURL: 'https://tiki.vn',
-      timeout: 15000,
+      timeout: 8000,
       headers: { 'User-Agent': BROWSER_UA, Accept: 'application/json' },
     });
 
     this.shopee = axios.create({
       baseURL: 'https://shopee.vn',
-      timeout: 15000,
+      timeout: 8000,
       headers: {
         'User-Agent': BROWSER_UA,
         Referer: 'https://shopee.vn/',

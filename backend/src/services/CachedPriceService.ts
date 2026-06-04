@@ -22,11 +22,8 @@ export class CachedPriceService {
     // Try to get from cache
     const cached = await CacheService.get<PriceComparison>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const comparison = await priceComparisonService.getProductPrices(productId);
@@ -50,11 +47,8 @@ export class CachedPriceService {
     // Try to get from cache
     const cached = await CacheService.get<PriceHistory>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const history = await priceComparisonService.getPriceHistory(productId, source, days);
@@ -78,11 +72,8 @@ export class CachedPriceService {
     // Try to get from cache
     const cached = await CacheService.get<Deal[]>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const deals = await priceComparisonService.getBestDeals(categoryId, limit, minDiscountPercent);
@@ -132,11 +123,8 @@ export class CachedPriceService {
     // Try to get from cache
     const cached = await CacheService.get<any>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const stats = await priceComparisonService.getPriceStatistics(productId);
@@ -162,8 +150,6 @@ export class CachedPriceService {
     
     // Invalidate best deals (since this product might be in deals)
     await CacheService.deletePattern('deals:*');
-    
-    console.log(`Price cache invalidated for product ${productId}`);
   }
 
   /**
@@ -175,8 +161,6 @@ export class CachedPriceService {
     await CacheService.deletePattern('product:*:price_history');
     await CacheService.deletePattern('price:stats:*');
     await CacheService.deletePattern('deals:*');
-    
-    console.log('All price caches invalidated');
   }
 
   /**
@@ -184,7 +168,6 @@ export class CachedPriceService {
    * Pre-load popular products and best deals
    */
   async warmCache(): Promise<void> {
-    console.log('Warming up price cache...');
     
     try {
       // Cache best deals (all categories)
@@ -198,8 +181,6 @@ export class CachedPriceService {
       }
       
       // TODO: Cache prices for popular products (from analytics)
-      
-      console.log('Price cache warmed up successfully');
     } catch (error) {
       console.error('Failed to warm up price cache:', error);
     }

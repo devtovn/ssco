@@ -34,11 +34,8 @@ export class CachedSearchService {
     // Try to get from cache
     const cached = await CacheService.get<SearchResponse>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const response = await searchService.searchProducts(query);
@@ -62,11 +59,8 @@ export class CachedSearchService {
     // Try to get from cache
     const cached = await CacheService.get<SearchSuggestion[]>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const suggestions = await searchService.getSuggestions(query, limit);
@@ -86,11 +80,8 @@ export class CachedSearchService {
     // Try to get from cache
     const cached = await CacheService.get<PopularKeyword[]>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const keywords = await searchService.getPopularKeywords(limit);
@@ -118,7 +109,6 @@ export class CachedSearchService {
    */
   async invalidateSearchCache(): Promise<void> {
     await CacheService.deletePattern('search:*');
-    console.log('Search cache invalidated');
   }
 
   /**
@@ -126,7 +116,6 @@ export class CachedSearchService {
    * Pre-load popular searches
    */
   async warmCache(): Promise<void> {
-    console.log('Warming up search cache...');
     
     try {
       // Cache popular keywords
@@ -147,8 +136,6 @@ export class CachedSearchService {
         // Cache suggestions
         await this.getSuggestions(keyword.keyword, 10);
       }
-      
-      console.log('Search cache warmed up successfully');
     } catch (error) {
       console.error('Failed to warm up search cache:', error);
     }
