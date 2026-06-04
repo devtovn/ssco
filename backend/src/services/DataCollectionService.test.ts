@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { Pool } from 'pg';
 import { DataCollectionService } from './DataCollectionService';
 import { APIIntegratorService, NormalizedProduct } from './APIIntegratorService';
-import { WebScraperService } from './WebScraperService';
 
 const mockProduct: NormalizedProduct = {
   externalId: 'ext-1',
@@ -23,7 +22,6 @@ const mockProduct: NormalizedProduct = {
 describe('DataCollectionService', () => {
   let pool: jest.Mocked<Pool>;
   let apiIntegrator: jest.Mocked<APIIntegratorService>;
-  let webScraper: jest.Mocked<WebScraperService>;
   let service: DataCollectionService;
 
   beforeEach(() => {
@@ -38,14 +36,7 @@ describe('DataCollectionService', () => {
       hasAvailableClients: jest.fn().mockReturnValue(true),
     } as unknown as jest.Mocked<APIIntegratorService>;
 
-    webScraper = {
-      validateProduct: jest.fn().mockReturnValue({ valid: true, errors: [] }),
-      scrapeUrls: jest.fn(),
-      scrapeUrl: jest.fn(),
-      buildSearchUrl: jest.fn().mockReturnValue(null),
-    } as unknown as jest.Mocked<WebScraperService>;
-
-    service = new DataCollectionService(pool, apiIntegrator, webScraper);
+    service = new DataCollectionService(pool, apiIntegrator);
   });
 
   describe('validateProductData', () => {
@@ -56,13 +47,19 @@ describe('DataCollectionService', () => {
       expect(result.normalized?.currency).toBe('VND');
     });
 
-    it('should reject invalid products', () => {
-      webScraper.validateProduct.mockReturnValue({
-        valid: false,
-        errors: ['Price must be greater than 0'],
-      });
-
+    it('should reject product with price 0', () => {
       const result = service.validateProductData({ ...mockProduct, price: 0 });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Price must be greater than 0');
+    });
+
+    it('should reject product with short name', () => {
+      const result = service.validateProductData({ ...mockProduct, name: 'A' });
+      expect(result.valid).toBe(false);
+    });
+
+    it('should reject product with invalid URL', () => {
+      const result = service.validateProductData({ ...mockProduct, sourceUrl: 'not-a-url' });
       expect(result.valid).toBe(false);
     });
   });
@@ -72,27 +69,17 @@ describe('DataCollectionService', () => {
       apiIntegrator.getAllProducts.mockResolvedValue([mockProduct]);
 
       const mockClient = {
-        query: jest.fn().mockResolvedValue({ rows: [] }),
+        query: jest.fn().mockImplementation(async (sql: string) => {
+          if (sql === 'BEGIN' || sql === 'COMMIT') return { rows: [] };
+          if (sql.includes('SELECT p.id')) return { rows: [] };
+          if (sql.includes('INSERT INTO products')) return { rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] };
+          if (sql.includes('INSERT INTO price_entries')) return { rows: [] };
+          if (sql.includes('UPDATE price_sources')) return { rows: [] };
+          return { rows: [] };
+        }),
         release: jest.fn(),
       };
       pool.connect.mockResolvedValue(mockClient as never);
-
-      mockClient.query
-        .mockResolvedValueOnce({ rows: [] }) // BEGIN - actually first is BEGIN
-        .mockResolvedValueOnce({ rows: [] }) // existing product check
-        .mockResolvedValueOnce({ rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] }) // insert product
-        .mockResolvedValueOnce({ rows: [] }); // insert price
-
-      // Simplify: mock connect to handle transaction
-      mockClient.query.mockImplementation(async (sql: string) => {
-        if (sql === 'BEGIN' || sql === 'COMMIT') return { rows: [] };
-        if (sql.includes('SELECT p.id')) return { rows: [] };
-        if (sql.includes('INSERT INTO products')) return { rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] };
-        if (sql.includes('INSERT INTO price_entries')) return { rows: [] };
-        if (sql.includes('UPDATE price_sources')) return { rows: [] };
-        return { rows: [] };
-      });
-
       pool.query.mockResolvedValue({ rows: [] });
 
       const result = await service.collectFromAPIs(['samsung']);
@@ -102,70 +89,14 @@ describe('DataCollectionService', () => {
       expect(result.storedCount).toBe(1);
     });
 
-    it('should use scraping fallback when API returns empty', async () => {
-      apiIntegrator.getAllProducts.mockResolvedValue([]);
-      pool.query.mockResolvedValue({
-        rows: [{ id: '1', name: 'Tiki Web', source_type: 'scrape', platform: 'tiki', base_url: '', is_active: true, reliability_score: 1 }],
-      });
-
-      webScraper.buildSearchUrl.mockReturnValue('https://tiki.vn/search?q=samsung');
-      webScraper.scrapeUrl.mockResolvedValue({
-        success: true,
-        data: mockProduct,
-        source: 'tiki',
-        url: 'https://tiki.vn/search?q=samsung',
-        timestamp: new Date(),
-      });
-
-      const mockClient = {
-        query: jest.fn().mockImplementation(async (sql: string) => {
-          if (sql.includes('INSERT INTO products')) return { rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] };
-          return { rows: [] };
-        }),
-        release: jest.fn(),
-      };
-      pool.connect.mockResolvedValue(mockClient as never);
+    it('should handle API error gracefully', async () => {
+      apiIntegrator.getAllProducts.mockRejectedValue(new Error('API down'));
+      pool.query.mockResolvedValue({ rows: [] });
 
       const result = await service.collectFromAPIs(['samsung']);
 
-      expect(result.usedScrapingFallback).toBe(true);
-      expect(webScraper.scrapeUrl).toHaveBeenCalled();
-    });
-  });
-
-  describe('scrapeWebsites', () => {
-    it('should scrape and store valid products', async () => {
-      webScraper.scrapeUrls.mockResolvedValue({
-        success: true,
-        results: [
-          {
-            success: true,
-            data: mockProduct,
-            source: 'tiki',
-            url: mockProduct.sourceUrl,
-            timestamp: new Date(),
-          },
-        ],
-        successCount: 1,
-        failedCount: 0,
-        captchaCount: 0,
-        timestamp: new Date(),
-      });
-
-      const mockClient = {
-        query: jest.fn().mockImplementation(async (sql: string) => {
-          if (sql.includes('INSERT INTO products')) return { rows: [{ id: '01ARYZ6S41TSV4RRFFQ69G5FAV' }] };
-          return { rows: [] };
-        }),
-        release: jest.fn(),
-      };
-      pool.connect.mockResolvedValue(mockClient as never);
-      pool.query.mockResolvedValue({ rows: [] });
-
-      const result = await service.scrapeWebsites([mockProduct.sourceUrl]);
-
-      expect(result.collectedCount).toBe(1);
-      expect(result.storedCount).toBe(1);
+      expect(result.collectedCount).toBe(0);
+      expect(result.errors[0]).toContain('API down');
     });
   });
 

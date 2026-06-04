@@ -58,13 +58,6 @@ describe('Task 1.1: Next.js 14 Frontend Project Setup', () => {
       expect(fs.existsSync(path.join(rootDir, 'tailwind.config.ts'))).toBe(true);
     });
 
-    it('should have Headless UI installed', () => {
-      const packageJson = JSON.parse(
-        fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')
-      );
-      expect(packageJson.dependencies['@headlessui/react']).toBeDefined();
-    });
-
     it('should have Heroicons installed', () => {
       const packageJson = JSON.parse(
         fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')

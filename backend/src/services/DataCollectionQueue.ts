@@ -1,13 +1,12 @@
 /**
  * Data Collection Job Queue
- * Bull Queue with Redis for background API collection and web scraping jobs
+ * Bull Queue with Redis for background API collection jobs
  */
 
 import Bull, { Job, Queue } from 'bull';
 
 export enum CollectionJobType {
   API_COLLECTION = 'api-collection',
-  WEB_SCRAPING = 'web-scraping',
   FULL_COLLECTION = 'full-collection',
 }
 
@@ -15,18 +14,12 @@ export interface ApiCollectionJobData {
   keywords: string[];
 }
 
-export interface WebScrapingJobData {
-  urls: string[];
-}
-
 export interface FullCollectionJobData {
   keywords: string[];
-  urls?: string[];
 }
 
 export type CollectionJobData =
   | ApiCollectionJobData
-  | WebScrapingJobData
   | FullCollectionJobData;
 
 export interface JobProcessingResult {
@@ -78,7 +71,6 @@ export class DataCollectionQueue {
     this.processor = processor;
 
     this.queue.process(CollectionJobType.API_COLLECTION, async (job) => processor(job));
-    this.queue.process(CollectionJobType.WEB_SCRAPING, async (job) => processor(job));
     this.queue.process(CollectionJobType.FULL_COLLECTION, async (job) => processor(job));
 
     console.log('[DataCollectionQueue] Job processor registered');
@@ -92,17 +84,6 @@ export class DataCollectionQueue {
       CollectionJobType.API_COLLECTION,
       { keywords },
       { priority: 2, ...options }
-    );
-  }
-
-  async addWebScrapingJob(
-    urls: string[],
-    options?: Bull.JobOptions
-  ): Promise<Job<WebScrapingJobData>> {
-    return this.queue.add(
-      CollectionJobType.WEB_SCRAPING,
-      { urls },
-      { priority: 3, ...options }
     );
   }
 

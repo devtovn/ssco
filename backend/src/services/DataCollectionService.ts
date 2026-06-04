@@ -1,6 +1,6 @@
 /**
  * Data Collection Service
- * Coordinates API integration, web scraping, validation, and PostgreSQL storage
+ * Coordinates API integration, validation, and PostgreSQL storage
  */
 
 import { Pool } from 'pg';
@@ -10,7 +10,6 @@ import {
   apiIntegratorService,
   NormalizedProduct,
 } from './APIIntegratorService';
-import { WebScraperService, webScraperService } from './WebScraperService';
 import {
   CollectionJobType,
   DataCollectionQueue,
@@ -31,17 +30,6 @@ export interface CollectionResult {
   collectedCount: number;
   storedCount: number;
   failedCount: number;
-  usedScrapingFallback: boolean;
-  errors: string[];
-  timestamp: Date;
-}
-
-export interface ScrapingResult {
-  success: boolean;
-  collectedCount: number;
-  storedCount: number;
-  failedCount: number;
-  captchaCount: number;
   errors: string[];
   timestamp: Date;
 }
@@ -89,54 +77,30 @@ export class DataCollectionService {
   constructor(
     private pool: Pool,
     private apiIntegrator: APIIntegratorService = apiIntegratorService,
-    private webScraper: WebScraperService = webScraperService,
     private platformAPI: PlatformAPIService = platformAPIService,
     private queue?: DataCollectionQueue
   ) {}
 
   /**
-   * Collect products from APIs with web scraping fallback
+   * Collect products from APIs
    */
   async collectFromAPIs(keywords: string[]): Promise<CollectionResult> {
     const errors: string[] = [];
     let collected: NormalizedProduct[] = [];
-    let usedScrapingFallback = false;
 
     for (const keyword of keywords) {
       try {
-        let products = await this.apiIntegrator.getAllProducts(keyword, 20);
-
-        if (products.length === 0) {
-          products = await this.collectViaScrapingFallback(keyword);
-          if (products.length > 0) {
-            usedScrapingFallback = true;
-          }
-        }
-
+        const products = await this.apiIntegrator.getAllProducts(keyword, 20);
         collected = collected.concat(products);
         await this.recordSourceSuccess('api', this.apiIntegrator.getAvailablePlatforms().join(','));
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         errors.push(`API collection for "${keyword}": ${message}`);
         await this.recordSourceFailure('api', message);
-
-        try {
-          const fallbackProducts = await this.collectViaScrapingFallback(keyword);
-          collected = collected.concat(fallbackProducts);
-          if (fallbackProducts.length > 0) usedScrapingFallback = true;
-        } catch (scrapeError: unknown) {
-          const scrapeMsg =
-            scrapeError instanceof Error ? scrapeError.message : String(scrapeError);
-          errors.push(`Scraping fallback for "${keyword}": ${scrapeMsg}`);
-        }
       }
     }
 
-    const validProducts = collected.filter((p) => {
-      const validation = this.validateProductData(p);
-      return validation.valid;
-    });
-
+    const validProducts = collected.filter((p) => this.validateProductData(p).valid);
     const storeResult = await this.storeProducts(validProducts);
 
     return {
@@ -144,49 +108,6 @@ export class DataCollectionService {
       collectedCount: collected.length,
       storedCount: storeResult.storedCount,
       failedCount: collected.length - storeResult.storedCount,
-      usedScrapingFallback,
-      errors: [...errors, ...storeResult.errors],
-      timestamp: new Date(),
-    };
-  }
-
-  /**
-   * Scrape product data from URLs
-   */
-  async scrapeWebsites(urls: string[]): Promise<ScrapingResult> {
-    const errors: string[] = [];
-    const batch = await this.webScraper.scrapeUrls(urls);
-
-    const validProducts: NormalizedProduct[] = [];
-
-    for (const result of batch.results) {
-      if (!result.success || !result.data) {
-        if (result.error) errors.push(`${result.url}: ${result.error}`);
-        continue;
-      }
-
-      const validation = this.validateProductData(result.data);
-      if (validation.valid && validation.normalized) {
-        validProducts.push(validation.normalized);
-      } else {
-        errors.push(`${result.url}: ${validation.errors.join(', ')}`);
-      }
-    }
-
-    const storeResult = await this.storeProducts(validProducts);
-
-    if (batch.successCount > 0) {
-      await this.recordSourceSuccess('scrape', 'web');
-    } else if (urls.length > 0) {
-      await this.recordSourceFailure('scrape', errors[0] || 'All scrapes failed');
-    }
-
-    return {
-      success: storeResult.storedCount > 0,
-      collectedCount: batch.successCount,
-      storedCount: storeResult.storedCount,
-      failedCount: batch.failedCount,
-      captchaCount: batch.captchaCount,
       errors: [...errors, ...storeResult.errors],
       timestamp: new Date(),
     };
@@ -196,10 +117,24 @@ export class DataCollectionService {
    * Validate and normalize product data
    */
   validateProductData(data: NormalizedProduct): ValidationResult {
-    const scraperValidation = this.webScraper.validateProduct(data);
-    if (!scraperValidation.valid) {
-      return { valid: false, errors: scraperValidation.errors };
+    const errors: string[] = [];
+
+    if (!data.name || data.name.trim().length < 2) {
+      errors.push('Product name is required (min 2 characters)');
     }
+    if (!data.price || data.price <= 0) {
+      errors.push('Price must be greater than 0');
+    }
+    if (!data.sourceUrl) {
+      errors.push('Valid source URL is required');
+    } else {
+      try { new URL(data.sourceUrl); } catch { errors.push('Valid source URL is required'); }
+    }
+    if (!data.source) {
+      errors.push('Source platform is required');
+    }
+
+    if (errors.length > 0) return { valid: false, errors };
 
     const normalized: NormalizedProduct = {
       ...data,
@@ -255,34 +190,14 @@ export class DataCollectionService {
           };
         }
 
-        case CollectionJobType.WEB_SCRAPING: {
-          const { urls } = job.data as { urls: string[] };
-          const result = await this.scrapeWebsites(urls);
-          return {
-            jobId: job.id,
-            type,
-            success: result.success,
-            message: `Scraped ${result.collectedCount}, stored ${result.storedCount}`,
-          };
-        }
-
         case CollectionJobType.FULL_COLLECTION: {
-          const { keywords, urls } = job.data as { keywords: string[]; urls?: string[] };
+          const { keywords } = job.data as { keywords: string[] };
           const apiResult = await this.collectFromAPIs(keywords);
-          let scrapeResult: ScrapingResult | null = null;
-
-          if (urls && urls.length > 0) {
-            scrapeResult = await this.scrapeWebsites(urls);
-          }
-
-          const success =
-            apiResult.success || (scrapeResult?.success ?? false) || apiResult.collectedCount > 0;
-
           return {
             jobId: job.id,
             type,
-            success,
-            message: `Full: API stored ${apiResult.storedCount}, scrape stored ${scrapeResult?.storedCount ?? 0}`,
+            success: apiResult.success || apiResult.collectedCount > 0,
+            message: `Full: API stored ${apiResult.storedCount}`,
           };
         }
 
@@ -343,24 +258,6 @@ export class DataCollectionService {
     }
 
     return { storedCount, errors };
-  }
-
-  private async collectViaScrapingFallback(keyword: string): Promise<NormalizedProduct[]> {
-    const sources = await this.getActivePriceSources();
-    const scrapeSources = sources.filter((s) => s.sourceType === 'scrape');
-    const products: NormalizedProduct[] = [];
-
-    for (const source of scrapeSources) {
-      const searchUrl = this.webScraper.buildSearchUrl(source.platform, keyword);
-      if (!searchUrl) continue;
-
-      const result = await this.webScraper.scrapeUrl(searchUrl);
-      if (result.success && result.data) {
-        products.push(result.data);
-      }
-    }
-
-    return products;
   }
 
   private async upsertProductWithPrice(product: NormalizedProduct): Promise<string> {
