@@ -271,7 +271,7 @@ export class CachedAffiliateLinkService {
         )
       );
 
-      console.log(`✅ Warmed affiliate cache: ${configs.length} configs`);
+
     } catch (error) {
       console.error('Error warming affiliate cache:', error);
     }
@@ -282,6 +282,5 @@ export class CachedAffiliateLinkService {
    */
   async clearCache(): Promise<void> {
     await this.cache.deletePattern('affiliate:*');
-    console.log('✅ Cleared all affiliate caches');
   }
 }

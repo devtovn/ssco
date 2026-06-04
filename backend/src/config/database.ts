@@ -14,7 +14,7 @@ const poolConfig: PoolConfig = {
 
   // Connection pool settings
   min: parseInt(process.env.DATABASE_POOL_MIN || '2', 10), // Minimum connections
-  max: parseInt(process.env.DATABASE_POOL_MAX || '20', 10), // Maximum connections
+  max: parseInt(process.env.DATABASE_POOL_MAX || '50', 10), // Maximum connections
   idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
   connectionTimeoutMillis: 5000, // Timeout for acquiring connection
   

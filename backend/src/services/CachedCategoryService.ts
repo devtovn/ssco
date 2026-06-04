@@ -63,11 +63,8 @@ export class CachedCategoryService {
     // Try to get from cache
     const cached = await CacheService.get<CategoryTree[]>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const tree = await categoryManagementService.getCategoryTree(rootId);
@@ -105,11 +102,8 @@ export class CachedCategoryService {
     // Try to get from cache
     const cached = await CacheService.get<{ products: any[]; total: number }>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const result = await categoryManagementService.getProductsByCategory(
@@ -134,11 +128,8 @@ export class CachedCategoryService {
     // Try to get from cache
     const cached = await CacheService.get<CategoryMetrics>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const metrics = await categoryManagementService.getCategoryMetrics(categoryId);
@@ -158,11 +149,8 @@ export class CachedCategoryService {
     // Try to get from cache
     const cached = await CacheService.get<Category>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const category = await categoryManagementService.getCategoryById(id);
@@ -184,11 +172,8 @@ export class CachedCategoryService {
     // Try to get from cache
     const cached = await CacheService.get<Category>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const category = await categoryManagementService.getCategoryBySlug(slug);
@@ -210,11 +195,8 @@ export class CachedCategoryService {
     // Try to get from cache
     const cached = await CacheService.get<Category[]>(cacheKey);
     if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`);
       return cached;
     }
-    
-    console.log(`Cache MISS: ${cacheKey}`);
     
     // Get from database
     const categories = await categoryManagementService.getAllCategories(activeOnly);
@@ -233,8 +215,6 @@ export class CachedCategoryService {
     await CacheService.deletePattern('category:tree*');
     await CacheService.deletePattern('category:*');
     await CacheService.deletePattern('categories:all:*');
-    
-    console.log('Category cache invalidated');
   }
 
   /**
@@ -249,7 +229,6 @@ export class CachedCategoryService {
   }
 
   async warmCache(): Promise<void> {
-    console.log('Warming up category cache...');
     
     try {
       // Cache category tree
@@ -258,8 +237,6 @@ export class CachedCategoryService {
       // Cache all categories
       await this.getAllCategories(true);
       await this.getAllCategories(false);
-      
-      console.log('Category cache warmed up successfully');
     } catch (error) {
       console.error('Failed to warm up category cache:', error);
     }
