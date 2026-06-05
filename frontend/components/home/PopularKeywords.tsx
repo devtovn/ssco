@@ -10,7 +10,7 @@ interface PopularKeywordsProps {
 export function PopularKeywords({ keywords }: PopularKeywordsProps) {
   const router = useRouter();
 
-  if (keywords.length === 0) return null;
+  if (!keywords?.length) return null;
 
   return (
     <section className="mt-6">

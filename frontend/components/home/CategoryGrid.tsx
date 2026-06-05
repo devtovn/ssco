@@ -20,7 +20,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
     <section className="mt-10 sm:mt-16">
       <h2 className="mb-4 text-center text-xl font-bold text-slate-900 sm:mb-6 sm:text-2xl">Danh mục sản phẩm</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-5">
-        {topLevel.map((node) => {
+        {topLevel.filter((node) => node.category).map((node) => {
           const cat = node.category;
           const icon = CATEGORY_ICONS[cat.slug] || '🛒';
           return (

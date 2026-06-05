@@ -23,7 +23,7 @@ export async function getSearchSuggestions(q: string, limit = 8): Promise<Search
 }
 
 export async function getPopularKeywords(limit = 10): Promise<PopularKeyword[]> {
-  return apiFetch<PopularKeyword[]>('/search/popular-keywords', { params: { limit } });
+  return apiFetch<PopularKeyword[]>('/search/popular', { params: { limit } });
 }
 
 export async function searchProducts(params: SearchProductsParams): Promise<SearchResponse> {

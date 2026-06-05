@@ -95,7 +95,13 @@ export default function AdminGadgetPage() {
     setError(''); setSearchResults([]); setSelectedResult(null); setCrawlResult(null);
     setSearching(true);
     try {
-      const results: SearchResult[] = await adminPost('/admin/gadget/search', { keyword: keyword.trim() });
+      const json = await adminPost('/admin/gadget/search', { keyword: keyword.trim() });
+      const raw: any[] = json.data ?? [];
+      const results: SearchResult[] = raw.map(g => ({
+        name: g.name,
+        url: g.description ?? '',
+        imageUrl: g.images?.[0],
+      }));
       setSearchResults(results);
       if (!results.length) setError('Không tìm thấy kết quả trên GSMArena.');
     } catch (e: any) {
@@ -119,7 +125,15 @@ export default function AdminGadgetPage() {
     if (!targetUrl) return;
     setError(''); setCrawlResult(null); setCrawling(true);
     try {
-      const result: CrawlResult = await adminPost('/admin/gadget/crawl', { url: targetUrl });
+      const json = await adminPost('/admin/gadget/crawl', { url: targetUrl });
+      const raw = json.data ?? json;
+      const result: CrawlResult = {
+        name: raw.name ?? '',
+        imageUrl: raw.images?.[0] ?? raw.imageUrl,
+        gsmarenaUrl: targetUrl,
+        category: raw.category ?? 'mobile',
+        specs: raw.specifications ?? raw.specs ?? {},
+      };
       setCrawlResult(result);
     } catch (e: any) {
       setError(e.message);
@@ -216,7 +230,7 @@ export default function AdminGadgetPage() {
   const pagedDevices = filteredDevices.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const specCount = crawlResult
-    ? Object.values(crawlResult.specs).reduce((s, g) => s + Object.keys(g).length, 0)
+    ? Object.values(crawlResult.specs ?? {}).reduce((s, g) => s + Object.keys(g ?? {}).length, 0)
     : 0;
 
   const readyToCrawl = inputMode === 'keyword'
