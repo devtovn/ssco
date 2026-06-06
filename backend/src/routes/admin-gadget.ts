@@ -60,17 +60,19 @@ router.post(
 // ── POST /devices — save device ───────────────────────────────────────────────
 
 const DeviceSchema = z.object({
-  brandId:     z.string().length(26),
-  name:        z.string().min(1),
-  slug:        z.string().min(1),
-  category:    z.enum(['mobile', 'tablet', 'smartwatch']),
-  imageUrl:    z.string().url().optional().or(z.literal('')),
-  gsmarenaUrl: z.string().url().optional().or(z.literal('')),
-  announced:   z.string().optional(),
-  released:    z.string().optional(),
-  status:      z.string().optional(),
-  specs:       z.record(z.record(z.string())).default({}),
-  isPublished: z.boolean().default(false),
+  brandId:        z.string().length(26),
+  name:           z.string().min(1),
+  slug:           z.string().min(1),
+  category:       z.enum(['mobile', 'tablet', 'smartwatch']),
+  imageUrl:       z.string().url().optional().or(z.literal('')),
+  gsmarenaUrl:    z.string().url().optional().or(z.literal('')),
+  announced:      z.string().optional(),
+  released:       z.string().optional(),
+  status:         z.string().optional(),
+  specs:          z.record(z.record(z.string())).default({}),
+  isPublished:    z.boolean().default(false),
+  publishProduct: z.boolean().default(true),
+  categoryId:     z.string().optional(),
 });
 
 router.post(
@@ -97,18 +99,20 @@ router.post(
     const brandName = brand?.name ?? '';
 
     const device = await gadgetService.saveFromCrawl({
-      brandId:    body.brandId,
+      brandId:        body.brandId,
       brandName,
-      name:       body.name,
-      slug:       body.slug,
-      category:   body.category,
-      imageUrl:   body.imageUrl || undefined,
-      gsmarenaUrl:body.gsmarenaUrl || undefined,
-      announced:  body.announced,
-      released:   body.released,
-      status:     body.status,
-      specs:      body.specs,
+      name:           body.name,
+      slug:           body.slug,
+      category:       body.category,
+      imageUrl:       body.imageUrl || undefined,
+      gsmarenaUrl:    body.gsmarenaUrl || undefined,
+      announced:      body.announced,
+      released:       body.released,
+      status:         body.status,
+      specs:          body.specs,
       isPublished,
+      publishProduct: body.publishProduct,
+      categoryId:     body.categoryId || undefined,
     });
     return res.status(201).json(device);
   })
@@ -196,7 +200,8 @@ router.delete(
     await requireAdmin(req, res);
     if (res.headersSent) return;
 
-    await gadgetService.deleteDevice(req.params.id);
+    const { deleteProduct } = z.object({ deleteProduct: z.boolean().default(false) }).parse(req.body);
+    await gadgetService.deleteDevice(req.params.id, deleteProduct);
     return res.json({ ok: true });
   })
 );

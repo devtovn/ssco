@@ -74,7 +74,15 @@ export function GadgetPricePanel({ deviceSlug, deviceName }: GadgetPricePanelPro
 
   return (
     <div className="mt-8">
-      <h2 className="mb-3 text-lg font-bold text-slate-900">Giá trên các sàn</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-slate-900">Giá trên các sàn</h2>
+        <Link
+          href={`/san-pham/${data.productSlug}`}
+          className="text-sm text-primary-600 hover:underline"
+        >
+          Xem trang sản phẩm →
+        </Link>
+      </div>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Mobile layout */}
         <div className="divide-y divide-slate-100 sm:hidden">

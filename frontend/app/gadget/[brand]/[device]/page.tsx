@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { SpecsTable } from '@/components/gadget/SpecsTable';
 import { GadgetPricePanel } from '@/components/gadget/GadgetPricePanel';
+import { ShareButton } from '@/components/gadget/ShareButton';
 import { getGadgetDevice, getGadgetBrands } from '@/lib/api/gadget';
 import { getSiteConfig } from '@/lib/api/site-config';
 
@@ -42,75 +43,167 @@ export default async function DeviceDetailPage({ params }: Props) {
     notFound();
   }
 
+  const CATEGORY_LABELS: Record<string, string> = { mobile: '📱 Điện thoại', tablet: '📲 Máy tính bảng', smartwatch: '⌚ Đồng hồ' };
   const CATEGORY_ICONS: Record<string, string> = { mobile: '📱', tablet: '📲', smartwatch: '⌚' };
+
+  // Extract RAM: look for "XGB RAM" pattern inside the internal storage string
+  const ramRaw = device.specs.memory?.internal ?? '';
+  const ramMatch = ramRaw.match(/(\d+)\s*GB\s*RAM/i);
+  const ramValue = ramMatch ? `${ramMatch[1]} GB` : undefined;
+
+  const keySpecs = [
+    { icon: '📺', label: 'Màn hình', value: device.specs.display?.size },
+    { icon: '📷', label: 'Camera',   value: device.specs.main_camera?.megapixels ?? device.specs.main_camera?.specs?.split(/[,\n]/)[0]?.trim() },
+    { icon: '🧠', label: 'RAM',      value: ramValue },
+    { icon: '🔋', label: 'Pin',      value: device.specs.battery?.capacity },
+  ].filter(s => s.value);
+
+  const shareUrl = `${SITE_URL}/gadget/${params.brand}/${params.device}`;
 
   return (
     <PublicLayout>
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:py-10">
-        {/* Breadcrumb */}
-        <nav className="mb-4 flex items-center gap-1 text-sm text-slate-500">
-          <Link href="/gadget" className="hover:text-primary-600">Thiết bị</Link>
-          <span>/</span>
-          <Link href={`/gadget/${params.brand}`} className="hover:text-primary-600 capitalize">
-            {device.brandName}
-          </Link>
-          <span>/</span>
-          <span className="text-slate-800">{device.name}</span>
-        </nav>
+      <div className="mx-auto max-w-7xl">
 
-        {/* Hero: image + name + quick specs */}
-        <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-start">
-          <div className="mx-auto flex h-56 w-56 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white sm:mx-0">
-            {device.imageUrl ? (
-              <img src={device.imageUrl} alt={device.name} className="h-full w-full object-contain p-4" />
-            ) : (
-              <span className="text-7xl">{CATEGORY_ICONS[device.category] ?? '📱'}</span>
-            )}
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-primary-600">{device.brandName}</p>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{device.name}</h1>
-            <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-600">
-              {device.announced && <span>📅 Công bố: {device.announced}</span>}
-              {device.status && <span>🟢 {device.status}</span>}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {[
-                { label: 'Màn hình', value: device.specs.display?.size },
-                { label: 'Chipset', value: device.specs.platform?.chipset },
-                { label: 'Camera', value: device.specs.main_camera?.specs?.split(',')[0] },
-                { label: 'Pin', value: device.specs.battery?.capacity },
-                { label: 'RAM', value: device.specs.memory?.internal },
-                { label: 'OS', value: device.specs.platform?.os },
-              ].filter(s => s.value).map((s) => (
-                <div key={s.label} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                  <p className="text-xs text-slate-500">{s.label}</p>
-                  <p className="mt-0.5 text-sm font-semibold text-slate-900 line-clamp-1">{s.value}</p>
-                </div>
-              ))}
-            </div>
-            <Link
-              href={`/gadget/compare?slugs=${device.slug}`}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700"
-            >
-              ⚖️ So sánh thiết bị này
+        {/* ── Hero band ─────────────────────────────────────────── */}
+        <div className="bg-gradient-to-br from-primary-50 to-slate-50 border-b border-primary-100 px-4 py-6 sm:px-8">
+          {/* Breadcrumb */}
+          <nav className="mb-4 flex items-center gap-1 text-xs text-slate-400">
+            <Link href="/gadget" className="hover:text-primary-600">Thiết bị</Link>
+            <span>/</span>
+            <Link href={`/gadget/${params.brand}`} className="hover:text-primary-600">
+              {device.brandName}
             </Link>
+            <span>/</span>
+            <span className="text-slate-600">{device.name}</span>
+          </nav>
+
+          <div className="flex gap-5 sm:gap-8">
+            {/* Image */}
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <div className="flex h-28 w-24 items-center justify-center rounded-2xl border border-primary-100 bg-white sm:h-36 sm:w-32">
+                {device.imageUrl ? (
+                  <img src={device.imageUrl} alt={device.name} className="h-full w-full object-contain p-3" />
+                ) : (
+                  <span className="text-5xl">{CATEGORY_ICONS[device.category] ?? '📱'}</span>
+                )}
+              </div>
+              <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-medium text-primary-700">
+                {CATEGORY_LABELS[device.category] ?? device.category}
+              </span>
+            </div>
+
+            {/* Info */}
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary-600">{device.brandName}</p>
+                <h1 className="mt-0.5 text-xl font-bold text-slate-900 sm:text-2xl">{device.name}</h1>
+              </div>
+
+              {/* Key specs — 4 cards */}
+              {keySpecs.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {keySpecs.map((s) => (
+                    <div key={s.label} className="flex flex-col items-center rounded-xl border border-primary-100 bg-white px-3 py-2.5 text-center">
+                      <span className="text-lg leading-none">{s.icon}</span>
+                      <span className="mt-1.5 text-sm font-bold text-slate-800 line-clamp-1">{s.value}</span>
+                      <span className="text-[11px] text-slate-400">{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Meta chips */}
+              {(() => {
+                // Format weight: "188.00 g" → "188g", "188.50 g" → "188.5g"
+                const weightRaw = device.specs.body?.weight ?? '';
+                const weightNum = parseFloat(weightRaw);
+                const weightFmt = !isNaN(weightNum)
+                  ? `${Number.isInteger(weightNum) ? weightNum : weightNum.toFixed(1)}g`
+                  : weightRaw || null;
+
+                // Thickness from dimensions
+                const dims = device.specs.body?.dimensions ?? '';
+                const thickMatch = dims.match(/([\d.]+)\s*mm\s*thick/i);
+                const thickFmt = thickMatch ? `${thickMatch[1]}mm` : null;
+
+                const weightLabel = [weightFmt, thickFmt].filter(Boolean).join(' · ');
+
+                const chips = [
+                  { icon: '📅', text: device.announced || null },
+                  { icon: '⚖️', text: weightLabel || null },
+                  { icon: '💻', text: device.specs.platform?.os?.split(',')[0] ?? null },
+                  { icon: '🔄', text: device.specs.display?.refresh_rate ?? null },
+                ].filter(c => c.text);
+
+                if (!chips.length) return null;
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    {chips.map((c) => (
+                      <span key={c.icon} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-500">
+                        <span>{c.icon}</span>
+                        {c.text}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/gadget/compare?slugs=${device.slug}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700"
+                >
+                  So sánh
+                </Link>
+                {device.productSlug && (
+                  <Link
+                    href={`/san-pham/${device.productSlug}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700"
+                  >
+                    Xem giá
+                  </Link>
+                )}
+                <ShareButton title={device.name} url={shareUrl} />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Prices */}
-        <GadgetPricePanel deviceSlug={device.slug} deviceName={device.name} />
+        <div className="px-4 py-6 sm:px-8">
+          {/* Prices */}
+          <GadgetPricePanel deviceSlug={device.slug} deviceName={device.name} />
 
-        {/* Main content: brands sidebar (3/12) + specs table (9/12) */}
-        <h2 className="mb-4 mt-10 text-lg font-bold text-slate-900">Thông số kỹ thuật đầy đủ</h2>
+          {/* Mobile: brand pill scroll */}
+          <div className="mt-10 md:hidden">
+            <p className="mb-2 text-xs font-semibold text-slate-500">Hãng sản xuất</p>
+            <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              {brands.map((b) => {
+                const isActive = b.slug === params.brand;
+                return (
+                  <Link
+                    key={b.id}
+                    href={`/gadget/${b.slug}`}
+                    className={`shrink-0 rounded-full border px-3 py-1 text-sm transition-colors ${
+                      isActive
+                        ? 'border-primary-400 bg-primary-50 font-semibold text-primary-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-primary-300 hover:text-primary-600'
+                    }`}
+                  >
+                    {b.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
 
-        <div className="flex gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
-          {/* Left sidebar: all brands — 3/12 */}
-          <aside className="hidden w-3/12 shrink-0 border-r border-slate-200 bg-slate-50 md:block">
-            <div className="sticky top-0 overflow-y-auto" style={{ maxHeight: '80vh' }}>
-              <h3 className="border-b border-slate-200 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+          {/* Desktop: sidebar + specs side by side */}
+          <div className="mt-4 flex overflow-hidden rounded-lg border border-slate-200 bg-white md:mt-10">
+            {/* Left sidebar: brands — 3/12, desktop only */}
+            <aside className="hidden w-3/12 shrink-0 border-r border-slate-200 bg-slate-50 md:flex md:flex-col">
+              <div className="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">
                 Hãng sản xuất
-              </h3>
+              </div>
               <ul>
                 {brands.map((b) => {
                   const isActive = b.slug === params.brand;
@@ -118,42 +211,35 @@ export default async function DeviceDetailPage({ params }: Props) {
                     <li key={b.id}>
                       <Link
                         href={`/gadget/${b.slug}`}
-                        className={`flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 text-sm transition-colors ${
+                        className={`block border-b border-slate-100 px-4 py-2.5 text-sm transition-colors ${
                           isActive
                             ? 'bg-primary-50 font-bold text-primary-700 border-l-4 border-l-primary-600'
                             : 'text-slate-700 hover:bg-slate-100'
                         }`}
                       >
-                        {b.logoUrl ? (
-                          <img src={b.logoUrl} alt={b.name} className="h-5 w-5 object-contain" />
-                        ) : (
-                          <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-200 text-[10px] font-bold text-slate-600">
-                            {b.name[0]}
-                          </span>
-                        )}
-                        <span className="flex-1">{b.name}</span>
-                        {b.deviceCount != null && b.deviceCount > 0 && (
-                          <span className="text-xs text-slate-400">{b.deviceCount}</span>
-                        )}
+                        {b.name}
                       </Link>
                     </li>
                   );
                 })}
               </ul>
+            </aside>
+
+            {/* Right: specs table */}
+            <div className="flex w-full flex-col md:w-9/12">
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                Thông số kỹ thuật đầy đủ
+              </div>
+              <SpecsTable specs={device.specs} />
             </div>
-          </aside>
-
-          {/* Right: specs table — 9/12 */}
-          <div className="w-full md:w-9/12">
-            <SpecsTable specs={device.specs} />
           </div>
-        </div>
 
-        {device.gsmarenaUrl && (
-          <p className="mt-6 text-xs text-slate-400">
-            Nguồn: <a href={device.gsmarenaUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary-600">GSMArena</a>
-          </p>
-        )}
+          {device.gsmarenaUrl && (
+            <p className="mt-6 text-xs text-slate-400">
+              Nguồn: <a href={device.gsmarenaUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary-600">GSMArena</a>
+            </p>
+          )}
+        </div>
       </div>
     </PublicLayout>
   );

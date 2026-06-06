@@ -744,9 +744,9 @@ export class GadgetService {
    */
   async saveFromCrawl(input: {
     brandId: string;
-    brandName: string;   // caller resolves brand name to populate products.brand
+    brandName: string;
     name: string;
-    slug: string;        // used for both gadget_devices.slug and products.slug
+    slug: string;
     category: 'mobile' | 'tablet' | 'smartwatch';
     imageUrl?: string;
     gsmarenaUrl?: string;
@@ -755,6 +755,10 @@ export class GadgetService {
     status?: string;
     specs: GadgetSpecs;
     isPublished?: boolean;
+    /** If true, product is visible on the public site */
+    publishProduct?: boolean;
+    /** Category ID to link the product to (product_categories) */
+    categoryId?: string;
   }): Promise<GadgetDevice> {
     const client = await this.db.connect();
     try {
@@ -762,17 +766,20 @@ export class GadgetService {
 
       const productCategory = DEVICE_CATEGORY_TO_PRODUCT_CATEGORY[input.category] ?? 'gadget';
 
+      const productIsActive = input.publishProduct !== false;
+
       // 1. Upsert product
       const productRes = await client.query<{ id: string }>(
         `INSERT INTO products
            (name, slug, category, brand, images, source_type, device_category, is_active, keywords)
-         VALUES ($1, $2, $3, $4, $5, 'gadget', $6, true, $7)
+         VALUES ($1, $2, $3, $4, $5, 'gadget', $6, $7, $8)
          ON CONFLICT (slug) DO UPDATE SET
            name            = EXCLUDED.name,
            brand           = EXCLUDED.brand,
            images          = EXCLUDED.images,
            source_type     = 'gadget',
            device_category = EXCLUDED.device_category,
+           is_active       = EXCLUDED.is_active,
            updated_at      = NOW()
          RETURNING id`,
         [
@@ -782,10 +789,21 @@ export class GadgetService {
           input.brandName,
           input.imageUrl ? [input.imageUrl] : null,
           input.category,
+          productIsActive,
           input.name.split(/\s+/).slice(0, 10),
         ]
       );
       const productId = productRes.rows[0].id;
+
+      // 1b. Link category if provided and publishing
+      if (productIsActive && input.categoryId) {
+        await client.query(
+          `INSERT INTO product_categories (product_id, category_id, is_primary)
+           VALUES ($1, $2, true)
+           ON CONFLICT (product_id, category_id) DO NOTHING`,
+          [productId, input.categoryId]
+        );
+      }
 
       // 2. Upsert gadget_devices (no specs column)
       await client.query(
@@ -878,9 +896,20 @@ export class GadgetService {
     );
   }
 
-  async deleteDevice(id: string): Promise<void> {
-    // Deleting the device does NOT delete the product — admin must do that separately.
-    await this.db.query('DELETE FROM gadget_devices WHERE id = $1', [id]);
+  async deleteDevice(id: string, deleteProduct = false): Promise<void> {
+    if (deleteProduct) {
+      const { rows } = await this.db.query(
+        'SELECT product_id FROM gadget_devices WHERE id = $1',
+        [id]
+      );
+      const productId: string | null = rows[0]?.product_id ?? null;
+      await this.db.query('DELETE FROM gadget_devices WHERE id = $1', [id]);
+      if (productId) {
+        await this.db.query('DELETE FROM products WHERE id = $1', [productId]);
+      }
+    } else {
+      await this.db.query('DELETE FROM gadget_devices WHERE id = $1', [id]);
+    }
   }
 
   /** Find the gadget device linked to a given product slug */

@@ -5,6 +5,7 @@ import { apiFetchWithAuth, getToken } from '@/lib/auth';
 import { buildApiUrl } from '@/lib/api/client';
 
 interface Brand { id: string; name: string; slug: string; }
+interface Category { id: string; name: string; slug: string; parentId?: string; }
 interface SearchResult { name: string; url: string; imageUrl?: string; }
 interface CrawlResult {
   name: string; imageUrl?: string; gsmarenaUrl: string;
@@ -39,6 +40,7 @@ type InputMode = 'keyword' | 'url';
 
 export default function AdminGadgetPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
 
   // Input state
@@ -57,9 +59,15 @@ export default function AdminGadgetPage() {
 
   // Save
   const [brandId, setBrandId] = useState('');
+  const [publishProduct, setPublishProduct] = useState(true);
+  const [categoryId, setCategoryId] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
+
+  // Delete confirm dialog
+  const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string; productId?: string } | null>(null);
+  const [deleteDeleting, setDeleteDeleting] = useState(false);
 
   // Device list filters
   const [filterName, setFilterName] = useState('');
@@ -78,7 +86,22 @@ export default function AdminGadgetPage() {
 
   useEffect(() => {
     fetch(buildApiUrl('/gadget/brands'))
-      .then(r => r.json()).then(setBrands).catch((err) => { console.error('[AdminGadgetPage]', err); });
+      .then(r => r.json()).then(setBrands).catch((err) => { console.error('[AdminGadgetPage] brands', err); });
+    fetch(buildApiUrl('/categories/tree'))
+      .then(r => r.json()).then((res: any) => {
+        const tree: any[] = res?.data ?? res;
+        if (!Array.isArray(tree)) return;
+        const flat: Category[] = [];
+        const walk = (nodes: any[], parentId?: string) => {
+          for (const n of nodes) {
+            const cat = n.category ?? n;
+            flat.push({ id: String(cat.id), name: cat.name, slug: cat.slug, parentId });
+            if (n.children?.length) walk(n.children, String(cat.id));
+          }
+        };
+        walk(tree);
+        setCategories(flat);
+      }).catch((err) => { console.error('[AdminGadgetPage] categories', err); });
     loadDevices();
   }, []);
 
@@ -144,7 +167,9 @@ export default function AdminGadgetPage() {
         released: crawlResult.released,
         status: crawlResult.status,
         specs: crawlResult.specs,
-        isPublished: false, // server may override via auto-publish config
+        isPublished: false,
+        publishProduct,
+        categoryId: publishProduct && categoryId ? categoryId : undefined,
       });
       setSaved(
         saved.isPublished
@@ -152,6 +177,7 @@ export default function AdminGadgetPage() {
           : `💾 Đã lưu "${crawlResult.name}" — chờ review và publish`
       );
       setCrawlResult(null); setSelectedResult(null); setKeyword(''); setUrl('');
+      setPublishProduct(true); setCategoryId('');
       await loadDevices();
     } catch (e: any) {
       setError(e.message);
@@ -167,17 +193,25 @@ export default function AdminGadgetPage() {
     } catch (e: any) { setError(e.message); }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Xóa thiết bị "${name}"? Hành động này không thể hoàn tác.`)) return;
+  function handleDelete(id: string, name: string, productId?: string) {
+    setDeleteDialog({ id, name, productId });
+  }
+
+  async function confirmDelete(deleteProduct: boolean) {
+    if (!deleteDialog) return;
+    setDeleteDeleting(true);
     try {
       const token = getToken();
-      const res = await fetch(buildApiUrl(`/admin/gadget/devices/${id}`), {
+      const res = await fetch(buildApiUrl(`/admin/gadget/devices/${deleteDialog.id}`), {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteProduct }),
       });
       if (!res.ok) { const j = await res.json(); throw new Error(j.error ?? 'Lỗi xóa'); }
+      setDeleteDialog(null);
       await loadDevices();
     } catch (e: any) { setError(e.message); }
+    finally { setDeleteDeleting(false); }
   }
 
   async function searchProducts(q: string) {
@@ -355,6 +389,7 @@ export default function AdminGadgetPage() {
         {/* Crawl result preview + save */}
         {crawlResult && (
           <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 space-y-4">
+            {/* Device info */}
             <div className="flex items-start gap-4">
               {crawlResult.imageUrl && (
                 <img src={crawlResult.imageUrl} alt={crawlResult.name} className="h-20 w-20 object-contain shrink-0" />
@@ -369,24 +404,67 @@ export default function AdminGadgetPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            {/* Brand */}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Hãng</label>
               <select
                 value={brandId}
                 onChange={e => setBrandId(e.target.value)}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm sm:w-auto"
               >
                 <option value="">— Chọn hãng —</option>
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
+            </div>
+
+            {/* Publish product toggle */}
+            <div className={`flex items-center justify-between rounded-lg border px-4 py-3 ${publishProduct ? 'border-green-200 bg-white' : 'border-amber-200 bg-amber-50'}`}>
+              <div>
+                <p className="text-sm font-medium text-slate-800">Publish sản phẩm đi kèm?</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {publishProduct ? 'Tạo & hiển thị sản phẩm trên trang chủ' : 'Chỉ lưu gadget, không tạo sản phẩm công khai'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setPublishProduct(p => !p); setCategoryId(''); }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${publishProduct ? 'bg-green-500' : 'bg-slate-300'}`}
+                aria-pressed={publishProduct}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${publishProduct ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Category — only when publishProduct */}
+            {publishProduct && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                <label className="mb-1.5 block text-xs font-medium text-blue-800">Danh mục sản phẩm</label>
+                <select
+                  value={categoryId}
+                  onChange={e => setCategoryId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm sm:w-auto"
+                >
+                  <option value="">— Chọn danh mục —</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.parentId ? `  ↳ ${c.name}` : c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Divider + actions */}
+            <div className="border-t border-green-200 pt-3 flex items-center gap-3">
               <button
                 onClick={handleSave}
                 disabled={!brandId || saving}
-                className="rounded-lg bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-40"
+                className="rounded-lg bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-40"
               >
-                {saving ? 'Đang lưu…' : '💾 Lưu'}
+                {saving ? 'Đang lưu…' : publishProduct ? '💾 Lưu thiết bị & sản phẩm' : '💾 Lưu thiết bị (ẩn)'}
               </button>
               <button
-                onClick={() => { setCrawlResult(null); setSelectedResult(null); }}
+                onClick={() => { setCrawlResult(null); setSelectedResult(null); setPublishProduct(true); setCategoryId(''); }}
                 className="text-xs text-slate-400 hover:text-red-500"
               >
                 Huỷ
@@ -395,6 +473,49 @@ export default function AdminGadgetPage() {
           </div>
         )}
       </div>
+
+      {/* ── Delete confirm dialog ── */}
+      {deleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-slate-900">Xóa thiết bị</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Bạn đang xóa <span className="font-medium text-slate-900">"{deleteDialog.name}"</span>.
+            </p>
+            {deleteDialog.productId && (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                Thiết bị này có sản phẩm liên kết. Bạn có muốn xóa luôn sản phẩm không?
+              </p>
+            )}
+            <div className="mt-5 flex flex-col gap-2">
+              {deleteDialog.productId && (
+                <button
+                  onClick={() => confirmDelete(true)}
+                  disabled={deleteDeleting}
+                  className="w-full rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-40"
+                >
+                  {deleteDeleting ? 'Đang xóa…' : 'Xóa cả thiết bị lẫn sản phẩm'}
+                </button>
+              )}
+              <button
+                onClick={() => confirmDelete(false)}
+                disabled={deleteDeleting}
+                className="w-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                autoFocus
+              >
+                {deleteDeleting ? 'Đang xóa…' : deleteDialog.productId ? 'Không — chỉ xóa thiết bị' : 'Xác nhận xóa'}
+              </button>
+              <button
+                onClick={() => setDeleteDialog(null)}
+                disabled={deleteDeleting}
+                className="w-full rounded-lg px-4 py-2 text-sm text-slate-400 hover:text-slate-600 disabled:opacity-40"
+              >
+                Huỷ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Device list ── */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -477,7 +598,7 @@ export default function AdminGadgetPage() {
                   {d.brandSlug && (
                     <a href={`/gadget/${d.brandSlug}/${d.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-primary-600">Xem ↗</a>
                   )}
-                  <button onClick={() => handleDelete(d.id, d.name)} className="text-xs text-red-400 hover:text-red-600">Xóa</button>
+                  <button onClick={() => handleDelete(d.id, d.name, d.productId)} className="text-xs text-red-400 hover:text-red-600">Xóa</button>
                 </div>
               </div>
 

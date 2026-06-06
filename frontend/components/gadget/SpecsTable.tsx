@@ -4,40 +4,48 @@ import { useState, useEffect } from 'react';
 import type { GadgetSpecs } from '@/lib/api/gadget';
 
 const SECTIONS: { key: string; label: string }[] = [
-  { key: 'network',       label: 'NETWORK' },
-  { key: 'launch',        label: 'LAUNCH' },
-  { key: 'body',          label: 'BODY' },
-  { key: 'display',       label: 'DISPLAY' },
-  { key: 'platform',      label: 'PLATFORM' },
-  { key: 'memory',        label: 'MEMORY' },
-  { key: 'main_camera',   label: 'MAIN CAMERA' },
-  { key: 'selfie_camera', label: 'SELFIE CAMERA' },
-  { key: 'sound',         label: 'SOUND' },
-  { key: 'comms',         label: 'COMMS' },
-  { key: 'features',      label: 'FEATURES' },
-  { key: 'battery',       label: 'BATTERY' },
-  { key: 'misc',          label: 'MISC' },
-  { key: 'tests',         label: 'TESTS' },
+  { key: 'network',       label: 'MẠNG' },
+  { key: 'launch',        label: 'RA MẮT' },
+  { key: 'body',          label: 'THIẾT KẾ' },
+  { key: 'display',       label: 'MÀN HÌNH' },
+  { key: 'platform',      label: 'NỀN TẢNG' },
+  { key: 'memory',        label: 'BỘ NHỚ' },
+  { key: 'main_camera',   label: 'CAMERA SAU' },
+  { key: 'selfie_camera', label: 'CAMERA TRƯỚC' },
+  { key: 'sound',         label: 'ÂM THANH' },
+  { key: 'comms',         label: 'KẾT NỐI' },
+  { key: 'features',      label: 'TÍNH NĂNG' },
+  { key: 'battery',       label: 'PIN' },
+  { key: 'misc',          label: 'THÔNG TIN KHÁC' },
+  { key: 'tests',         label: 'KIỂM THỬ' },
 ];
 
 const FIELD_LABELS: Record<string, string> = {
-  technology: 'Technology', announced: 'Announced', status: 'Status',
-  dimensions: 'Dimensions', weight: 'Weight', build: 'Build', sim: 'SIM',
-  water_resistance: 'Water resistance',
-  type: 'Type', size: 'Size', resolution: 'Resolution', protection: 'Protection',
-  features: 'Features', refresh_rate: 'Refresh rate',
-  os: 'OS', chipset: 'Chipset', cpu: 'CPU', gpu: 'GPU',
-  card_slot: 'Card slot', internal: 'Internal',
-  specs: 'Specs', modules: 'Modules', video: 'Video',
-  loudspeaker: 'Loudspeaker', '3_5mm_jack': '3.5mm jack',
-  wlan: 'WLAN', bluetooth: 'Bluetooth', positioning: 'Positioning',
-  gps: 'Positioning', nfc: 'NFC', radio: 'Radio', usb: 'USB',
-  sensors: 'Sensors', other: 'Other',
-  capacity: 'Capacity', charging: 'Charging',
-  colors: 'Colors', models: 'Models',
-  sar_us: 'SAR', sar_eu: 'SAR EU', price: 'Price',
-  speed: 'Speed', bands_2g: '2G bands', bands_3g: '3G bands',
-  bands_4g: '4G bands', bands_5g: '5G bands',
+  technology: 'Công nghệ', announced: 'Công bố', status: 'Tình trạng',
+  dimensions: 'Kích thước', weight: 'Trọng lượng', build: 'Chất liệu', sim: 'SIM',
+  water_resistance: 'Kháng nước',
+  type: 'Loại', size: 'Kích cỡ', resolution: 'Độ phân giải', protection: 'Kính bảo vệ',
+  features: 'Tính năng', refresh_rate: 'Tần số quét',
+  os: 'Hệ điều hành', chipset: 'Chip xử lý', cpu: 'CPU', gpu: 'GPU',
+  card_slot: 'Khe thẻ nhớ', internal: 'Bộ nhớ trong',
+  specs: 'Thông số', modules: 'Module', video: 'Quay video',
+  loudspeaker: 'Loa ngoài', '3_5mm_jack': 'Jack 3.5mm',
+  wlan: 'Wi-Fi', bluetooth: 'Bluetooth', positioning: 'Định vị',
+  gps: 'Định vị', nfc: 'NFC', radio: 'Radio FM', usb: 'USB',
+  sensors: 'Cảm biến', other: 'Khác',
+  capacity: 'Dung lượng', charging: 'Sạc',
+  colors: 'Màu sắc', models: 'Phiên bản',
+  sar_us: 'SAR (Mỹ)', sar_eu: 'SAR (EU)', price: 'Giá tham khảo',
+  speed: 'Tốc độ', bands_2g: 'Băng tần 2G', bands_3g: 'Băng tần 3G',
+  bands_4g: 'Băng tần 4G', bands_5g: 'Băng tần 5G',
+  aperture: 'Khẩu độ', megapixels: 'Độ phân giải',
+  wired_charging: 'Sạc có dây', wireless_charging: 'Sạc không dây',
+  reverse_charging: 'Sạc ngược', nfc_supported: 'Hỗ trợ NFC',
+  stereo_speakers: 'Loa stereo', audio_jack: 'Jack tai nghe',
+  wifi_version: 'Phiên bản Wi-Fi', bt_version: 'Phiên bản Bluetooth',
+  usb_version: 'Phiên bản USB',
+  display_score: 'Điểm màn hình', loudspeaker_lufs: 'Độ to loa (LUFS)',
+  battery_endurance: 'Thời lượng pin',
 };
 
 function labelFor(key: string): string {
@@ -68,6 +76,10 @@ export function SpecsTable({ specs }: SpecsTableProps) {
       .map((k) => ({ key: k, label: k.replace(/_/g, ' ').toUpperCase() })),
   ];
 
+  const HIDDEN_FIELDS: Record<string, string[]> = {
+    misc: ['price', 'sar_us', 'sar_eu'],
+  };
+
   if (!orderedSections.length) {
     return <p className="text-sm text-slate-500">Chưa có thông số kỹ thuật.</p>;
   }
@@ -77,7 +89,8 @@ export function SpecsTable({ specs }: SpecsTableProps) {
       {orderedSections.map((section, sIdx) => {
         const fields = specs[section.key];
         if (!fields) return null;
-        const entries = Object.entries(fields);
+        const hidden = HIDDEN_FIELDS[section.key] ?? [];
+        const entries = Object.entries(fields).filter(([k]) => !hidden.includes(k));
 
         if (isMobile) {
           /*
