@@ -17,39 +17,82 @@ const SECTIONS: { key: string; label: string }[] = [
   { key: 'features',      label: 'TÍNH NĂNG' },
   { key: 'battery',       label: 'PIN' },
   { key: 'misc',          label: 'THÔNG TIN KHÁC' },
-  { key: 'tests',         label: 'KIỂM THỬ' },
 ];
 
 const FIELD_LABELS: Record<string, string> = {
-  technology: 'Công nghệ', announced: 'Công bố', status: 'Tình trạng',
-  dimensions: 'Kích thước', weight: 'Trọng lượng', build: 'Chất liệu', sim: 'SIM',
-  water_resistance: 'Kháng nước',
-  type: 'Loại', size: 'Kích cỡ', resolution: 'Độ phân giải', protection: 'Kính bảo vệ',
-  features: 'Tính năng', refresh_rate: 'Tần số quét',
+  // Network
+  technology: 'Công nghệ', bands_2g: 'Băng tần 2G', bands_3g: 'Băng tần 3G',
+  bands_4g: 'Băng tần 4G', bands_5g: 'Băng tần 5G', speed: 'Tốc độ',
+  // Launch
+  announced: 'Công bố', status: 'Tình trạng',
+  // Body
+  dimensions: 'Kích thước', weight: 'Trọng lượng', build: 'Chất liệu',
+  sim: 'SIM', water_resistance: 'Kháng nước',
+  // Display
+  type: 'Loại', size: 'Kích cỡ', resolution: 'Độ phân giải',
+  protection: 'Kính bảo vệ', features: 'Tính năng',
+  refresh_rate: 'Tần số quét', density: 'Mật độ điểm ảnh',
+  cover_display: 'Màn hình phụ',
+  // Platform
   os: 'Hệ điều hành', chipset: 'Chip xử lý', cpu: 'CPU', gpu: 'GPU',
+  // Memory
   card_slot: 'Khe thẻ nhớ', internal: 'Bộ nhớ trong',
-  specs: 'Thông số', modules: 'Module', video: 'Quay video',
+  // Camera
+  specs: 'Thông số camera', modules: 'Cụm camera', video: 'Quay video',
+  megapixels: 'Độ phân giải', aperture: 'Khẩu độ',
+  // Sound
   loudspeaker: 'Loa ngoài', '3_5mm_jack': 'Jack 3.5mm',
+  // Comms
   wlan: 'Wi-Fi', bluetooth: 'Bluetooth', positioning: 'Định vị',
-  gps: 'Định vị', nfc: 'NFC', radio: 'Radio FM', usb: 'USB',
+  nfc: 'NFC', radio: 'Radio FM', usb: 'USB',
+  // Features
   sensors: 'Cảm biến', other: 'Khác',
-  capacity: 'Dung lượng', charging: 'Sạc',
+  // Battery (type key is shared with Display — labelFor falls back to base key → 'Loại')
+  charging: 'Sạc',
+  // Misc
   colors: 'Màu sắc', models: 'Phiên bản',
-  sar_us: 'SAR (Mỹ)', sar_eu: 'SAR (EU)', price: 'Giá tham khảo',
-  speed: 'Tốc độ', bands_2g: 'Băng tần 2G', bands_3g: 'Băng tần 3G',
-  bands_4g: 'Băng tần 4G', bands_5g: 'Băng tần 5G',
-  aperture: 'Khẩu độ', megapixels: 'Độ phân giải',
-  wired_charging: 'Sạc có dây', wireless_charging: 'Sạc không dây',
-  reverse_charging: 'Sạc ngược', nfc_supported: 'Hỗ trợ NFC',
-  stereo_speakers: 'Loa stereo', audio_jack: 'Jack tai nghe',
-  wifi_version: 'Phiên bản Wi-Fi', bt_version: 'Phiên bản Bluetooth',
-  usb_version: 'Phiên bản USB',
-  display_score: 'Điểm màn hình', loudspeaker_lufs: 'Độ to loa (LUFS)',
-  battery_endurance: 'Thời lượng pin',
+  sar_us: 'SAR (Mỹ)', sar_eu: 'SAR (EU)',
 };
 
+function baseKey(key: string): string {
+  return key.replace(/_r\d+$/, '');
+}
+
 function labelFor(key: string): string {
-  return FIELD_LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return FIELD_LABELS[key] ?? FIELD_LABELS[baseKey(key)]
+    ?? baseKey(key).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Group fields: base key + all _rN continuation keys → one display row.
+ * Returns array of { label, value } where value is the joined multi-line string.
+ */
+function groupFields(fields: Record<string, string>): { key: string; label: string; value: string }[] {
+  const seen = new Set<string>();
+  const result: { key: string; label: string; value: string }[] = [];
+
+  for (const key of Object.keys(fields)) {
+    const base = baseKey(key);
+    if (seen.has(base)) continue;
+    seen.add(base);
+
+    // Collect base + all _rN values in order
+    const lines: string[] = [];
+    if (fields[base] != null) lines.push(fields[base]);
+    for (let i = 1; ; i++) {
+      const rKey = `${base}_r${i}`;
+      if (fields[rKey] == null) break;
+      lines.push(fields[rKey]);
+    }
+
+    result.push({
+      key: base,
+      label: labelFor(base),
+      value: lines.join('\n'),
+    });
+  }
+
+  return result;
 }
 
 interface SpecsTableProps {
@@ -58,7 +101,6 @@ interface SpecsTableProps {
 }
 
 export function SpecsTable({ specs }: SpecsTableProps) {
-  // Detect mobile (< sm = 640px) — same breakpoint as CompareTable
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px)');
@@ -90,15 +132,9 @@ export function SpecsTable({ specs }: SpecsTableProps) {
         const fields = specs[section.key];
         if (!fields) return null;
         const hidden = HIDDEN_FIELDS[section.key] ?? [];
-        const entries = Object.entries(fields).filter(([k]) => !hidden.includes(k));
+        const entries = groupFields(fields).filter(({ key }) => !hidden.includes(key));
 
         if (isMobile) {
-          /*
-           * Mobile: vertical section label (18px) + field label (120px) + value.
-           * Same approach as CompareTable mobile — section label rotated 90°,
-           * rowspan spans the whole section, sticky left:0.
-           * Changes naturally as each <table> scrolls into view.
-           */
           return (
             <table
               key={section.key}
@@ -111,14 +147,13 @@ export function SpecsTable({ specs }: SpecsTableProps) {
                 <col />
               </colgroup>
               <tbody>
-                {entries.map(([fieldKey, value], fIdx) => (
+                {entries.map(({ key, label, value }, fIdx) => (
                   <tr
-                    key={fieldKey}
+                    key={key}
                     className={`border-b border-slate-200 transition-colors${
                       fIdx % 2 === 1 ? ' bg-slate-50/50' : ''
                     } hover:bg-amber-50/40`}
                   >
-                    {/* Vertical section label — first row only, spans whole section */}
                     {fIdx === 0 && (
                       <td
                         rowSpan={entries.length}
@@ -140,9 +175,9 @@ export function SpecsTable({ specs }: SpecsTableProps) {
                       </td>
                     )}
                     <td className="border-r border-slate-100 px-3 py-2 align-top font-semibold text-slate-700">
-                      {labelFor(fieldKey)}
+                      {label}
                     </td>
-                    <td className="px-3 py-2 text-slate-900 leading-relaxed">
+                    <td className="px-3 py-2 text-slate-900 leading-relaxed whitespace-pre-line">
                       {value}
                     </td>
                   </tr>
@@ -152,10 +187,6 @@ export function SpecsTable({ specs }: SpecsTableProps) {
           );
         }
 
-        /*
-         * Desktop / tablet: original 3-column layout
-         * (section label | field label | value)
-         */
         return (
           <table
             key={section.key}
@@ -168,9 +199,9 @@ export function SpecsTable({ specs }: SpecsTableProps) {
               <col />
             </colgroup>
             <tbody>
-              {entries.map(([fieldKey, value], fIdx) => (
+              {entries.map(({ key, label, value }, fIdx) => (
                 <tr
-                  key={fieldKey}
+                  key={key}
                   className={`border-b border-slate-200${
                     fIdx % 2 === 1 ? ' bg-slate-50/50' : ''
                   } hover:bg-amber-50/40 transition-colors`}
@@ -189,9 +220,9 @@ export function SpecsTable({ specs }: SpecsTableProps) {
                   <td className={`border-r border-slate-100 px-4 py-2.5 align-top font-semibold text-slate-700${
                     fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''
                   }`}>
-                    {labelFor(fieldKey)}
+                    {label}
                   </td>
-                  <td className={`px-4 py-2.5 text-slate-900 leading-relaxed${
+                  <td className={`px-4 py-2.5 text-slate-900 leading-relaxed whitespace-pre-line${
                     fIdx === 0 && sIdx > 0 ? ' border-t-2 border-t-slate-300' : ''
                   }`}>
                     {value}

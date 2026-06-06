@@ -61,7 +61,6 @@ export interface GadgetSpecs {
   features?:      Record<string, string>;
   battery?:       Record<string, string>;
   misc?:          Record<string, string>;
-  tests?:         Record<string, string>;
   [section: string]: Record<string, string> | undefined;
 }
 
@@ -92,12 +91,33 @@ const SPEC_WRITERS: Record<string, TableWriter> = {
   network: {
     table: 'gadget_network',
     cols: [
-      { specKey: 'technology', dbCol: 'technology' },
-      { specKey: 'bands_2g',   dbCol: 'bands_2g' },
-      { specKey: 'bands_3g',   dbCol: 'bands_3g' },
-      { specKey: 'bands_4g',   dbCol: 'bands_4g' },
-      { specKey: 'bands_5g',   dbCol: 'bands_5g' },
-      { specKey: 'speed',      dbCol: 'speed' },
+      { specKey: 'technology',   dbCol: 'technology' },
+      // GSMArena crawls "2G bands" → key "2g_bands", not "bands_2g"
+      { specKey: 'bands_2g',     dbCol: 'bands_2g' },
+      { specKey: '2g_bands',     dbCol: 'bands_2g' },
+      { specKey: 'bands_2g_r1',  dbCol: 'bands_2g_r1' },
+      { specKey: '2g_bands_r1',  dbCol: 'bands_2g_r1' },
+      { specKey: 'bands_3g',     dbCol: 'bands_3g' },
+      { specKey: '3g_bands',     dbCol: 'bands_3g' },
+      { specKey: 'bands_3g_r1',  dbCol: 'bands_3g_r1' },
+      { specKey: '3g_bands_r1',  dbCol: 'bands_3g_r1' },
+      { specKey: 'bands_4g',     dbCol: 'bands_4g' },
+      { specKey: '4g_bands',     dbCol: 'bands_4g' },
+      { specKey: 'bands_4g_r1',  dbCol: 'bands_4g_r1' },
+      { specKey: '4g_bands_r1',  dbCol: 'bands_4g_r1' },
+      { specKey: 'bands_4g_r2',  dbCol: 'bands_4g_r2' },
+      { specKey: '4g_bands_r2',  dbCol: 'bands_4g_r2' },
+      { specKey: 'bands_4g_r3',  dbCol: 'bands_4g_r3' },
+      { specKey: '4g_bands_r3',  dbCol: 'bands_4g_r3' },
+      { specKey: 'bands_5g',     dbCol: 'bands_5g' },
+      { specKey: '5g_bands',     dbCol: 'bands_5g' },
+      { specKey: 'bands_5g_r1',  dbCol: 'bands_5g_r1' },
+      { specKey: '5g_bands_r1',  dbCol: 'bands_5g_r1' },
+      { specKey: 'bands_5g_r2',  dbCol: 'bands_5g_r2' },
+      { specKey: '5g_bands_r2',  dbCol: 'bands_5g_r2' },
+      { specKey: 'bands_5g_r3',  dbCol: 'bands_5g_r3' },
+      { specKey: '5g_bands_r3',  dbCol: 'bands_5g_r3' },
+      { specKey: 'speed',        dbCol: 'speed' },
     ],
   },
   launch: {
@@ -113,7 +133,17 @@ const SPEC_WRITERS: Record<string, TableWriter> = {
       { specKey: 'dimensions',       dbCol: 'dimensions' },
       { specKey: 'weight',           dbCol: 'weight_grams', parse: parseGrams },
       { specKey: 'build',            dbCol: 'build' },
+      // sim (base) + r1..r4 continuation rows stored as separate columns
+      // r1: eSIM USA / tablet stylus / watch IP6X
+      // r2: Nano-SIM China
+      // r3: IP68 rating (mobile)
+      // r4: Apple Pay (mobile)
       { specKey: 'sim',              dbCol: 'sim' },
+      { specKey: 'sim_r1',           dbCol: 'sim_r1' },
+      { specKey: 'sim_r2',           dbCol: 'sim_r2' },
+      { specKey: 'sim_r3',           dbCol: 'sim_r3' },
+      { specKey: 'sim_r4',           dbCol: 'sim_r4' },
+      // water_resistance: only populated when GSMArena has an explicit labeled row (some Android devices)
       { specKey: 'water_resistance', dbCol: 'water_resistance' },
     ],
   },
@@ -123,10 +153,13 @@ const SPEC_WRITERS: Record<string, TableWriter> = {
       { specKey: 'type',         dbCol: 'type' },
       { specKey: 'size',         dbCol: 'size_inches',     parse: parseInches },
       { specKey: 'resolution',   dbCol: 'resolution' },
-      { specKey: 'protection',   dbCol: 'protection' },
-      { specKey: 'features',     dbCol: 'features' },
+      { specKey: 'protection',    dbCol: 'protection' },
+      { specKey: 'protection_r1', dbCol: 'protection_r1' },
+      { specKey: 'features',      dbCol: 'features' },
       { specKey: 'refresh_rate', dbCol: 'refresh_rate_hz', parse: parseInteger },
       { specKey: 'density',      dbCol: 'ppi',             parse: parseInteger },
+      // refresh_rate_hz and ppi are extracted in post-processing from type/resolution text
+      // cover_display: foldable's cover screen appears as labeled row in some devices
     ],
   },
   platform: {
@@ -143,19 +176,40 @@ const SPEC_WRITERS: Record<string, TableWriter> = {
     cols: [
       { specKey: 'card_slot',    dbCol: 'card_slot' },
       { specKey: 'internal',     dbCol: 'internal' },
+      // internal_r1: storage type continuation row ("NVMe", "UFS 4.0")
+      { specKey: 'internal_r1',  dbCol: 'internal_r1' },
       { specKey: 'ram',          dbCol: 'ram_gb',          parse: parseInteger },
       { specKey: 'storage',      dbCol: 'storage_min_gb',  parse: parseInteger },
+      // storage_type extracted in post-processing from internal_r1 or internal text
       { specKey: 'storage_type', dbCol: 'storage_type' },
     ],
   },
   main_camera: {
     table: 'gadget_main_camera',
     cols: [
-      { specKey: 'specs',    dbCol: 'modules' },
-      { specKey: 'modules',  dbCol: 'modules' },
-      { specKey: 'aperture', dbCol: 'aperture_main' },
-      { specKey: 'features', dbCol: 'features' },
-      { specKey: 'video',    dbCol: 'video' },
+      { specKey: 'specs',      dbCol: 'modules' },
+      { specKey: 'modules',    dbCol: 'modules' },
+      // GSMArena uses "dual" / "triple" / "quad" / "single" as the label
+      { specKey: 'single',     dbCol: 'modules' },
+      { specKey: 'dual',       dbCol: 'modules' },
+      { specKey: 'triple',     dbCol: 'modules' },
+      { specKey: 'quad',       dbCol: 'modules' },
+      // <br>-split continuation modules → modules_r1, r2, r3
+      { specKey: 'single_r1',  dbCol: 'modules_r1' },
+      { specKey: 'dual_r1',    dbCol: 'modules_r1' },
+      { specKey: 'dual_r2',    dbCol: 'modules_r2' },
+      { specKey: 'triple_r1',  dbCol: 'modules_r1' },
+      { specKey: 'triple_r2',  dbCol: 'modules_r2' },
+      { specKey: 'triple_r3',  dbCol: 'modules_r3' },
+      { specKey: 'quad_r1',    dbCol: 'modules_r1' },
+      { specKey: 'quad_r2',    dbCol: 'modules_r2' },
+      { specKey: 'quad_r3',    dbCol: 'modules_r3' },
+      { specKey: 'specs_r1',   dbCol: 'modules_r1' },
+      { specKey: 'specs_r2',   dbCol: 'modules_r2' },
+      { specKey: 'specs_r3',   dbCol: 'modules_r3' },
+      { specKey: 'aperture',   dbCol: 'aperture_main' },
+      { specKey: 'features',   dbCol: 'features' },
+      { specKey: 'video',      dbCol: 'video' },
       { specKey: 'megapixels', dbCol: 'megapixels_main', parse: parseInteger },
     ],
   },
@@ -163,6 +217,12 @@ const SPEC_WRITERS: Record<string, TableWriter> = {
     table: 'gadget_selfie_camera',
     cols: [
       { specKey: 'modules',    dbCol: 'modules' },
+      { specKey: 'single',     dbCol: 'modules' },
+      { specKey: 'dual',       dbCol: 'modules' },
+      // depth sensor / secondary selfie lens continuation
+      { specKey: 'single_r1',  dbCol: 'modules_r1' },
+      { specKey: 'dual_r1',    dbCol: 'modules_r1' },
+      { specKey: 'modules_r1', dbCol: 'modules_r1' },
       { specKey: 'features',   dbCol: 'features' },
       { specKey: 'video',      dbCol: 'video' },
       { specKey: 'megapixels', dbCol: 'megapixels', parse: parseInteger },
@@ -171,40 +231,60 @@ const SPEC_WRITERS: Record<string, TableWriter> = {
   sound: {
     table: 'gadget_sound',
     cols: [
-      { specKey: 'loudspeaker',     dbCol: 'loudspeaker' },
-      { specKey: '3_5mm_jack',      dbCol: 'jack_3_5mm' },
-      { specKey: 'has_stereo',      dbCol: 'has_stereo',  parse: parseBool },
-      { specKey: 'has_jack',        dbCol: 'has_jack',    parse: parseBool },
+      // loudspeaker: full text ("Yes, with stereo speakers", "Yes, with dual speakers (86-decibel)")
+      { specKey: 'loudspeaker',   dbCol: 'loudspeaker' },
+      { specKey: 'loudspeaker_r1', dbCol: 'loudspeaker_r1' },
+      // jack_3_5mm + r1: e.g. "32-bit/384kHz" hi-res audio (Samsung)
+      { specKey: '3_5mm_jack',    dbCol: 'jack_3_5mm' },
+      { specKey: '3_5mm_jack_r1', dbCol: 'jack_3_5mm_r1' },
+      // has_stereo / has_jack: booleans derived in post-processing
+      { specKey: 'has_stereo',  dbCol: 'has_stereo', parse: parseBool },
+      { specKey: 'has_jack',    dbCol: 'has_jack',   parse: parseBool },
+      // audio_info: removed — hi-res audio info is now merged into jack_3_5mm full text
     ],
   },
   comms: {
     table: 'gadget_comms',
     cols: [
+      // wlan: full text ("Wi-Fi 802.11 a/b/g/n/ac/6e/7, tri-band, hotspot")
       { specKey: 'wlan',        dbCol: 'wlan' },
-      { specKey: 'wifi_version',dbCol: 'wifi_version' },
+      // bluetooth: full text ("6.0, A2DP, LE") — bt_version derived in post-processing
       { specKey: 'bluetooth',   dbCol: 'bluetooth' },
-      { specKey: 'bt_version',  dbCol: 'bt_version',  parse: parseFloat_safe },
+      { specKey: 'bt_version',  dbCol: 'bt_version', parse: parseFloat_safe },
       { specKey: 'positioning', dbCol: 'positioning' },
       { specKey: 'nfc',         dbCol: 'nfc' },
-      { specKey: 'has_nfc',     dbCol: 'has_nfc',     parse: parseBool },
+      { specKey: 'has_nfc',     dbCol: 'has_nfc',    parse: parseBool },
       { specKey: 'radio',       dbCol: 'radio' },
+      // usb: full text ("USB Type-C 3.2 Gen 2, DisplayPort")
       { specKey: 'usb',         dbCol: 'usb' },
-      { specKey: 'usb_version', dbCol: 'usb_version' },
+      // wifi_version / usb_version: removed — no such labeled row in GSMArena, info is in wlan/usb text
     ],
   },
   features: {
     table: 'gadget_features',
     cols: [
-      { specKey: 'sensors', dbCol: 'sensors' },
-      { specKey: 'other',   dbCol: 'other' },
+      { specKey: 'sensors',    dbCol: 'sensors' },
+      { specKey: 'sensors_r1', dbCol: 'sensors_r1' },
+      { specKey: 'sensors_r2', dbCol: 'sensors_r2' },
+      { specKey: 'other',      dbCol: 'other' },
     ],
   },
   battery: {
     table: 'gadget_battery',
     cols: [
+      // GSMArena "Type" row = battery description (may be "Market-dependent versions:")
+      // with capacity variants in type_r1, type_r2 (<br>-separated)
       { specKey: 'type',          dbCol: 'type' },
+      { specKey: 'type',          dbCol: 'capacity_mah',     parse: parseMah },
+      { specKey: 'type_r1',       dbCol: 'type_r1' },
+      { specKey: 'type_r1',       dbCol: 'capacity_mah',     parse: parseMah },
+      { specKey: 'type_r2',       dbCol: 'type_r2' },
       { specKey: 'capacity',      dbCol: 'capacity_mah',     parse: parseMah },
+      // Charging: base = wired, r1 = wireless, r2 = reverse
       { specKey: 'charging',      dbCol: 'charging' },
+      { specKey: 'charging',      dbCol: 'charging_wired_w', parse: parseWatts },
+      { specKey: 'charging_r1',   dbCol: 'charging_r1' },
+      { specKey: 'charging_r2',   dbCol: 'charging_r2' },
       { specKey: 'wired_w',       dbCol: 'charging_wired_w', parse: parseWatts },
       { specKey: 'has_wireless',  dbCol: 'has_wireless',     parse: parseBool },
       { specKey: 'wireless_w',    dbCol: 'wireless_w',       parse: parseWatts },
@@ -216,19 +296,14 @@ const SPEC_WRITERS: Record<string, TableWriter> = {
     cols: [
       { specKey: 'colors',  dbCol: 'colors' },
       { specKey: 'models',  dbCol: 'models' },
+      // GSMArena label "SAR" → key "sar", not "sar_us"
       { specKey: 'sar_us',  dbCol: 'sar_us' },
+      { specKey: 'sar',     dbCol: 'sar_us' },
       { specKey: 'sar_eu',  dbCol: 'sar_eu' },
       { specKey: 'price',   dbCol: 'price_usd' },
     ],
   },
-  tests: {
-    table: 'gadget_tests',
-    cols: [
-      { specKey: 'display_score',    dbCol: 'display_score' },
-      { specKey: 'loudspeaker_lufs', dbCol: 'loudspeaker_lufs' },
-      { specKey: 'battery_endurance',dbCol: 'battery_hours', parse: parseFloat_safe },
-    ],
-  },
+  // gadget_tests dropped — test scores not stored
 };
 
 // ── Spec table read mapping ───────────────────────────────────────────────────
@@ -250,12 +325,20 @@ const SPEC_READERS: Record<string, TableReader> = {
   gadget_network: {
     section: 'network',
     cols: [
-      { dbCol: 'technology', specKey: 'technology' },
-      { dbCol: 'bands_2g',   specKey: 'bands_2g' },
-      { dbCol: 'bands_3g',   specKey: 'bands_3g' },
-      { dbCol: 'bands_4g',   specKey: 'bands_4g' },
-      { dbCol: 'bands_5g',   specKey: 'bands_5g' },
-      { dbCol: 'speed',      specKey: 'speed' },
+      { dbCol: 'technology',  specKey: 'technology' },
+      { dbCol: 'bands_2g',    specKey: 'bands_2g' },
+      { dbCol: 'bands_2g_r1', specKey: 'bands_2g_r1' },
+      { dbCol: 'bands_3g',    specKey: 'bands_3g' },
+      { dbCol: 'bands_3g_r1', specKey: 'bands_3g_r1' },
+      { dbCol: 'bands_4g',    specKey: 'bands_4g' },
+      { dbCol: 'bands_4g_r1', specKey: 'bands_4g_r1' },
+      { dbCol: 'bands_4g_r2', specKey: 'bands_4g_r2' },
+      { dbCol: 'bands_4g_r3', specKey: 'bands_4g_r3' },
+      { dbCol: 'bands_5g',    specKey: 'bands_5g' },
+      { dbCol: 'bands_5g_r1', specKey: 'bands_5g_r1' },
+      { dbCol: 'bands_5g_r2', specKey: 'bands_5g_r2' },
+      { dbCol: 'bands_5g_r3', specKey: 'bands_5g_r3' },
+      { dbCol: 'speed',       specKey: 'speed' },
     ],
   },
   gadget_launch: {
@@ -272,19 +355,24 @@ const SPEC_READERS: Record<string, TableReader> = {
       { dbCol: 'weight_grams',     specKey: 'weight',           format: (v) => `${v} g` },
       { dbCol: 'build',            specKey: 'build' },
       { dbCol: 'sim',              specKey: 'sim' },
+      { dbCol: 'sim_r1',          specKey: 'sim_r1' },
+      { dbCol: 'sim_r2',          specKey: 'sim_r2' },
+      { dbCol: 'sim_r3',          specKey: 'sim_r3' },
+      { dbCol: 'sim_r4',          specKey: 'sim_r4' },
       { dbCol: 'water_resistance', specKey: 'water_resistance' },
     ],
   },
   gadget_display: {
     section: 'display',
     cols: [
-      { dbCol: 'type',            specKey: 'type' },
-      { dbCol: 'size_inches',     specKey: 'size',         format: (v) => `${v} inches` },
-      { dbCol: 'resolution',      specKey: 'resolution' },
-      { dbCol: 'protection',      specKey: 'protection' },
-      { dbCol: 'features',        specKey: 'features' },
-      { dbCol: 'refresh_rate_hz', specKey: 'refresh_rate', format: (v) => `${v} Hz` },
-      { dbCol: 'ppi',             specKey: 'density',      format: (v) => `~${v} ppi` },
+      { dbCol: 'type',          specKey: 'type' },
+      { dbCol: 'size_inches',   specKey: 'size',        format: (v) => `${v} inches` },
+      { dbCol: 'resolution',    specKey: 'resolution' },
+      { dbCol: 'protection',    specKey: 'protection' },
+      { dbCol: 'protection_r1', specKey: 'protection_r1' },
+      { dbCol: 'features',      specKey: 'features' },
+      { dbCol: 'cover_display', specKey: 'cover_display' },
+      // refresh_rate_hz, ppi: derived cols kept in DB for search, not shown in spec table
     ],
   },
   gadget_platform: {
@@ -299,71 +387,75 @@ const SPEC_READERS: Record<string, TableReader> = {
   gadget_memory: {
     section: 'memory',
     cols: [
-      { dbCol: 'card_slot',    specKey: 'card_slot' },
-      { dbCol: 'internal',     specKey: 'internal' },
-      { dbCol: 'storage_type', specKey: 'storage_type' },
+      { dbCol: 'card_slot',   specKey: 'card_slot' },
+      { dbCol: 'internal',    specKey: 'internal' },
+      { dbCol: 'internal_r1', specKey: 'internal_r1' },
+      // storage_type: derived col kept in DB for search, shown via internal_r1 text
     ],
   },
   gadget_main_camera: {
     section: 'main_camera',
     cols: [
-      { dbCol: 'modules',          specKey: 'specs' },
-      { dbCol: 'aperture_main',    specKey: 'aperture' },
-      { dbCol: 'features',         specKey: 'features' },
-      { dbCol: 'video',            specKey: 'video' },
-      { dbCol: 'megapixels_main',  specKey: 'megapixels', format: (v) => `${v} MP` },
+      { dbCol: 'modules',    specKey: 'specs' },
+      { dbCol: 'modules_r1', specKey: 'specs_r1' },
+      { dbCol: 'modules_r2', specKey: 'specs_r2' },
+      { dbCol: 'modules_r3', specKey: 'specs_r3' },
+      { dbCol: 'features',   specKey: 'features' },
+      { dbCol: 'video',      specKey: 'video' },
+      // aperture_main, megapixels_main: derived for search, info is in modules text
     ],
   },
   gadget_selfie_camera: {
     section: 'selfie_camera',
     cols: [
       { dbCol: 'modules',    specKey: 'modules' },
+      { dbCol: 'modules_r1', specKey: 'modules_r1' },
       { dbCol: 'features',   specKey: 'features' },
       { dbCol: 'video',      specKey: 'video' },
-      { dbCol: 'megapixels', specKey: 'megapixels', format: (v) => `${v} MP` },
+      // megapixels: derived for search, info is in modules text
     ],
   },
   gadget_sound: {
     section: 'sound',
     cols: [
-      { dbCol: 'loudspeaker', specKey: 'loudspeaker' },
-      { dbCol: 'jack_3_5mm',  specKey: '3_5mm_jack' },
-      { dbCol: 'has_stereo',  specKey: 'stereo_speakers', format: (v) => v ? 'Yes' : 'No' },
-      { dbCol: 'has_jack',    specKey: 'audio_jack',      format: (v) => v ? 'Yes' : 'No' },
+      { dbCol: 'loudspeaker',    specKey: 'loudspeaker' },
+      { dbCol: 'loudspeaker_r1', specKey: 'loudspeaker_r1' },
+      { dbCol: 'jack_3_5mm',     specKey: '3_5mm_jack' },
+      { dbCol: 'jack_3_5mm_r1',  specKey: '3_5mm_jack_r1' },
+      // has_stereo, has_jack: derived booleans for search only, not displayed
     ],
   },
   gadget_comms: {
     section: 'comms',
     cols: [
-      { dbCol: 'wlan',         specKey: 'wlan' },
-      { dbCol: 'wifi_version', specKey: 'wifi_version' },
-      { dbCol: 'bluetooth',    specKey: 'bluetooth' },
-      { dbCol: 'bt_version',   specKey: 'bt_version', format: (v) => String(v) },
-      { dbCol: 'positioning',  specKey: 'positioning' },
-      { dbCol: 'nfc',          specKey: 'nfc' },
-      { dbCol: 'has_nfc',      specKey: 'nfc_supported', format: (v) => v ? 'Yes' : 'No' },
-      { dbCol: 'radio',        specKey: 'radio' },
-      { dbCol: 'usb',          specKey: 'usb' },
-      { dbCol: 'usb_version',  specKey: 'usb_version' },
+      { dbCol: 'wlan',        specKey: 'wlan' },
+      { dbCol: 'bluetooth',   specKey: 'bluetooth' },
+      { dbCol: 'positioning', specKey: 'positioning' },
+      { dbCol: 'nfc',         specKey: 'nfc' },
+      { dbCol: 'radio',       specKey: 'radio' },
+      { dbCol: 'usb',         specKey: 'usb' },
+      // bt_version, has_nfc: derived for search only, info in bluetooth/nfc text
     ],
   },
   gadget_features: {
     section: 'features',
     cols: [
-      { dbCol: 'sensors', specKey: 'sensors' },
-      { dbCol: 'other',   specKey: 'other' },
+      { dbCol: 'sensors',    specKey: 'sensors' },
+      { dbCol: 'sensors_r1', specKey: 'sensors_r1' },
+      { dbCol: 'sensors_r2', specKey: 'sensors_r2' },
+      { dbCol: 'other',      specKey: 'other' },
     ],
   },
   gadget_battery: {
     section: 'battery',
     cols: [
-      { dbCol: 'type',             specKey: 'type' },
-      { dbCol: 'capacity_mah',     specKey: 'capacity',          format: (v) => `${v} mAh` },
-      { dbCol: 'charging',         specKey: 'charging' },
-      { dbCol: 'charging_wired_w', specKey: 'wired_charging',    format: (v) => `${v} W` },
-      { dbCol: 'has_wireless',     specKey: 'wireless_charging', format: (v) => v ? 'Yes' : 'No' },
-      { dbCol: 'wireless_w',       specKey: 'wireless_w',        format: (v) => `${v} W` },
-      { dbCol: 'has_reverse',      specKey: 'reverse_charging',  format: (v) => v ? 'Yes' : 'No' },
+      { dbCol: 'type',       specKey: 'type' },
+      { dbCol: 'type_r1',    specKey: 'type_r1' },
+      { dbCol: 'type_r2',    specKey: 'type_r2' },
+      { dbCol: 'charging',   specKey: 'charging' },
+      { dbCol: 'charging_r1', specKey: 'charging_r1' },
+      { dbCol: 'charging_r2', specKey: 'charging_r2' },
+      // capacity_mah, charging_wired_w, has_wireless, wireless_w, has_reverse: derived for search only
     ],
   },
   gadget_misc: {
@@ -376,14 +468,7 @@ const SPEC_READERS: Record<string, TableReader> = {
       { dbCol: 'price_usd', specKey: 'price' },
     ],
   },
-  gadget_tests: {
-    section: 'tests',
-    cols: [
-      { dbCol: 'display_score',    specKey: 'display_score' },
-      { dbCol: 'loudspeaker_lufs', specKey: 'loudspeaker_lufs' },
-      { dbCol: 'battery_hours',    specKey: 'battery_endurance', format: (v) => `${v} h` },
-    ],
-  },
+  // gadget_tests removed
 };
 
 // ── Parse helpers ─────────────────────────────────────────────────────────────
@@ -444,9 +529,100 @@ async function upsertSpecTables(
       if (raw == null) continue;
       const val = def.parse ? def.parse(raw) : (raw || null);
       if (val != null) {
-        // Last writer wins if same dbCol appears twice (e.g. modules/specs both → modules)
         colValues[def.dbCol] = val;
       }
+    }
+
+    // ── Post-processing: extract fields embedded inside raw text ─────────────
+    // All post-processing uses `merged` (continuation rows already folded in).
+
+    // Display: extract refresh_rate_hz from type text ("AMOLED, 120Hz, HDR10+")
+    if (sectionKey === 'display' && !colValues['refresh_rate_hz']) {
+      const typeText: string = sectionData['type'] ?? '';
+      const hzMatch = typeText.match(/(\d{2,3})\s*Hz/i);
+      if (hzMatch) colValues['refresh_rate_hz'] = parseInt(hzMatch[1]);
+    }
+
+    // Display: extract ppi from resolution text ("~397 ppi density")
+    if (sectionKey === 'display' && !colValues['ppi']) {
+      const resText: string = sectionData['resolution'] ?? '';
+      const ppiMatch = resText.match(/~?(\d+)\s*ppi/i);
+      if (ppiMatch) colValues['ppi'] = parseInt(ppiMatch[1]);
+    }
+
+    // Main camera: extract megapixels from "dual"/"triple"/"quad"/"single" raw text
+    if (sectionKey === 'main_camera' && !colValues['megapixels_main']) {
+      const camText: string =
+        sectionData['dual'] ?? sectionData['triple'] ?? sectionData['quad'] ?? sectionData['single'] ?? sectionData['specs'] ?? '';
+      const mpMatch = camText.match(/(\d+)\s*MP/i);
+      if (mpMatch) colValues['megapixels_main'] = parseInt(mpMatch[1]);
+      if (!colValues['aperture_main']) {
+        const apMatch = camText.match(/f\/([\d.]+)/i);
+        if (apMatch) colValues['aperture_main'] = `f/${apMatch[1]}`;
+      }
+    }
+
+    // Selfie camera: extract megapixels from "single"/"dual" raw text
+    if (sectionKey === 'selfie_camera' && !colValues['megapixels']) {
+      const camText: string = sectionData['single'] ?? sectionData['dual'] ?? sectionData['modules'] ?? '';
+      const mpMatch = camText.match(/(\d+)\s*MP/i);
+      if (mpMatch) colValues['megapixels'] = parseInt(mpMatch[1]);
+    }
+
+    // Memory: storage_type — check internal_r1 first (dedicated continuation row),
+    // then fall back to extracting from the base internal text
+    if (sectionKey === 'memory' && !colValues['storage_type']) {
+      const r1Text: string = sectionData['internal_r1'] ?? '';
+      const baseText: string = sectionData['internal'] ?? '';
+      const searchText = r1Text || baseText;
+      const m = searchText.match(/NVMe|UFS\s*[\d.]+|eMMC\s*[\d.]+/i);
+      if (m) colValues['storage_type'] = m[0];
+    }
+
+    // Battery: derive charging_wired_w, has_wireless, wireless_w, has_reverse
+    // from charging text + _rN continuation lines (each <br>-split line is now its own field)
+    if (sectionKey === 'battery') {
+      const chargingLines = [
+        sectionData['charging'] ?? '',
+        sectionData['charging_r1'] ?? '',
+        sectionData['charging_r2'] ?? '',
+      ];
+      for (const line of chargingLines) {
+        if (!line) continue;
+        if (!colValues['charging_wired_w']) {
+          const wMatch = line.match(/(\d+(?:\.\d+)?)\s*W\s*wired/i)
+            ?? line.match(/Wired[^,\n]*?(\d+(?:\.\d+)?)\s*W/i);
+          if (wMatch) colValues['charging_wired_w'] = parseInt(wMatch[1]);
+        }
+        if (!colValues['wireless_w']) {
+          const wMatch = line.match(/(\d+(?:\.\d+)?)\s*W\s*wireless/i);
+          if (wMatch) colValues['wireless_w'] = parseInt(wMatch[1]);
+        }
+        if (!colValues['has_wireless'] && /wireless|magsafe|qi2?/i.test(line)) {
+          colValues['has_wireless'] = true;
+        }
+        if (!colValues['has_reverse'] && /reverse/i.test(line)) {
+          colValues['has_reverse'] = true;
+        }
+      }
+    }
+
+    // Sound: detect stereo from loudspeaker text
+    if (sectionKey === 'sound' && colValues['has_stereo'] == null) {
+      const lsText: string = sectionData['loudspeaker'] ?? '';
+      if (/stereo/i.test(lsText)) colValues['has_stereo'] = true;
+    }
+
+    // Sound: detect 3.5mm jack
+    if (sectionKey === 'sound' && colValues['has_jack'] == null) {
+      const jackText: string = sectionData['3_5mm_jack'] ?? '';
+      if (jackText) colValues['has_jack'] = !/no/i.test(jackText);
+    }
+
+    // Comms: extract NFC boolean
+    if (sectionKey === 'comms' && colValues['has_nfc'] == null) {
+      const nfcText: string = sectionData['nfc'] ?? '';
+      if (nfcText) colValues['has_nfc'] = /yes/i.test(nfcText);
     }
 
     if (Object.keys(colValues).length === 0) continue;
@@ -1000,6 +1176,64 @@ export class GadgetService {
       if (oldProductId && productId && oldProductId !== productId) {
         await migrateSpecRows(client, oldProductId, productId);
       }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * resyncDevice — re-crawl GSMArena and overwrite specs + device meta.
+   * Returns the updated device, or throws if the device has no gsmarenaUrl.
+   */
+  async resyncDevice(
+    deviceId: string,
+    crawlFn: (url: string) => Promise<{
+      specs: GadgetSpecs;
+      announced?: string;
+      released?: string;
+      status?: string;
+      imageUrl?: string;
+    }>
+  ): Promise<void> {
+    const { rows } = await this.db.query(
+      `SELECT product_id, gsmarena_url FROM gadget_devices WHERE id = $1`,
+      [deviceId]
+    );
+    const row = rows[0];
+    if (!row?.gsmarena_url) throw new Error('Device không có gsmarenaUrl — không thể resync');
+    if (!row?.product_id)   throw new Error('Device chưa có product_id — save lại từ crawl trước');
+
+    const result = await crawlFn(row.gsmarena_url);
+
+    const client = await this.db.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Update device meta fields if crawl returned new values
+      await client.query(
+        `UPDATE gadget_devices
+         SET announced  = COALESCE($1, announced),
+             released   = COALESCE($2, released),
+             status     = COALESCE($3, status),
+             image_url  = COALESCE($4, image_url),
+             updated_at = NOW()
+         WHERE id = $5`,
+        [
+          result.announced ?? null,
+          result.released  ?? null,
+          result.status    ?? null,
+          result.imageUrl  ?? null,
+          deviceId,
+        ]
+      );
+
+      // Overwrite all spec tables
+      await upsertSpecTables(client, row.product_id, result.specs);
 
       await client.query('COMMIT');
     } catch (err) {

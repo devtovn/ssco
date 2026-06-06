@@ -1,6 +1,20 @@
 import type { Metadata } from 'next';
+import type React from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import {
+  DevicePhoneMobileIcon,
+  DeviceTabletIcon,
+  ClockIcon,
+  CameraIcon,
+  CpuChipIcon,
+  CircleStackIcon,
+  BoltIcon,
+  SignalIcon,
+  ShieldCheckIcon,
+} from '@heroicons/react/24/outline';
+
+// CameraIcon, SignalIcon, ShieldCheckIcon used in metaChips
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { SpecsTable } from '@/components/gadget/SpecsTable';
 import { GadgetPricePanel } from '@/components/gadget/GadgetPricePanel';
@@ -43,20 +57,54 @@ export default async function DeviceDetailPage({ params }: Props) {
     notFound();
   }
 
-  const CATEGORY_LABELS: Record<string, string> = { mobile: '📱 Điện thoại', tablet: '📲 Máy tính bảng', smartwatch: '⌚ Đồng hồ' };
-  const CATEGORY_ICONS: Record<string, string> = { mobile: '📱', tablet: '📲', smartwatch: '⌚' };
+  const CATEGORY_LABELS: Record<string, string> = { mobile: 'Điện thoại', tablet: 'Máy tính bảng', smartwatch: 'Đồng hồ thông minh' };
+
+  // Fallback image icon per category
+  const DeviceIcon = device.category === 'tablet' ? DeviceTabletIcon
+    : device.category === 'smartwatch' ? ClockIcon
+    : DevicePhoneMobileIcon;
 
   // Extract RAM: look for "XGB RAM" pattern inside the internal storage string
   const ramRaw = device.specs.memory?.internal ?? '';
   const ramMatch = ramRaw.match(/(\d+)\s*GB\s*RAM/i);
   const ramValue = ramMatch ? `${ramMatch[1]} GB` : undefined;
 
-  const keySpecs = [
-    { icon: '📺', label: 'Màn hình', value: device.specs.display?.size },
-    { icon: '📷', label: 'Camera',   value: device.specs.main_camera?.megapixels ?? device.specs.main_camera?.specs?.split(/[,\n]/)[0]?.trim() },
-    { icon: '🧠', label: 'RAM',      value: ramValue },
-    { icon: '🔋', label: 'Pin',      value: device.specs.battery?.capacity },
-  ].filter(s => s.value);
+  // Key specs — chung cho cả 3 loại
+  type SpecCard = { Icon: React.ElementType; label: string; value: string | undefined };
+  const keySpecs: SpecCard[] = [
+    { Icon: DeviceIcon,      label: 'Màn hình',   value: device.specs.display?.size },
+    { Icon: CpuChipIcon,     label: 'Chip',        value: device.specs.platform?.chipset },
+    { Icon: CircleStackIcon, label: 'Dung lượng',  value: ramValue ?? device.specs.memory?.internal?.split('/')[0]?.trim() },
+    { Icon: BoltIcon,        label: 'Pin',         value: device.specs.battery?.capacity },
+  ];
+
+  const visibleSpecs = keySpecs.filter(s => s.value);
+
+  // Theme per category
+  const theme = device.category === 'tablet'
+    ? { hero: 'bg-gradient-to-br from-green-50 to-slate-50 border-b border-green-100', border: 'border-green-100', icon: 'text-green-500', badge: 'bg-green-100 text-green-700', brand: 'text-green-700' }
+    : device.category === 'smartwatch'
+    ? { hero: 'bg-gradient-to-br from-purple-50 to-slate-50 border-b border-purple-100', border: 'border-purple-100', icon: 'text-purple-500', badge: 'bg-purple-100 text-purple-700', brand: 'text-purple-700' }
+    : { hero: 'bg-gradient-to-br from-primary-50 to-slate-50 border-b border-primary-100', border: 'border-primary-100', icon: 'text-primary-500', badge: 'bg-primary-100 text-primary-700', brand: 'text-primary-600' };
+
+  // Meta chips — chung cho cả 3 loại
+  const weightRaw = device.specs.body?.weight ?? '';
+  const weightNum = parseFloat(weightRaw);
+  const weightFmt = !isNaN(weightNum)
+    ? `${Number.isInteger(weightNum) ? weightNum : weightNum.toFixed(1)}g`
+    : weightRaw || null;
+
+  const cameraVal = device.specs.main_camera?.megapixels
+    ?? device.specs.main_camera?.specs?.split(/[,\n]/)[0]?.trim();
+
+  type MetaChip = { Icon: React.ElementType; text: string };
+  const metaChips: MetaChip[] = [
+    { Icon: ClockIcon,              text: device.announced || '' },
+    { Icon: CpuChipIcon,            text: device.specs.platform?.os?.split(',')[0] || '' },
+    { Icon: SignalIcon,             text: device.specs.display?.refresh_rate || '' },
+    { Icon: CameraIcon,             text: cameraVal || '' },
+    { Icon: ShieldCheckIcon,        text: weightFmt || '' },
+  ].filter(c => c.text);
 
   const shareUrl = `${SITE_URL}/gadget/${params.brand}/${params.device}`;
 
@@ -65,7 +113,7 @@ export default async function DeviceDetailPage({ params }: Props) {
       <div className="mx-auto max-w-7xl">
 
         {/* ── Hero band ─────────────────────────────────────────── */}
-        <div className="bg-gradient-to-br from-primary-50 to-slate-50 border-b border-primary-100 px-4 py-6 sm:px-8">
+        <div className={`${theme.hero} px-4 py-6 sm:px-8`}>
           {/* Breadcrumb */}
           <nav className="mb-4 flex items-center gap-1 text-xs text-slate-400">
             <Link href="/gadget" className="hover:text-primary-600">Thiết bị</Link>
@@ -80,14 +128,15 @@ export default async function DeviceDetailPage({ params }: Props) {
           <div className="flex gap-5 sm:gap-8">
             {/* Image */}
             <div className="flex shrink-0 flex-col items-center gap-2">
-              <div className="flex h-28 w-24 items-center justify-center rounded-2xl border border-primary-100 bg-white sm:h-36 sm:w-32">
+              <div className={`flex h-28 w-24 items-center justify-center rounded-2xl border ${theme.border} bg-white sm:h-36 sm:w-32`}>
                 {device.imageUrl ? (
                   <img src={device.imageUrl} alt={device.name} className="h-full w-full object-contain p-3" />
                 ) : (
-                  <span className="text-5xl">{CATEGORY_ICONS[device.category] ?? '📱'}</span>
+                  <DeviceIcon className="h-16 w-16 text-primary-200" />
                 )}
               </div>
-              <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-medium text-primary-700">
+              <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${theme.badge}`}>
+                <DeviceIcon className="h-3 w-3" />
                 {CATEGORY_LABELS[device.category] ?? device.category}
               </span>
             </div>
@@ -95,16 +144,16 @@ export default async function DeviceDetailPage({ params }: Props) {
             {/* Info */}
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-primary-600">{device.brandName}</p>
+                <p className={`text-xs font-semibold uppercase tracking-widest ${theme.brand}`}>{device.brandName}</p>
                 <h1 className="mt-0.5 text-xl font-bold text-slate-900 sm:text-2xl">{device.name}</h1>
               </div>
 
               {/* Key specs — 4 cards */}
-              {keySpecs.length > 0 && (
+              {visibleSpecs.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {keySpecs.map((s) => (
-                    <div key={s.label} className="flex flex-col items-center rounded-xl border border-primary-100 bg-white px-3 py-2.5 text-center">
-                      <span className="text-lg leading-none">{s.icon}</span>
+                  {visibleSpecs.map((s) => (
+                    <div key={s.label} className={`flex flex-col items-center rounded-xl border ${theme.border} bg-white px-3 py-2.5 text-center`}>
+                      <s.Icon className={`h-5 w-5 ${theme.icon}`} />
                       <span className="mt-1.5 text-sm font-bold text-slate-800 line-clamp-1">{s.value}</span>
                       <span className="text-[11px] text-slate-400">{s.label}</span>
                     </div>
@@ -113,40 +162,16 @@ export default async function DeviceDetailPage({ params }: Props) {
               )}
 
               {/* Meta chips */}
-              {(() => {
-                // Format weight: "188.00 g" → "188g", "188.50 g" → "188.5g"
-                const weightRaw = device.specs.body?.weight ?? '';
-                const weightNum = parseFloat(weightRaw);
-                const weightFmt = !isNaN(weightNum)
-                  ? `${Number.isInteger(weightNum) ? weightNum : weightNum.toFixed(1)}g`
-                  : weightRaw || null;
-
-                // Thickness from dimensions
-                const dims = device.specs.body?.dimensions ?? '';
-                const thickMatch = dims.match(/([\d.]+)\s*mm\s*thick/i);
-                const thickFmt = thickMatch ? `${thickMatch[1]}mm` : null;
-
-                const weightLabel = [weightFmt, thickFmt].filter(Boolean).join(' · ');
-
-                const chips = [
-                  { icon: '📅', text: device.announced || null },
-                  { icon: '⚖️', text: weightLabel || null },
-                  { icon: '💻', text: device.specs.platform?.os?.split(',')[0] ?? null },
-                  { icon: '🔄', text: device.specs.display?.refresh_rate ?? null },
-                ].filter(c => c.text);
-
-                if (!chips.length) return null;
-                return (
-                  <div className="flex flex-wrap gap-2">
-                    {chips.map((c) => (
-                      <span key={c.icon} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-500">
-                        <span>{c.icon}</span>
-                        {c.text}
-                      </span>
-                    ))}
-                  </div>
-                );
-              })()}
+              {metaChips.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {metaChips.map((c, i) => (
+                    <span key={i} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-500">
+                      <c.Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      {c.text}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Action buttons */}
               <div className="flex flex-wrap gap-2">

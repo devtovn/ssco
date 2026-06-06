@@ -16,6 +16,7 @@ const UA =
   '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 // Map GSMArena section headings → our spec keys
+// Sections mapped to '__skip__' are intentionally ignored (not stored)
 const SECTION_MAP: Record<string, string> = {
   'Network':        'network',
   'Launch':         'launch',
@@ -30,7 +31,9 @@ const SECTION_MAP: Record<string, string> = {
   'Features':       'features',
   'Battery':        'battery',
   'Misc':           'misc',
-  'Tests':          'tests',
+  // Intentionally skipped sections:
+  'Tests':          '__skip__',   // Our Tests — benchmark scores not stored
+  'EU LABEL':       '__skip__',   // EU energy/repairability labels not stored
 };
 
 export interface CrawlResult {
@@ -84,34 +87,92 @@ export class GadgetCrawlerService {
     const specs: GadgetSpecs = {};
     let currentSection = 'misc';
 
+    // Track last labeled key so unlabeled continuation rows are stored as
+    // key_r1, key_r2, … instead of being lost.
+    let lastLabeledKey: string | null = null;
+    let orphanCount = 0;
+
+    // Strip HTML tags and decode basic entities → plain text
+    const stripHtml = (html: string): string =>
+      html
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#\d+;/g, '')
+        .replace(/&[a-z]+;/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
     $('#specs-list table').each((_i, table) => {
       $(table).find('tr').each((_j, row) => {
         const $row = $(row);
 
-        // Section heading row (contains <th>)
+        // Section heading row (contains <th>).
+        // IMPORTANT: do NOT return early — GSMArena puts the first data row
+        // (.ttl + .nfo) in the SAME <tr> as the section <th>.  Returning here
+        // would silently drop Dimensions, Technology, OS, Announced, Type,
+        // Loudspeaker, WLAN, Sensors, Battery Type, camera modules, etc.
         const th = $row.find('th');
         if (th.length) {
           const heading = th.text().trim();
           const mapped = SECTION_MAP[heading];
           if (mapped) {
-            currentSection = mapped;
-            if (!specs[currentSection]) specs[currentSection] = {};
+            currentSection = mapped; // may be '__skip__'
+            lastLabeledKey = null;   // reset per section
+            orphanCount = 0;
+            if (currentSection !== '__skip__' && !specs[currentSection]) {
+              specs[currentSection] = {};
+            }
           }
-          return;
+          // Fall through — process .ttl/.nfo in this same row below
         }
 
-        // Data row: .ttl (label) + .nfo (value)
-        const label = $row.find('.ttl').text().replace(/\s+/g, ' ').trim();
-        const value = $row.find('.nfo').text().replace(/\s+/g, ' ').trim();
+        // Skip rows belonging to a skipped section
+        if (currentSection === '__skip__') return;
 
-        if (label && value && value !== '-') {
-          if (!specs[currentSection]) specs[currentSection] = {};
-          // Normalize label to a safe key
+        // Data row: .ttl (label) + .nfo (value)
+        // .nfo may contain <br>-separated lines (SIM variants, camera modules,
+        // battery capacities, charging types, etc.) — split and store as _rN.
+        const label = $row.find('.ttl').text().replace(/\s+/g, ' ').trim();
+        const $nfo  = $row.find('.nfo');
+        if (!$nfo.length) return;
+
+        const nfoHtml = $nfo.html() ?? '';
+        const parts   = nfoHtml
+          .split(/<br\s*\/?>/i)
+          .map(stripHtml)
+          .filter(p => p && p !== '-');
+
+        if (!parts.length) return;
+        if (!specs[currentSection]) specs[currentSection] = {};
+
+        if (label) {
+          // Labeled row — normalize label to snake_case key
           const key = label
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '_')
             .replace(/^_|_$/g, '');
-          specs[currentSection]![key] = value;
+
+          specs[currentSection]![key] = parts[0];
+          lastLabeledKey = key;
+          // <br>-separated continuation parts → r1, r2, … (skip "No")
+          orphanCount = 0;
+          for (let i = 1; i < parts.length; i++) {
+            if (/^no$/i.test(parts[i])) continue;
+            orphanCount++;
+            specs[currentSection]![`${key}_r${orphanCount}`] = parts[i];
+          }
+        } else {
+          // Unlabeled continuation/orphan row
+          for (const part of parts) {
+            if (/^no$/i.test(part)) continue; // e.g. Watch Camera section = "No"
+            if (lastLabeledKey !== null) {
+              orphanCount++;
+              specs[currentSection]![`${lastLabeledKey}_r${orphanCount}`] = part;
+            }
+          }
         }
       });
     });

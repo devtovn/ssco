@@ -192,6 +192,22 @@ router.post(
   })
 );
 
+// ── POST /devices/:id/resync ─────────────────────────────────────────────────
+// Re-crawl GSMArena URL stored on the device and overwrite all spec tables.
+
+router.post(
+  '/devices/:id/resync',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await requireAdmin(req, res);
+    if (res.headersSent) return;
+
+    await gadgetService.resyncDevice(req.params.id, (url) =>
+      gadgetCrawlerService.crawlGSMArena(url)
+    );
+    return res.json({ ok: true });
+  })
+);
+
 // ── DELETE /devices/:id ───────────────────────────────────────────────────────
 
 router.delete(

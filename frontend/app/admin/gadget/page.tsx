@@ -69,6 +69,10 @@ export default function AdminGadgetPage() {
   const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string; productId?: string } | null>(null);
   const [deleteDeleting, setDeleteDeleting] = useState(false);
 
+  // Resync
+  const [resyncingId, setResyncingId] = useState<string | null>(null);
+  const [resyncMsg, setResyncMsg] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+
   // Device list filters
   const [filterName, setFilterName] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -225,6 +229,20 @@ export default function AdminGadgetPage() {
       const items = json.results ?? json.data?.results ?? [];
       setProductResults(items.map((p: any) => ({ id: String(p.id), name: p.name, slug: p.slug })));
     } catch (err) { console.error('[searchProducts]', err); setProductResults([]); }
+  }
+
+  async function handleResync(deviceId: string) {
+    setResyncingId(deviceId);
+    setResyncMsg(null);
+    try {
+      await adminPost(`/admin/gadget/devices/${deviceId}/resync`, {});
+      setResyncMsg({ id: deviceId, ok: true, msg: '✅ Resync thành công' });
+      await loadDevices();
+    } catch (e: any) {
+      setResyncMsg({ id: deviceId, ok: false, msg: `❌ ${e.message}` });
+    } finally {
+      setResyncingId(null);
+    }
   }
 
   async function handleLinkProduct(deviceId: string, productId: string | null) {
@@ -595,12 +613,27 @@ export default function AdminGadgetPage() {
                   <button onClick={() => handlePublish(d.id, !d.isPublished)} className="text-xs text-primary-600 hover:underline">
                     {d.isPublished ? 'Unpublish' : 'Publish'}
                   </button>
+                  <button
+                    onClick={() => handleResync(d.id)}
+                    disabled={resyncingId === d.id}
+                    title="Crawl lại GSMArena và cập nhật thông số kỹ thuật"
+                    className="text-xs text-amber-600 hover:text-amber-800 disabled:opacity-40"
+                  >
+                    {resyncingId === d.id ? '⏳' : '🔄 Resync'}
+                  </button>
                   {d.brandSlug && (
                     <a href={`/gadget/${d.brandSlug}/${d.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-primary-600">Xem ↗</a>
                   )}
                   <button onClick={() => handleDelete(d.id, d.name, d.productId)} className="text-xs text-red-400 hover:text-red-600">Xóa</button>
                 </div>
               </div>
+
+              {/* Resync result message */}
+              {resyncMsg?.id === d.id && (
+                <p className={`mt-1.5 text-xs ${resyncMsg.ok ? 'text-green-600' : 'text-red-500'}`}>
+                  {resyncMsg.msg}
+                </p>
+              )}
 
               {/* Inline product link search */}
               {linkingId === d.id && (
