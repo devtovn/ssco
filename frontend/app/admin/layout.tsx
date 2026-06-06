@@ -65,6 +65,7 @@ const adminNav: SidebarGroup[] = [
     group: 'Hệ thống',
     items: [
       { href: '/admin/config', label: 'Cấu hình' },
+      { href: '/admin/cache', label: 'Cache' },
     ],
   },
 ];

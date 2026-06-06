@@ -795,4 +795,63 @@ router.patch(
   })
 );
 
+// ── Cache management ──────────────────────────────────────────────────────────
+
+const CACHE_GROUPS: Record<string, string[]> = {
+  all:       ['*'],
+  category:  ['category:*'],
+  search:    ['search:*'],
+  product:   ['product:*', 'deals:*'],
+  voucher:   ['voucher:*'],
+  ads:       ['ads:*'],
+  affiliate: ['affiliate:*'],
+  auth:      ['auth:*'],
+  gadget:    ['gadget:*'],
+};
+
+router.get(
+  '/cache/stats',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT((req as any).app.get('authService'))(req, res, (err?: any) => err ? reject(err) : resolve());
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => err ? reject(err) : resolve());
+    });
+    if (res.headersSent) return;
+    const stats = await CacheService.getStats();
+    return res.json(stats);
+  })
+);
+
+
+router.post(
+  '/cache/flush',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT(req.app.get('authService'))(req, res, (err?: any) => err ? reject(err) : resolve());
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => err ? reject(err) : resolve());
+    });
+    if (res.headersSent) return;
+
+    const { group } = z.object({ group: z.string() }).parse(req.body);
+    const patterns = CACHE_GROUPS[group];
+    if (!patterns) return res.status(400).json({ error: `Unknown group: ${group}` });
+
+    let deleted = 0;
+    if (group === 'all') {
+      await CacheService.clearAll();
+      deleted = -1;
+    } else {
+      for (const pattern of patterns) {
+        deleted += await CacheService.deletePattern(pattern);
+      }
+    }
+
+    return res.json({ ok: true, deleted });
+  })
+);
+
 export default router;

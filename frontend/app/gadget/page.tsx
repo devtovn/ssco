@@ -50,30 +50,14 @@ export default async function GadgetPage() {
 
         {/* Brand grid */}
         <h2 className="mb-4 text-lg font-semibold text-slate-800">Chọn hãng</h2>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+        <div className="flex flex-wrap gap-2">
           {brands.map((brand) => (
             <Link
               key={brand.slug}
               href={`/gadget/${brand.slug}`}
-              className="group flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:border-primary-400 hover:shadow-md"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-primary-400 hover:text-primary-700"
             >
-              {brand.logoUrl ? (
-                <img
-                  src={brand.logoUrl}
-                  alt={brand.name}
-                  className="h-12 w-12 object-contain"
-                />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-xl font-bold text-slate-400">
-                  {brand.name.slice(0, 1)}
-                </div>
-              )}
-              <span className="text-sm font-semibold text-slate-800 group-hover:text-primary-700">
-                {brand.name}
-              </span>
-              {brand.deviceCount !== undefined && brand.deviceCount > 0 && (
-                <span className="text-xs text-slate-400">{brand.deviceCount} thiết bị</span>
-              )}
+              {brand.name}
             </Link>
           ))}
         </div>
