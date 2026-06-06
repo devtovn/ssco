@@ -7,15 +7,22 @@ import { GadgetPricePanel } from '@/components/gadget/GadgetPricePanel';
 import { getGadgetDevice, getGadgetBrands } from '@/lib/api/gadget';
 import { getSiteConfig } from '@/lib/api/site-config';
 
+const SITE_URL = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:3000';
+
 interface Props { params: { brand: string; device: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { siteName } = await getSiteConfig();
   try {
     const device = await getGadgetDevice(params.device);
+    const title = `${device.name} - Thông số kỹ thuật | ${siteName}`;
+    const description = `Xem đầy đủ thông số kỹ thuật ${device.name}. So sánh với các thiết bị khác.`;
+    const canonical = `${SITE_URL}/gadget/${params.brand}/${params.device}`;
     return {
-      title: `${device.name} - Thông số kỹ thuật | ${siteName}`,
-      description: `Xem đầy đủ thông số kỹ thuật ${device.name}. So sánh với các thiết bị khác.`,
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: { title, description, type: 'website', url: canonical },
     };
   } catch (err) {
     console.error('[DeviceDetailPage] generateMetadata', err);

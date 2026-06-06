@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ContentManagementService } from '../services/ContentManagementService';
 import { AdminService } from '../services/AdminService';
+import { Pool } from 'pg';
 
 const router = Router();
 
@@ -77,6 +78,42 @@ router.get(
     res.json({
       success: true,
       data: article,
+    });
+  })
+);
+
+/**
+ * GET /api/public/sitemap-slugs
+ * Returns all public slugs for sitemap generation (products, categories, gadget brands+devices)
+ */
+router.get(
+  '/sitemap-slugs',
+  asyncHandler(async (req: Request, res: Response) => {
+    const db = req.app.get('pool') as Pool;
+
+    const [products, categories, gadgetBrands, gadgetDevices] = await Promise.all([
+      db.query<{ slug: string; updated_at: string }>(
+        `SELECT slug, updated_at FROM products WHERE is_active = true AND slug IS NOT NULL ORDER BY updated_at DESC LIMIT 5000`
+      ),
+      db.query<{ slug: string; updated_at: string }>(
+        `SELECT slug, updated_at FROM categories WHERE slug IS NOT NULL`
+      ),
+      db.query<{ slug: string; updated_at: string }>(
+        `SELECT slug, updated_at FROM gadget_brands WHERE is_active = true`
+      ),
+      db.query<{ brand_slug: string; slug: string; updated_at: string }>(
+        `SELECT b.slug AS brand_slug, d.slug, d.updated_at
+         FROM gadget_devices d
+         JOIN gadget_brands b ON b.id = d.brand_id
+         WHERE d.is_published = true`
+      ),
+    ]);
+
+    res.json({
+      products: products.rows,
+      categories: categories.rows,
+      gadgetBrands: gadgetBrands.rows,
+      gadgetDevices: gadgetDevices.rows,
     });
   })
 );

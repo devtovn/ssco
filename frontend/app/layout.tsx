@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
@@ -15,9 +15,11 @@ const inter = Inter({
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export const metadata: Metadata = {
-  title: 'Test - Page',
-  description: "Home page - test",
-    //'So sánh giá sản phẩm từ nhiều sàn thương mại điện tử như Tiki, Lazada, TikTok Shop, Shopee',
+  title: {
+    default: 'So Sánh Giá — Tìm giá tốt nhất từ Tiki, Lazada, Shopee',
+    template: '%s | So Sánh Giá',
+  },
+  description: 'So sánh giá sản phẩm từ nhiều sàn thương mại điện tử như Tiki, Lazada, TikTok Shop, Shopee. Tìm giá tốt nhất trước khi mua.',
   keywords: [
     'so sánh giá',
     'giá rẻ',
@@ -27,13 +29,18 @@ export const metadata: Metadata = {
     'shopee',
     'tiktok shop',
   ],
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
-  themeColor: '#0ea5e9',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
     apple: '/icon-192x192.png',
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#0ea5e9',
 };
 
 export default async function RootLayout({
