@@ -105,7 +105,7 @@ function HomeScreen({ go }) {
         <div className="mx-auto max-w-6xl px-4 pb-16 pt-12">
           <div className="text-center">
             <h1 className="text-balance text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              So sánh giá từ Tiki, Lazada, Shopee
+              {/* So sánh giá từ Tiki, Lazada, Shopee */} Home page SS
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
               Tìm giá tốt nhất trước khi mua — không cần đăng nhập

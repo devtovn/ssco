@@ -40,18 +40,9 @@ export default async function BrandPage({ params, searchParams }: Props) {
     <PublicLayout>
       <section className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
         {/* Brand header */}
-        <div className="mb-6 flex items-center gap-4">
-          {brand.logoUrl ? (
-            <img src={brand.logoUrl} alt={brand.name} className="h-16 w-16 object-contain" />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-2xl font-bold text-slate-400">
-              {brand.name.slice(0, 1)}
-            </div>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{brand.name}</h1>
-            <p className="text-sm text-slate-500">{pagination.total} thiết bị</p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900">{brand.name}</h1>
+          <p className="text-sm text-slate-500">{pagination.total} thiết bị</p>
         </div>
 
         {/* Category tabs */}

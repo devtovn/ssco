@@ -9,6 +9,16 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  // Enable polling for hot reload inside Docker on Windows (inotify doesn't work with volume mounts)
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+      };
+    }
+    return config;
+  },
   // Enable standalone output for Docker production builds
   output: 'standalone',
   images: {

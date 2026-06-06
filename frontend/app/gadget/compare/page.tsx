@@ -222,7 +222,7 @@ function GadgetComparePage() {
           So sánh thiết bị
         </h1>
         <Link
-          href="/gadget"
+          href={devices[0] ? `/gadget/${devices[0].brandSlug ?? devices[0].brandName?.toLowerCase()}/${devices[0].slug}` : '/gadget'}
           className="order-2 ml-auto text-sm text-primary-600 hover:underline sm:order-1 sm:ml-0"
         >
           ← Thiết bị
@@ -246,24 +246,25 @@ function GadgetComparePage() {
            * Mobile:  flex-col → each input + button is full-width stacked
            * Desktop: grid     → side-by-side columns
            */}
-          <div
-            className="mb-6 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid sm:gap-4"
-            style={{ gridTemplateColumns: `repeat(${devices.length}, 1fr)${devices.length < MAX_SLOTS ? ' auto' : ''}` }}
-          >
-            {devices.map((_, i) => (
-              <CompareSearch
-                key={i}
-                placeholder={`Tìm thiết bị ${i + 1}...`}
-                onSelect={(d) => setSlot(i, d)}
-              />
-            ))}
+          <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+            <div
+              className="flex flex-col gap-3 sm:grid sm:gap-4"
+              style={{ gridTemplateColumns: `repeat(${devices.length}, 1fr)` }}
+            >
+              {devices.map((_, i) => (
+                <CompareSearch
+                  key={i}
+                  placeholder={`Tìm thiết bị ${i + 1}...`}
+                  onSelect={(d) => setSlot(i, d)}
+                />
+              ))}
+            </div>
             {devices.length < MAX_SLOTS && (
               <button
                 onClick={addSlot}
-                className="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400 hover:border-primary-400 hover:text-primary-600 transition-colors sm:w-auto"
-                title="Thêm thiết bị"
+                className="mt-3 flex items-center gap-1 text-sm text-primary-600 hover:text-primary-800 transition-colors"
               >
-                + Thêm
+                <span className="text-base leading-none">+</span> Thêm thiết bị thứ {devices.length + 1}
               </button>
             )}
           </div>

@@ -29,7 +29,8 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <p className="font-bold text-primary-700">{siteName}</p>
               <p className="mt-1 text-xs text-slate-500">So sánh giá</p>
               <p className="mt-3 text-sm text-slate-600">
-                So sánh giá sản phẩm từ Tiki, Lazada, Shopee và nhiều sàn thương mại khác.
+                SSCO test
+                {/* So sánh giá sản phẩm từ Tiki, Lazada, Shopee và nhiều sàn thương mại khác. */}
               </p>
             </div>
             <div>

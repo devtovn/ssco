@@ -15,9 +15,9 @@ const inter = Inter({
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export const metadata: Metadata = {
-  title: 'So Sánh Giá - Website So Sánh Giá Sản Phẩm',
-  description:
-    'So sánh giá sản phẩm từ nhiều sàn thương mại điện tử như Tiki, Lazada, TikTok Shop, Shopee',
+  title: 'Test - Page',
+  description: "Home page - test",
+    //'So sánh giá sản phẩm từ nhiều sàn thương mại điện tử như Tiki, Lazada, TikTok Shop, Shopee',
   keywords: [
     'so sánh giá',
     'giá rẻ',
