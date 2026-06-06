@@ -16,7 +16,7 @@ interface CrawlResult {
 interface Device {
   id: string; name: string; slug: string; category: string;
   isPublished: boolean; brandName?: string; brandSlug?: string; announced?: string;
-  productId?: string; productSlug?: string;
+  productId?: string; productSlug?: string; gsmarenaUrl?: string;
 }
 interface ProductResult { id: string; name: string; slug: string; }
 
@@ -621,8 +621,19 @@ export default function AdminGadgetPage() {
                   >
                     {resyncingId === d.id ? '⏳' : '🔄 Resync'}
                   </button>
-                  {d.brandSlug && (
-                    <a href={`/gadget/${d.brandSlug}/${d.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-primary-600">Xem ↗</a>
+                  <a
+                    href={d.isPublished ? `/gadget/${d.brandSlug}/${d.slug}` : `/admin/gadget/preview/${d.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`text-xs hover:underline ${d.isPublished ? 'text-slate-400 hover:text-primary-600' : 'text-amber-500 hover:text-amber-700'}`}
+                    title={d.isPublished ? 'Xem trang public' : 'Preview (chưa publish)'}
+                  >
+                    {d.isPublished ? 'Xem ↗' : 'Preview ↗'}
+                  </a>
+                  {d.gsmarenaUrl && (
+                    <a href={d.gsmarenaUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-600" title="GSMArena">
+                      GSM ↗
+                    </a>
                   )}
                   <button onClick={() => handleDelete(d.id, d.name, d.productId)} className="text-xs text-red-400 hover:text-red-600">Xóa</button>
                 </div>

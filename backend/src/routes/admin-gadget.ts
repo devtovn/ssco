@@ -247,4 +247,19 @@ router.put(
   })
 );
 
+
+
+// ── GET /devices/by-slug/:slug — preview (kể cả unpublished) ─────────────────
+
+router.get(
+  '/devices/by-slug/:slug',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await requireAdmin(req, res);
+    if (res.headersSent) return;
+    const device = await gadgetService.getDeviceBySlug(req.params.slug);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+    return res.json(device);
+  })
+);
+
 export default router;
