@@ -2,12 +2,12 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: price-comparison-postgres
+    container_name: kombe-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-pricecompare}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pricecompare_dev_password}
-      POSTGRES_DB: ${POSTGRES_DB:-price_comparison}
+      POSTGRES_USER: ${POSTGRES_USER:-kombe}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kombe_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-kombe}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -15,17 +15,17 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pricecompare} -d ${POSTGRES_DB:-price_comparison}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kombe} -d ${POSTGRES_DB:-kombe}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - price-comparison-network
+      - kombe-network
 
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: price-comparison-redis
+    container_name: kombe-redis
     restart: unless-stopped
     command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes
     ports:
@@ -38,7 +38,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - price-comparison-network
+      - kombe-network
 
   # Express.js Backend
   backend:
@@ -46,7 +46,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
       target: development
-    container_name: price-comparison-backend
+    container_name: kombe-backend
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -55,10 +55,10 @@ services:
       # Database Configuration (pool reads DB_* — see backend/src/config/database.ts)
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-price_comparison}
-      DB_USER: ${POSTGRES_USER:-pricecompare}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-pricecompare_dev_password}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-pricecompare}:${POSTGRES_PASSWORD:-pricecompare_dev_password}@postgres:5432/${POSTGRES_DB:-price_comparison}
+      DB_NAME: ${POSTGRES_DB:-kombe}
+      DB_USER: ${POSTGRES_USER:-kombe}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-kombe_dev_password}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kombe}:${POSTGRES_PASSWORD:-kombe_dev_password}@postgres:5432/${POSTGRES_DB:-kombe}
       
       # Redis Configuration
       REDIS_HOST: redis
@@ -121,7 +121,7 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - price-comparison-network
+      - kombe-network
 
   # Next.js Frontend
   frontend:
@@ -129,7 +129,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       target: development
-    container_name: price-comparison-frontend
+    container_name: kombe-frontend
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -171,7 +171,7 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - price-comparison-network
+      - kombe-network
 
 volumes:
   postgres_data:
@@ -186,5 +186,5 @@ volumes:
     driver: local
 
 networks:
-  price-comparison-network:
+  kombe-network:
     driver: bridge

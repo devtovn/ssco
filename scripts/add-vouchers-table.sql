@@ -1,5 +1,5 @@
 -- Migration: Add vouchers table
--- Run this script against the pricecompare database
+-- Run this script against the kombe database
 
 CREATE TABLE IF NOT EXISTS vouchers (
   id          TEXT        PRIMARY KEY DEFAULT generate_ulid(),

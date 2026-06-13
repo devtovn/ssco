@@ -145,7 +145,7 @@ PORT=3001
 API_PREFIX=/api
 
 # Database Configuration
-DATABASE_URL=postgresql://user:password@localhost:5432/price_comparison
+DATABASE_URL=postgresql://user:password@localhost:5432/kombe
 DATABASE_POOL_MIN=2
 DATABASE_POOL_MAX=10
 

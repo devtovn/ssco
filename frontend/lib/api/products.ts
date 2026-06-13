@@ -1,5 +1,5 @@
 import { apiFetch, apiPost } from './client';
-import type { PriceComparison, PriceHistory } from '@price-comparison/types';
+import type { PriceComparison, PriceHistory } from '@kombe/types';
 
 export interface ProductDetail {
   id: string;

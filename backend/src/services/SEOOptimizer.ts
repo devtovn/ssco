@@ -4,7 +4,7 @@
  */
 
 import { Pool } from 'pg';
-import { SEOMetadata } from '@price-comparison/types';
+import { SEOMetadata } from '@kombe/types';
 
 export interface SEOOptimizationInput {
   title: string;

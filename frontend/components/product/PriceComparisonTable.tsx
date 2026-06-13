@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { PriceComparison, PriceEntry } from '@price-comparison/types';
+import type { PriceComparison, PriceEntry } from '@kombe/types';
 import { formatPrice, formatDateTime } from '@/lib/utils/format';
 
 interface PriceComparisonTableProps {

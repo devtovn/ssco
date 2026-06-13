@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { PriceComparison, PriceHistory } from '@price-comparison/types';
+import type { PriceComparison, PriceHistory } from '@kombe/types';
 import { PriceComparisonTable } from './PriceComparisonTable';
 import { PriceHistoryChart } from './PriceHistoryChart';
 import { SpecsTable } from '@/components/gadget/SpecsTable';

@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import type { CategoryTree } from '@price-comparison/types';
+import type { CategoryTree } from '@kombe/types';
 import { buildApiUrl } from '@/lib/api/client';
 import { apiFetchWithAuth } from '@/lib/auth';
 

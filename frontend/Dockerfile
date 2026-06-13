@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Next.js 14 Frontend
 # Build context: repository root (see docker-compose.yml)
 
-# Shared workspace package (@price-comparison/types)
+# Shared workspace package (@kombe/types)
 FROM node:20-alpine AS types-builder
 WORKDIR /packages/types
 COPY packages/types/package.json ./

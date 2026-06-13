@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { SEOMetadata } from '@price-comparison/types';
+import type { SEOMetadata } from '@kombe/types';
 
 export interface PublishedArticle {
   id: string;

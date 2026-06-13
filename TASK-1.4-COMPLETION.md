@@ -192,7 +192,7 @@ Set up Docker Compose for local development with multi-stage Dockerfiles for Nex
 - Security considerations
 
 ## Network Configuration ✅
-**Network**: price-comparison-network (bridge driver)
+**Network**: kombe-network (bridge driver)
 
 **Service Communication**:
 - Backend → PostgreSQL: postgres:5432

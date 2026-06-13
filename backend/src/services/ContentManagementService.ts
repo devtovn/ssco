@@ -7,7 +7,7 @@ import { Pool, PoolClient } from 'pg';
 import { pool } from '../config/database';
 import { AIService, aiService, AIGenerationOptions } from './AIService';
 import { SEOOptimizer, seoOptimizer, SEOOptimizationResult } from './SEOOptimizer';
-import { SEOMetadata } from '@price-comparison/types';
+import { SEOMetadata } from '@kombe/types';
 
 export type ArticleStatus =
   | 'draft'

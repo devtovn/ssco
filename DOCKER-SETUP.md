@@ -1,6 +1,18 @@
-# Docker Setup Guide
+# Docker Setup Guide (Kombe)
 
-This guide explains how to set up and run the Product Price Comparison Website using Docker Compose for local development.
+This guide explains how to set up and run SSCO (Kombe stack) using Docker Compose for local development.
+
+## Migrating from `price-comparison` naming
+
+If you previously ran the stack under the old `price-comparison` project name, remove leftover containers and volumes before a fresh setup:
+
+```powershell
+docker compose -p price-comparison down -v
+docker volume rm price-comparison_postgres_data price-comparison_redis_data 2>$null
+docker compose down -v
+```
+
+Then copy `.env.example` → `.env` (defaults use `COMPOSE_PROJECT_NAME=kombe`, database/user `kombe`, password `kombe_dev_password`) and start again with `docker compose up -d --build`.
 
 ## Prerequisites
 
@@ -69,8 +81,8 @@ All services should show as "Up" and healthy.
 
 - **Image**: postgres:15-alpine
 - **Port**: 5432 (configurable via `POSTGRES_PORT`)
-- **Database**: price_comparison
-- **User**: pricecompare (configurable)
+- **Database**: kombe
+- **User**: kombe (configurable)
 - **Data Volume**: `postgres_data`
 
 The database is initialized with the schema on first startup using the init script at `scripts/init-db.sql`.
@@ -196,7 +208,7 @@ docker-compose exec frontend npm run type-check
 Access PostgreSQL CLI:
 
 ```bash
-docker-compose exec postgres psql -U pricecompare -d price_comparison
+docker-compose exec postgres psql -U kombe -d kombe
 ```
 
 Access Redis CLI:
@@ -211,20 +223,20 @@ Migrations chạy từ **máy host** (không chạy trong container backend). Xe
 
 ```powershell
 cd backend
-$env:DATABASE_URL = "postgresql://pricecompare:pricecompare_dev_password@localhost:5432/price_comparison"
+$env:DATABASE_URL = "postgresql://kombe:kombe_dev_password@localhost:5432/kombe"
 npm run migrate:up
 ```
 
 Backup the database:
 
 ```bash
-docker-compose exec postgres pg_dump -U pricecompare price_comparison > backup.sql
+docker-compose exec postgres pg_dump -U kombe kombe > backup.sql
 ```
 
 Restore the database:
 
 ```bash
-cat backup.sql | docker-compose exec -T postgres psql -U pricecompare price_comparison
+cat backup.sql | docker-compose exec -T postgres psql -U kombe kombe
 ```
 
 ## Volume Management
@@ -232,13 +244,13 @@ cat backup.sql | docker-compose exec -T postgres psql -U pricecompare price_comp
 ### List Volumes
 
 ```bash
-docker volume ls | grep price-comparison
+docker volume ls | grep kombe
 ```
 
 ### Inspect a Volume
 
 ```bash
-docker volume inspect price-comparison_postgres_data
+docker volume inspect kombe_postgres_data
 ```
 
 ### Remove Unused Volumes
@@ -283,7 +295,7 @@ docker volume prune
 
 3. Test connection:
    ```bash
-   docker-compose exec postgres pg_isready -U pricecompare
+   docker-compose exec postgres pg_isready -U kombe
    ```
 
 ### Redis Connection Issues
@@ -356,7 +368,7 @@ Key differences in production:
 
 ## Network Configuration
 
-All services run on the `price-comparison-network` bridge network, allowing them to communicate using service names as hostnames:
+All services run on the `kombe-network` bridge network, allowing them to communicate using service names as hostnames:
 
 - Backend connects to PostgreSQL at `postgres:5432`
 - Backend connects to Redis at `redis:6379`

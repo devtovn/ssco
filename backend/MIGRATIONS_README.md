@@ -42,12 +42,12 @@ Set the `DATABASE_URL` environment variable before running migrations:
 
 **PowerShell:**
 ```powershell
-$env:DATABASE_URL="postgresql://pricecompare:pricecompare_dev_password@localhost:5432/price_comparison"
+$env:DATABASE_URL="postgresql://kombe:kombe_dev_password@localhost:5432/kombe"
 ```
 
 **Bash:**
 ```bash
-export DATABASE_URL="postgresql://pricecompare:pricecompare_dev_password@localhost:5432/price_comparison"
+export DATABASE_URL="postgresql://kombe:kombe_dev_password@localhost:5432/kombe"
 ```
 
 ## Migration Files
@@ -102,11 +102,11 @@ To verify migrations were applied successfully:
 
 ```bash
 # List all tables
-docker exec price-comparison-postgres psql -U pricecompare -d price_comparison -c "\dt"
+docker exec kombe-postgres psql -U kombe -d kombe -c "\dt"
 
 # List all indexes
-docker exec price-comparison-postgres psql -U pricecompare -d price_comparison -c "\di"
+docker exec kombe-postgres psql -U kombe -d kombe -c "\di"
 
 # View categories
-docker exec price-comparison-postgres psql -U pricecompare -d price_comparison -c "SELECT name_vi, name_en, slug FROM categories ORDER BY display_order;"
+docker exec kombe-postgres psql -U kombe -d kombe -c "SELECT name_vi, name_en, slug FROM categories ORDER BY display_order;"
 ```

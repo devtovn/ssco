@@ -1,5 +1,5 @@
 -- Migration: Gadget comparison module (GSMArena-style)
--- Run: Get-Content scripts\add-gadget-tables.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+-- Run: Get-Content scripts\add-gadget-tables.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 
 CREATE TABLE IF NOT EXISTS gadget_brands (
   id          char(26)     PRIMARY KEY DEFAULT generate_ulid(),

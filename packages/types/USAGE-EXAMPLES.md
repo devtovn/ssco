@@ -1,6 +1,6 @@
 # Shared Types Package - Usage Examples
 
-This document provides practical examples of how to use the `@price-comparison/types` package in both frontend and backend applications.
+This document provides practical examples of how to use the `@kombe/types` package in both frontend and backend applications.
 
 ## Installation
 
@@ -9,7 +9,7 @@ The package is already installed in both frontend and backend via workspace depe
 ```json
 {
   "dependencies": {
-    "@price-comparison/types": "file:../packages/types"
+    "@kombe/types": "file:../packages/types"
   }
 }
 ```
@@ -26,7 +26,7 @@ import {
   Product,
   PopularKeyword,
   PaginatedResponse,
-} from '@price-comparison/types';
+} from '@kombe/types';
 
 export class SearchService {
   async searchProducts(query: SearchQuery): Promise<PaginatedResponse<Product>> {
@@ -61,7 +61,7 @@ import {
   PriceEntry,
   PriceHistory,
   Deal,
-} from '@price-comparison/types';
+} from '@kombe/types';
 
 export class PriceComparisonService {
   async getProductPrices(productId: string): Promise<PriceComparison> {
@@ -104,7 +104,7 @@ import {
   CategoryUpdate,
   CategoryTree,
   CategoryMetrics,
-} from '@price-comparison/types';
+} from '@kombe/types';
 
 export class CategoryManagementService {
   async createCategory(input: CategoryInput): Promise<Category> {
@@ -152,7 +152,7 @@ import {
   AffiliateLinkFormat,
   AffiliatePerformance,
   ClickMetadata,
-} from '@price-comparison/types';
+} from '@kombe/types';
 
 export class AffiliateLinkService {
   async generateAffiliateLink(
@@ -213,7 +213,7 @@ export class AffiliateLinkService {
 ```typescript
 // backend/src/routes/search.ts
 import { Router } from 'express';
-import { SearchQuery, SearchResult } from '@price-comparison/types';
+import { SearchQuery, SearchResult } from '@kombe/types';
 import { SearchService } from '../services/SearchService';
 
 const router = Router();
@@ -249,7 +249,7 @@ export default router;
 ```typescript
 // frontend/components/SearchBar.tsx
 import { useState } from 'react';
-import { SearchQuery, SearchSuggestion } from '@price-comparison/types';
+import { SearchQuery, SearchSuggestion } from '@kombe/types';
 
 export function SearchBar() {
   const [query, setQuery] = useState<string>('');
@@ -290,7 +290,7 @@ export function SearchBar() {
 
 ```typescript
 // frontend/components/ProductCard.tsx
-import { Product, PriceEntry } from '@price-comparison/types';
+import { Product, PriceEntry } from '@kombe/types';
 
 interface ProductCardProps {
   product: Product;
@@ -322,7 +322,7 @@ export function ProductCard({ product, lowestPrice }: ProductCardProps) {
 ```typescript
 // frontend/components/PriceComparison.tsx
 import { useState, useEffect } from 'react';
-import { PriceComparison, PriceEntry } from '@price-comparison/types';
+import { PriceComparison, PriceEntry } from '@kombe/types';
 
 interface PriceComparisonProps {
   productId: string;
@@ -382,7 +382,7 @@ export function PriceComparisonTable({ productId }: PriceComparisonProps) {
 ```typescript
 // frontend/components/CategoryNav.tsx
 import { useState, useEffect } from 'react';
-import { CategoryTree, Category } from '@price-comparison/types';
+import { CategoryTree, Category } from '@kombe/types';
 
 export function CategoryNavigation() {
   const [categoryTree, setCategoryTree] = useState<CategoryTree | null>(null);
@@ -427,7 +427,7 @@ export function CategoryNavigation() {
 ```typescript
 // frontend/lib/store/useSearchStore.ts
 import { create } from 'zustand';
-import { SearchQuery, SearchResult, Product } from '@price-comparison/types';
+import { SearchQuery, SearchResult, Product } from '@kombe/types';
 
 interface SearchState {
   query: SearchQuery;
@@ -502,7 +502,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
 ```typescript
 // backend/src/validation/searchValidation.ts
 import { z } from 'zod';
-import { SearchQuery } from '@price-comparison/types';
+import { SearchQuery } from '@kombe/types';
 
 // Create Zod schema that matches the TypeScript interface
 export const searchQuerySchema = z.object({
@@ -545,7 +545,7 @@ export function validateSearchQuery(req: Request, res: Response, next: NextFunct
 ### 1. Always Import from the Package
 ```typescript
 // ✅ Good
-import { Product, Category } from '@price-comparison/types';
+import { Product, Category } from '@kombe/types';
 
 // ❌ Bad - Don't create duplicate local types
 interface Product {
@@ -570,7 +570,7 @@ async function getProduct(id: string): Promise<Product> {
 ### 3. Extend Types When Needed
 ```typescript
 // ✅ Good - Extend shared types for specific use cases
-import { Product } from '@price-comparison/types';
+import { Product } from '@kombe/types';
 
 interface ProductWithPrices extends Product {
   prices: PriceEntry[];
@@ -580,7 +580,7 @@ interface ProductWithPrices extends Product {
 
 ### 4. Use Utility Types
 ```typescript
-import { Product, Category } from '@price-comparison/types';
+import { Product, Category } from '@kombe/types';
 
 // Partial for updates
 type ProductUpdate = Partial<Product>;

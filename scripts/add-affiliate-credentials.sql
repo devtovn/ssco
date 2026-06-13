@@ -1,5 +1,5 @@
 -- Migration: add credentials JSONB to affiliate_configs
--- Run: Get-Content scripts\add-affiliate-credentials.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+-- Run: Get-Content scripts\add-affiliate-credentials.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 
 ALTER TABLE affiliate_configs
   ADD COLUMN IF NOT EXISTS credentials JSONB DEFAULT NULL;

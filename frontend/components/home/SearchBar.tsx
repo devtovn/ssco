@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { getSearchSuggestions } from '@/lib/api/search';
-import type { SearchSuggestion } from '@price-comparison/types';
+import type { SearchSuggestion } from '@kombe/types';
 
 export function SearchBar() {
   const router = useRouter();

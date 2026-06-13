@@ -8,7 +8,7 @@
 --   3. GIN indexes on key text fields → fast full-text search
 --   4. All tables usable for ANY product (source_type = 'gsmarena' OR 'other')
 -- =============================================================================
--- Run: Get-Content scripts\add-gadget-spec-tables.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+-- Run: Get-Content scripts\add-gadget-spec-tables.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 
 -- ── 0. Add source_type + device_category to products ─────────────────────────
 

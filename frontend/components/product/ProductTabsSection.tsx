@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { getAdZones } from '@/lib/api/ads';
 import { AdZone } from '@/components/ads/AdZone';
 import { ProductDetailTabs } from './ProductDetailTabs';
-import type { PriceComparison, PriceHistory } from '@price-comparison/types';
+import type { PriceComparison, PriceHistory } from '@kombe/types';
 import type { GadgetSpecs } from '@/lib/api/gadget';
 
 interface ProductTabsSectionProps {

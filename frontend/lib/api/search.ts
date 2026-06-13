@@ -4,7 +4,7 @@ import type {
   SearchResponse,
   SearchSuggestion,
   SortBy,
-} from '@price-comparison/types';
+} from '@kombe/types';
 
 export interface SearchProductsParams {
   keyword: string;

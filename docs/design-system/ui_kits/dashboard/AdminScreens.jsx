@@ -171,9 +171,9 @@ function AdminCategories() {
 
 // ─── Admin: simple Reviewers placeholder ──────────────────────────
 const REVIEWERS = [
-  { id: "r1", name: "Nguyễn Văn A", email: "a.nguyen@pricecompare.vn", articles: 42, lastActive: "23/05/2026" },
-  { id: "r2", name: "Trần Thị B", email: "b.tran@pricecompare.vn", articles: 31, lastActive: "22/05/2026" },
-  { id: "r3", name: "Lê Văn C", email: "c.le@pricecompare.vn", articles: 17, lastActive: "20/05/2026" },
+  { id: "r1", name: "Nguyễn Văn A", email: "a.nguyen@kombe.vn", articles: 42, lastActive: "23/05/2026" },
+  { id: "r2", name: "Trần Thị B", email: "b.tran@kombe.vn", articles: 31, lastActive: "22/05/2026" },
+  { id: "r3", name: "Lê Văn C", email: "c.le@kombe.vn", articles: 17, lastActive: "20/05/2026" },
 ];
 
 function AdminReviewers() {

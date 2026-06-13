@@ -1,4 +1,4 @@
--- Database initialization script for Product Price Comparison Website
+-- Database initialization script for Kombe (SSCO)
 -- This script sets up the database with required extensions and basic configuration
 
 -- Enable required PostgreSQL extensions

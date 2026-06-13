@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { SearchBar } from '@/components/home/SearchBar';
 import { ProductCard, type ProductCardData } from '@/components/shared/ProductCard';
 import { SearchFilters } from './SearchFilters';
-import type { SearchResponse } from '@price-comparison/types';
+import type { SearchResponse } from '@kombe/types';
 
 interface SearchResultsProps {
   keyword: string;

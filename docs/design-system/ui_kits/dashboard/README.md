@@ -7,8 +7,8 @@ Open **`index.html`**. Two seeded accounts auto-route to the matching dashboard:
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Administrator | `admin@pricecompare.vn` | `Admin@123456` |
-| Reviewer | `reviewer@pricecompare.vn` | `Reviewer@123` |
+| Administrator | `admin@kombe.vn` | `Admin@123456` |
+| Reviewer | `reviewer@kombe.vn` | `Reviewer@123` |
 
 Or hit the **"Vào nhanh"** quick-login buttons.
 

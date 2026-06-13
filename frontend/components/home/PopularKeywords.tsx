@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { PopularKeyword } from '@price-comparison/types';
+import type { PopularKeyword } from '@kombe/types';
 
 interface PopularKeywordsProps {
   keywords: PopularKeyword[];

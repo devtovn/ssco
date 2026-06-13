@@ -1,7 +1,7 @@
 {
-  "name": "price-comparison-backend",
+  "name": "kombe-backend",
   "version": "1.0.0",
-  "description": "Backend API for Product Price Comparison Website",
+  "description": "Backend API for SSCO (Kombe stack)",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -24,13 +24,13 @@
   "keywords": [
     "express",
     "typescript",
-    "price-comparison",
+    "kombe",
     "api"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@price-comparison/types": "file:../packages/types",
+    "@kombe/types": "file:../packages/types",
     "axios": "^1.6.2",
     "cheerio": "^1.0.0",
     "bcrypt": "^5.1.1",

@@ -8,7 +8,7 @@ async function main(): Promise<void> {
   const pool = new Pool({
     connectionString:
       process.env.DATABASE_URL ||
-      'postgresql://pricecompare:pricecompare_dev_password@localhost:5432/price_comparison',
+      'postgresql://kombe:kombe_dev_password@localhost:5432/kombe',
   });
 
   const passwordHash = await bcrypt.hash(password, 10);

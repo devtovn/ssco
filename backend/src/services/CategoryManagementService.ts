@@ -11,7 +11,7 @@ import {
   CategoryTree,
   CategoryMetrics,
   CategoryWithChildren,
-} from '@price-comparison/types';
+} from '@kombe/types';
 import { pool, queryRead } from '../config/database';
 
 export class CategoryManagementService {

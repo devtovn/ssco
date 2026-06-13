@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-price_comparison}
+      POSTGRES_DB: ${POSTGRES_DB:-kombe}
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
     networks:

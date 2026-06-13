@@ -94,16 +94,16 @@ Chạy theo thứ tự:
 
 ```powershell
 # 1. Thêm affiliate_url vào price_entries
-Get-Content scripts\add-affiliate-url.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+Get-Content scripts\add-affiliate-url.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 
 # 2. Thêm credentials vào affiliate_configs
-Get-Content scripts\add-affiliate-credentials.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+Get-Content scripts\add-affiliate-credentials.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 
 # 3. Tạo bảng gadget_brands + gadget_devices (seed 15 hãng)
-Get-Content scripts\add-gadget-tables.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+Get-Content scripts\add-gadget-tables.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 
 # 4. Thêm product_id FK vào gadget_devices
-Get-Content scripts\add-gadget-product-link.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+Get-Content scripts\add-gadget-product-link.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 ```
 
 ---
@@ -268,7 +268,7 @@ Lúc USER CLICK "Tới nơi bán":
 
 ```bash
 # Backend: HTML parser cho GSMArena crawler
-docker exec price-comparison-backend npm install cheerio
+docker exec kombe-backend npm install cheerio
 ```
 
 ---
@@ -276,7 +276,7 @@ docker exec price-comparison-backend npm install cheerio
 ## 11. Checklist Deploy
 
 - [ ] Chạy 4 migration SQL (theo thứ tự mục 3)
-- [ ] `docker exec price-comparison-backend npm install cheerio`
+- [ ] `docker exec kombe-backend npm install cheerio`
 - [ ] Vào `/admin/gadget` → seed thiết bị đầu tiên
 - [ ] Vào `/admin/affiliate` → nhập credentials từng sàn
 - [ ] Vào `/admin/config` → bật/tắt Auto-publish theo nhu cầu

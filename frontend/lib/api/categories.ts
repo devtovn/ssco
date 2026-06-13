@@ -1,5 +1,5 @@
 import { apiFetch, buildApiUrl, ApiError } from './client';
-import type { Category } from '@price-comparison/types';
+import type { Category } from '@kombe/types';
 
 export interface CategoryProduct {
   id: string;

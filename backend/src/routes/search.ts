@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { cachedSearchService } from '../services/CachedSearchService';
-import { SearchQuerySchema, validate } from '@price-comparison/types';
+import { SearchQuerySchema, validate } from '@kombe/types';
 import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();

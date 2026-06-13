@@ -355,7 +355,7 @@ export class WebScraperService {
       return require('puppeteer');
     } catch {
       throw new Error(
-        'Puppeteer is not installed. Run: npm install puppeteer --workspace=price-comparison-backend'
+        'Puppeteer is not installed. Run: npm install puppeteer --workspace=kombe-backend'
       );
     }
   }

@@ -76,7 +76,7 @@ $allHealthy = $true
 Write-Host "PostgreSQL:" -NoNewline
 $pgStatus = docker-compose ps postgres --format json 2>$null | ConvertFrom-Json
 if ($pgStatus.State -eq "running") {
-    $pgHealth = docker-compose exec -T postgres pg_isready -U pricecompare 2>$null
+    $pgHealth = docker-compose exec -T postgres pg_isready -U kombe 2>$null
     if ($LASTEXITCODE -eq 0) {
         Write-Host " [OK] Running and healthy" -ForegroundColor Green
     } else {

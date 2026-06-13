@@ -8,7 +8,7 @@ import {
   SearchResponse,
   SearchSuggestion,
   PopularKeyword,
-} from '@price-comparison/types';
+} from '@kombe/types';
 import { searchService } from './SearchService';
 import { CacheService, CacheKeys, CacheTTL } from '../utils/cache';
 import { hashQuery } from '../utils/hashQuery';

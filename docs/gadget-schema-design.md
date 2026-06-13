@@ -220,5 +220,5 @@ Chỉ cần `products.source_type = 'other'` và điền các bảng tương ứ
 ## Migration thực thi
 
 ```powershell
-Get-Content scripts\add-gadget-spec-tables.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+Get-Content scripts\add-gadget-spec-tables.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 ```

@@ -9,7 +9,7 @@ import {
   CategoryUpdate,
   CategoryTree,
   CategoryMetrics,
-} from '@price-comparison/types';
+} from '@kombe/types';
 import { categoryManagementService } from './CategoryManagementService';
 import { CacheService, CacheKeys, CacheTTL } from '../utils/cache';
 

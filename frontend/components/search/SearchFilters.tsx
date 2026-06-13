@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { SearchResponse, SortBy } from '@price-comparison/types';
+import type { SearchResponse, SortBy } from '@kombe/types';
 
 interface SearchFiltersProps {
   keyword: string;

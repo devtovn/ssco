@@ -8,7 +8,7 @@ import {
   PriceHistory,
   Deal,
   PriceUpdateResult,
-} from '@price-comparison/types';
+} from '@kombe/types';
 import { priceComparisonService } from './PriceComparisonService';
 import { CacheService, CacheKeys, CacheTTL } from '../utils/cache';
 

@@ -8,9 +8,9 @@ const poolConfig: PoolConfig = {
   // Primary database connection
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432', 10),
-  database: process.env.DB_NAME || 'pricecompare',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'kombe',
+  user: process.env.DB_USER || 'kombe',
+  password: process.env.DB_PASSWORD || 'kombe_dev_password',
 
   // Connection pool settings
   min: parseInt(process.env.DATABASE_POOL_MIN || '2', 10), // Minimum connections
@@ -25,7 +25,7 @@ const poolConfig: PoolConfig = {
   query_timeout: 30000,
   
   // Application name for monitoring
-  application_name: 'price-comparison-backend',
+  application_name: 'kombe-backend',
 
   // Session defaults (avoids extra client.query on pool 'connect' — deprecated in pg@8+)
   options: '-c timezone=UTC',

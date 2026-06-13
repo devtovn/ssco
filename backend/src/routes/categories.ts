@@ -9,7 +9,7 @@ import {
   CategoryInputSchema,
   CategoryUpdateSchema,
   validate,
-} from '@price-comparison/types';
+} from '@kombe/types';
 import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { getToken } from '@/lib/auth';
 import { buildApiUrl } from '@/lib/api/client';
-import type { CategoryTree } from '@price-comparison/types';
+import type { CategoryTree } from '@kombe/types';
 
 const SOURCE_LABELS: Record<string, string> = {
   tiki: 'Tiki',

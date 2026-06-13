@@ -59,7 +59,7 @@ function Sidebar({ title, items, activeHref, onNav, onLogout }) {
 // ─── Login ─────────────────────────────────────────────────────────
 const ACCOUNTS = [
   { email: "admin", password: "Admin@123456", role: "Administrator", redirect: "/admin" },
-  { email: "reviewer@pricecompare.vn", password: "Reviewer@123", role: "Reviewer", redirect: "/reviewer" },
+  { email: "reviewer@kombe.vn", password: "Reviewer@123", role: "Reviewer", redirect: "/reviewer" },
 ];
 
 function LoginScreen({ onSuccess }) {

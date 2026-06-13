@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import type { PriceHistory } from '@price-comparison/types';
+import type { PriceHistory } from '@kombe/types';
 import { formatPrice } from '@/lib/utils/format';
 
 interface PriceHistoryChartProps {

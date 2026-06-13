@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { CategoryTree } from '@price-comparison/types';
+import type { CategoryTree } from '@kombe/types';
 
 const CATEGORY_ICONS: Record<string, string> = {
   'dien-lanh': '❄️',

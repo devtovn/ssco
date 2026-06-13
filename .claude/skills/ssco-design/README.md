@@ -12,7 +12,7 @@ This design system captures the **tokens, components, and screens** of the live 
 | --- | --- | --- |
 | `SSCO/` (mounted codebase) | **Primary source of truth** | Next.js 14 + Tailwind 3 + Heroicons + Recharts frontend. All tokens, copy, and components below were extracted from this codebase. |
 | [`devtovn/ssco`](https://github.com/devtovn/ssco) (GitHub) | Mirror | The user's GitHub repo of the same project — the mounted folder was used in preference. Explore further if more recent work has landed there. |
-| `SSCO/.kiro/specs/product-price-comparison-website/` | Requirements doc | Original Vietnamese product spec (12 numbered requirements: auth, dashboards, search, comparison, data collection, AI content, performance, analytics, ads, categories, affiliate). |
+| `SSCO/docs/` | Product & schema docs | Design notes, gadget schema, deployment guides |
 | `SSCO/frontend/tailwind.config.ts` | Color tokens | Defines the `primary` (sky) palette. |
 | `SSCO/frontend/app/layout.tsx` + `manifest.json` | Brand metadata | Theme color `#0ea5e9`, manifest name, font setup. |
 

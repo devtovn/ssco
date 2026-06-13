@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { CategoryTree } from '@price-comparison/types';
+import type { CategoryTree } from '@kombe/types';
 
 export interface Deal {
   productId: string | number;

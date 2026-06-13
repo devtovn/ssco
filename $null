@@ -1,0 +1,2 @@
+Error response from daemon: get price-comparison_postgres_data: no such volume
+Error response from daemon: get price-comparison_redis_data: no such volume

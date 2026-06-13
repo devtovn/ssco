@@ -1,6 +1,6 @@
-# @price-comparison/types
+# @kombe/types
 
-Shared TypeScript types and interfaces for the Product Price Comparison Website monorepo.
+Shared TypeScript types and interfaces for the SSCO monorepo (Kombe stack).
 
 ## Overview
 
@@ -13,7 +13,7 @@ This package is automatically linked in the monorepo workspace. Both frontend an
 ```json
 {
   "dependencies": {
-    "@price-comparison/types": "file:../packages/types"
+    "@kombe/types": "file:../packages/types"
   }
 }
 ```
@@ -23,7 +23,7 @@ This package is automatically linked in the monorepo workspace. Both frontend an
 Import types in your TypeScript files:
 
 ```typescript
-import { Product, Category, SearchQuery, PriceComparison } from '@price-comparison/types';
+import { Product, Category, SearchQuery, PriceComparison } from '@kombe/types';
 
 // Use the types
 const product: Product = {

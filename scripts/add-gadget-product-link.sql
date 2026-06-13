@@ -1,5 +1,5 @@
 -- Migration: link gadget_devices → products
--- Run: Get-Content scripts\add-gadget-product-link.sql | docker exec -i price-comparison-postgres psql -U pricecompare -d price_comparison
+-- Run: Get-Content scripts\add-gadget-product-link.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 
 ALTER TABLE gadget_devices
   ADD COLUMN IF NOT EXISTS product_id char(26) REFERENCES products(id) ON DELETE SET NULL;

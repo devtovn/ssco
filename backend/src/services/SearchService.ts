@@ -10,7 +10,7 @@ import {
   SearchSuggestion,
   PopularKeyword,
   SortBy,
-} from '@price-comparison/types';
+} from '@kombe/types';
 import { pool, queryRead } from '../config/database';
 import { hashQuery } from '../utils/hashQuery';
 

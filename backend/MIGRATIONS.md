@@ -48,11 +48,11 @@ npm run build
 cd D:\Dev\SSCO\backend
 npm install
 
-$env:DATABASE_URL = "postgresql://pricecompare:YOUR_POSTGRES_PASSWORD@localhost:5432/price_comparison"
+$env:DATABASE_URL = "postgresql://kombe:YOUR_POSTGRES_PASSWORD@localhost:5432/kombe"
 npm run migrate:up
 ```
 
-Thay `YOUR_POSTGRES_PASSWORD` bằng `POSTGRES_PASSWORD` trong `.env` (mặc định: `pricecompare_dev_password`).
+Thay `YOUR_POSTGRES_PASSWORD` bằng `POSTGRES_PASSWORD` trong `.env` (mặc định: `kombe_dev_password`).
 
 Migration sẽ:
 
@@ -71,7 +71,7 @@ docker compose up -d --force-recreate backend
 | | |
 |---|---|
 | URL | http://localhost:3000/login |
-| Email | `admin@pricecompare.vn` |
+| Email | `admin@kombe.vn` |
 | Mật khẩu | `Admin@123456` |
 
 API kiểm tra: http://localhost:4000/health
@@ -103,7 +103,7 @@ Chạy khi **pull code mới** có thêm file trong `backend/migrations/`:
 
 ```powershell
 cd D:\Dev\SSCO\backend
-$env:DATABASE_URL = "postgresql://pricecompare:YOUR_POSTGRES_PASSWORD@localhost:5432/price_comparison"
+$env:DATABASE_URL = "postgresql://kombe:YOUR_POSTGRES_PASSWORD@localhost:5432/kombe"
 npm run migrate:up
 docker compose restart backend
 ```
@@ -143,7 +143,7 @@ docker compose up -d
 
 ```powershell
 cd D:\Dev\SSCO\backend
-$env:DATABASE_URL = "postgresql://pricecompare:YOUR_POSTGRES_PASSWORD@localhost:5432/price_comparison"
+$env:DATABASE_URL = "postgresql://kombe:YOUR_POSTGRES_PASSWORD@localhost:5432/kombe"
 npm run db:reset-admin
 ```
 
@@ -153,10 +153,10 @@ npm run db:reset-admin
 
 ```powershell
 # Đã migrate chưa?
-docker compose exec postgres psql -U pricecompare -d price_comparison -c "SELECT COUNT(*) FROM pgmigrations;"
+docker compose exec postgres psql -U kombe -d kombe -c "SELECT COUNT(*) FROM pgmigrations;"
 
 # Có user admin chưa?
-docker compose exec postgres psql -U pricecompare -d price_comparison -c "SELECT email, role FROM users;"
+docker compose exec postgres psql -U kombe -d kombe -c "SELECT email, role FROM users;"
 ```
 
 ---

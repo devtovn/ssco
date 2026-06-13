@@ -121,7 +121,7 @@
 - **Start Period**: 40s
 
 ## Network Configuration
-- **Network Name**: price-comparison-network
+- **Network Name**: kombe-network
 - **Driver**: bridge
 - **Service Communication**:
   - Backend -> PostgreSQL: postgres:5432
