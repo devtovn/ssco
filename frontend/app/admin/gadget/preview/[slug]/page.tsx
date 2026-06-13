@@ -66,7 +66,7 @@ export default function GadgetPreviewPage() {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3 text-slate-500">
         <p>Không tìm thấy thiết bị.</p>
-        <Link href="/admin/gadget" className="text-sm text-primary-600 underline">← Quay lại danh sách</Link>
+        <Link href="/admin/content/add?tab=gadget&view=list" className="text-sm text-primary-600 underline">← Quay lại danh sách</Link>
       </div>
     );
   }
@@ -81,7 +81,7 @@ export default function GadgetPreviewPage() {
       }`}>
         <div className="flex items-center gap-3 text-white">
           <Link
-            href="/admin/gadget"
+            href="/admin/content/add?tab=gadget&view=list"
             className="text-white/80 hover:text-white text-sm"
           >
             ← Danh sách
