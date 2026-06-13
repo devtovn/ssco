@@ -9,6 +9,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 import { NormalizedProduct } from './APIIntegratorService';
+import { resolveTikiAvailability } from '../utils/tikiAvailability';
 
 export interface PlatformSearchResult {
   platform: string;
@@ -146,7 +147,7 @@ export class PlatformAPIService {
       model: data.model ?? '',
       price: parseFloat(data.price ?? data.list_price ?? 0),
       currency: 'VND',
-      isAvailable: data.inventory_status === 'available' || (data.stock_item?.qty ?? 0) > 0,
+      isAvailable: resolveTikiAvailability(data),
       images: [...new Set(images)],
       sourceUrl: data.url_path ? `https://tiki.vn/${data.url_path}` : `https://tiki.vn/p${id}.html`,
       source: 'tiki',

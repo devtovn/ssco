@@ -6,6 +6,7 @@
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { createHmac } from 'crypto';
+import { resolveTikiAvailability } from '../utils/tikiAvailability';
 
 /**
  * Normalized product data structure
@@ -402,7 +403,7 @@ export class TikiAPIClient extends BaseAPIClient {
       model: rawData.model || '',
       price: parseFloat(rawData.price || rawData.list_price || 0),
       currency: 'VND',
-      isAvailable: rawData.inventory_status === 'available' || rawData.stock_item?.qty > 0,
+      isAvailable: resolveTikiAvailability(rawData),
       images: this.extractImages(rawData),
       sourceUrl: rawData.url_path
         ? `https://tiki.vn/${rawData.url_path}`
