@@ -372,7 +372,8 @@ export class DataCollectionService {
       const existing = await client.query(
         `SELECT p.id FROM products p
          INNER JOIN price_entries pe ON pe.product_id = p.id
-         WHERE pe.source_name = $1 AND pe.metadata->>'externalId' = $2
+         WHERE pe.source_name = $1
+           AND (pe.external_id = $2 OR pe.metadata->>'externalId' = $2)
          LIMIT 1`,
         [product.source, product.externalId]
       );
@@ -415,19 +416,18 @@ export class DataCollectionService {
       }
 
       await client.query(
-        `INSERT INTO price_entries (product_id, source_name, source_url, price, currency, is_available, metadata, scraped_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+        `INSERT INTO price_entries
+           (product_id, source_name, external_id, source_url, price, currency, is_available, metadata, scraped_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
         [
           productId,
           product.source,
+          product.externalId,
           product.sourceUrl,
           product.price,
           product.currency || 'VND',
           product.isAvailable,
-          JSON.stringify({
-            externalId: product.externalId,
-            ...product.metadata,
-          }),
+          product.metadata ? JSON.stringify(product.metadata) : null,
         ]
       );
 
@@ -596,12 +596,13 @@ export class DataCollectionService {
         const affiliateUrlAt = affiliateUrl ? new Date() : null;
         await client.query(
           `INSERT INTO price_entries
-             (product_id, source_name, source_url, affiliate_url, affiliate_campaign_id,
+             (product_id, source_name, external_id, source_url, affiliate_url, affiliate_campaign_id,
               affiliate_url_at, price, currency, is_available, metadata, scraped_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
           [
             productId,
             entry.source,
+            entry.externalId,
             entry.sourceUrl,
             affiliateUrl,
             affiliateCampaignId,
@@ -609,7 +610,7 @@ export class DataCollectionService {
             entry.price,
             entry.currency ?? 'VND',
             entry.isAvailable,
-            JSON.stringify({ externalId: entry.externalId, ...entry.metadata }),
+            entry.metadata ? JSON.stringify(entry.metadata) : null,
           ]
         );
         priceEntriesCount++;
@@ -659,16 +660,17 @@ export class DataCollectionService {
         try {
           await client.query(
             `INSERT INTO price_entries
-               (product_id, source_name, source_url, price, currency, is_available, metadata, scraped_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+               (product_id, source_name, external_id, source_url, price, currency, is_available, metadata, scraped_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
             [
               product.id,
               entry.source,
+              entry.externalId,
               entry.sourceUrl,
               entry.price,
               entry.currency ?? 'VND',
               entry.isAvailable,
-              JSON.stringify({ externalId: entry.externalId, ...entry.metadata }),
+              entry.metadata ? JSON.stringify(entry.metadata) : null,
             ]
           );
           updated++;

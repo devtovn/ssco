@@ -93,6 +93,7 @@ erDiagram
         char26 affiliate_campaign_id FK
         timestamp affiliate_url_at
         decimal price
+        varchar external_id
         varchar currency
         boolean is_available
         jsonb metadata

@@ -111,6 +111,7 @@ import searchRoutes from './routes/search';
 import priceRoutes from './routes/prices';
 import adminRoutes from './routes/admin';
 import seedRoutes from './routes/seed';
+import importRoutes from './routes/import';
 import adRoutes from './routes/ads';
 import analyticsRoutes from './routes/analytics';
 import contentRoutes from './routes/content';
@@ -127,6 +128,7 @@ app.use(`${API_PREFIX}/products`, priceRoutes);
 app.use(`${API_PREFIX}`, priceRoutes); // For /deals endpoint
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/admin/seed`, seedRoutes);
+app.use(`${API_PREFIX}/admin/import`, importRoutes);
 app.use(`${API_PREFIX}/gadget`, gadgetRoutes);
 app.use(`${API_PREFIX}/admin/gadget`, adminGadgetRoutes);
 app.use(`${API_PREFIX}/ads`, adRoutes);

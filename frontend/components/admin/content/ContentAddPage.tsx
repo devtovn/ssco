@@ -3,16 +3,18 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  ArrowUpTrayIcon,
   ListBulletIcon,
   PlusCircleIcon,
 } from '@heroicons/react/24/outline';
 import { ProductAddPanel } from './ProductAddPanel';
 import { ProductListPanel } from './ProductListPanel';
+import { ProductImportPanel } from './ProductImportPanel';
 import { GadgetAddPanel } from './GadgetAddPanel';
 import { GadgetListPanel } from './GadgetListPanel';
 
 type ContentTab = 'product' | 'gadget';
-type ContentView = 'add' | 'list';
+type ContentView = 'add' | 'list' | 'import';
 
 const STORAGE_SUBNAV_COLLAPSED = 'admin-content-subnav-collapsed';
 const SUBNAV_EXPANDED_WIDTH = 192;
@@ -58,7 +60,9 @@ function ContentPageInner() {
   const [mounted, setMounted] = useState(false);
 
   const tab: ContentTab = searchParams.get('tab') === 'gadget' ? 'gadget' : 'product';
-  const view: ContentView = searchParams.get('view') === 'list' ? 'list' : 'add';
+  const viewParam = searchParams.get('view');
+  const view: ContentView =
+    viewParam === 'list' ? 'list' : viewParam === 'import' ? 'import' : 'add';
 
   useEffect(() => {
     setSubNavCollapsed(localStorage.getItem(STORAGE_SUBNAV_COLLAPSED) === '1');
@@ -77,10 +81,17 @@ function ContentPageInner() {
   const addLabel = tab === 'product' ? 'Thêm sản phẩm' : 'Thêm thiết bị';
   const subNavWidth = subNavCollapsed ? SUBNAV_COLLAPSED_WIDTH : SUBNAV_EXPANDED_WIDTH;
 
-  const subItems: { view: ContentView; label: string; Icon: typeof PlusCircleIcon }[] = [
-    { view: 'add', label: addLabel, Icon: PlusCircleIcon },
-    { view: 'list', label: 'Danh sách', Icon: ListBulletIcon },
-  ];
+  const subItems: { view: ContentView; label: string; Icon: typeof PlusCircleIcon }[] =
+    tab === 'product'
+      ? [
+          { view: 'add', label: addLabel, Icon: PlusCircleIcon },
+          { view: 'import', label: 'Import CSV', Icon: ArrowUpTrayIcon },
+          { view: 'list', label: 'Danh sách', Icon: ListBulletIcon },
+        ]
+      : [
+          { view: 'add', label: addLabel, Icon: PlusCircleIcon },
+          { view: 'list', label: 'Danh sách', Icon: ListBulletIcon },
+        ];
 
   return (
     <div className="flex h-[calc(100vh)] flex-col overflow-hidden bg-slate-100">
@@ -181,6 +192,7 @@ function ContentPageInner() {
           }`}
         >
           {tab === 'product' && view === 'add' && <ProductAddPanel embedded />}
+          {tab === 'product' && view === 'import' && <ProductImportPanel embedded />}
           {tab === 'product' && view === 'list' && <ProductListPanel embedded />}
           {tab === 'gadget' && view === 'add' && <GadgetAddPanel />}
           {tab === 'gadget' && view === 'list' && <GadgetListPanel />}
