@@ -9,6 +9,10 @@ export interface PriceEntry {
   sourceUrl: string;
   /** Pre-generated affiliate link stored at seed time. Use for redirect if set. */
   affiliateUrl?: string;
+  /** Campaign row used when affiliate_url was generated */
+  affiliateCampaignId?: string;
+  /** When affiliate_url was last generated */
+  affiliateUrlAt?: Date;
   price: number;
   currency: string;
   isAvailable: boolean;

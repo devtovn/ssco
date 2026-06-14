@@ -1,9 +1,41 @@
 import { Pool } from 'pg';
 
+export type AffiliateProviderKind = 'native' | 'accesstrade' | 'manual';
+
+export interface AffiliatePublisher {
+  id: string;
+  provider: string;
+  displayName: string;
+  appToken?: string;
+  apiBaseUrl: string;
+  isEnabled: boolean;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AffiliateCampaign {
+  id: string;
+  affiliateConfigId: string;
+  campaignId: string;
+  campaignName: string;
+  referCode: string;
+  startDate: Date;
+  endDate?: Date;
+  isActive: boolean;
+  isPrimary: boolean;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface AffiliateConfig {
   id: string;
   platformId: string;
   platformName: string;
+  publisherId?: string;
+  provider: AffiliateProviderKind;
+  domainPatterns: string[];
   referCode: string;
   linkTemplate: string;
   linkFormat: AffiliateLinkFormat;
@@ -31,6 +63,9 @@ export interface AffiliateLinkFormat {
 export interface AffiliateConfigInput {
   platformId: string;
   platformName: string;
+  publisherId?: string;
+  provider?: AffiliateProviderKind;
+  domainPatterns?: string[];
   referCode: string;
   linkTemplate: string;
   linkFormat: AffiliateLinkFormat;
@@ -40,6 +75,9 @@ export interface AffiliateConfigInput {
 
 export interface AffiliateConfigUpdate {
   platformName?: string;
+  publisherId?: string | null;
+  provider?: AffiliateProviderKind;
+  domainPatterns?: string[];
   referCode?: string;
   linkTemplate?: string;
   linkFormat?: AffiliateLinkFormat;
@@ -87,9 +125,28 @@ export interface ProductPerformance {
   revenue: number;
 }
 
-export interface DateRange {
+export interface StoredAffiliateLinkResult {
+  affiliateUrl: string;
+  method: 'auto' | 'api';
+  affiliateCampaignId?: string;
+}
+
+export interface AffiliateCampaignInput {
+  affiliateConfigId: string;
+  campaignId: string;
+  campaignName: string;
+  referCode: string;
   startDate: Date;
-  endDate: Date;
+  endDate?: Date;
+  isActive?: boolean;
+  isPrimary?: boolean;
+  notes?: string;
+}
+
+export interface RegenerateAffiliateResult {
+  updated: number;
+  skipped: number;
+  errors: string[];
 }
 
 export class AffiliateLinkService {
@@ -99,10 +156,23 @@ export class AffiliateLinkService {
    * Create new affiliate configuration
    */
   async createAffiliateConfig(input: AffiliateConfigInput): Promise<AffiliateConfig> {
-    // Validate link format
+    const provider = input.provider ?? 'accesstrade';
+    const referCode = input.referCode?.trim() || `at-${input.platformId}`;
+    const linkTemplate = input.linkTemplate ?? '{product_url}';
+    const linkFormat = input.linkFormat ?? {
+      type: 'custom' as const,
+      template: '{product_url}',
+      exampleUrl: `https://${input.platformId.replace(/_/g, '-')}.vn/`,
+    };
+
     const validation = await this.validateAffiliateLinkFormat({
       ...input,
       id: '',
+      provider,
+      domainPatterns: input.domainPatterns ?? [],
+      referCode,
+      linkTemplate,
+      linkFormat,
       isEnabled: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -114,15 +184,19 @@ export class AffiliateLinkService {
 
     const result = await this.pool.query(
       `INSERT INTO affiliate_configs
-       (platform_id, platform_name, refer_code, link_template, link_format, credentials, priority, is_enabled)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+       (platform_id, platform_name, publisher_id, provider, domain_patterns,
+        refer_code, link_template, link_format, credentials, priority, is_enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
        RETURNING *`,
       [
         input.platformId,
         input.platformName,
-        input.referCode,
-        input.linkTemplate,
-        JSON.stringify(input.linkFormat),
+        input.publisherId ?? null,
+        provider,
+        input.domainPatterns ?? [],
+        referCode,
+        linkTemplate,
+        JSON.stringify(linkFormat),
         input.credentials ? JSON.stringify(input.credentials) : null,
         input.priority || 0,
       ]
@@ -167,6 +241,18 @@ export class AffiliateLinkService {
       updateFields.push(`platform_name = $${paramIndex++}`);
       values.push(updates.platformName);
     }
+    if (updates.publisherId !== undefined) {
+      updateFields.push(`publisher_id = $${paramIndex++}`);
+      values.push(updates.publisherId);
+    }
+    if (updates.provider !== undefined) {
+      updateFields.push(`provider = $${paramIndex++}`);
+      values.push(updates.provider);
+    }
+    if (updates.domainPatterns !== undefined) {
+      updateFields.push(`domain_patterns = $${paramIndex++}`);
+      values.push(updates.domainPatterns);
+    }
     if (updates.referCode !== undefined) {
       updateFields.push(`refer_code = $${paramIndex++}`);
       values.push(updates.referCode);
@@ -185,7 +271,9 @@ export class AffiliateLinkService {
     }
     if (updates.credentials !== undefined) {
       updateFields.push(`credentials = $${paramIndex++}`);
-      values.push(JSON.stringify(updates.credentials));
+      values.push(
+        updates.credentials === null ? null : JSON.stringify(updates.credentials)
+      );
     }
     if (updates.priority !== undefined) {
       updateFields.push(`priority = $${paramIndex++}`);
@@ -283,9 +371,16 @@ export class AffiliateLinkService {
       errors.push('Platform name is required');
     }
 
-    // Validate refer code
-    if (!config.referCode || config.referCode.trim().length === 0) {
-      errors.push('Refer code is required');
+    // Validate refer code (not required for AccessTrade)
+    if (config.provider !== 'accesstrade') {
+      if (!config.referCode || config.referCode.trim().length === 0) {
+        errors.push('Refer code is required');
+      }
+    }
+
+    // Link template/format only required for native/manual
+    if (config.provider === 'accesstrade') {
+      return { isValid: errors.length === 0, errors };
     }
 
     // Validate link template
@@ -339,6 +434,9 @@ export class AffiliateLinkService {
       id: row.id,
       platformId: row.platform_id,
       platformName: row.platform_name,
+      publisherId: row.publisher_id ?? undefined,
+      provider: (row.provider ?? 'accesstrade') as AffiliateProviderKind,
+      domainPatterns: row.domain_patterns ?? [],
       referCode: row.refer_code,
       linkTemplate: row.link_template,
       linkFormat: typeof row.link_format === 'string'
@@ -352,6 +450,343 @@ export class AffiliateLinkService {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
+  }
+
+  private mapRowToPublisher(row: any, includeToken = false): AffiliatePublisher {
+    return {
+      id: row.id,
+      provider: row.provider,
+      displayName: row.display_name,
+      appToken: includeToken ? row.app_token ?? undefined : undefined,
+      apiBaseUrl: row.api_base_url,
+      isEnabled: row.is_enabled,
+      metadata: row.metadata
+        ? (typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata)
+        : undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private mapRowToCampaign(row: any): AffiliateCampaign {
+    return {
+      id: row.id,
+      affiliateConfigId: row.affiliate_config_id,
+      campaignId: row.campaign_id,
+      campaignName: row.campaign_name,
+      referCode: row.refer_code,
+      startDate: row.start_date,
+      endDate: row.end_date ?? undefined,
+      isActive: row.is_active,
+      isPrimary: row.is_primary ?? false,
+      notes: row.notes ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async getAffiliatePublishers(includeToken = false): Promise<AffiliatePublisher[]> {
+    const result = await this.pool.query(
+      'SELECT * FROM affiliate_publishers ORDER BY provider ASC'
+    );
+    return result.rows.map((row) => this.mapRowToPublisher(row, includeToken));
+  }
+
+  async getAffiliatePublisherByProvider(
+    provider: string,
+    includeToken = false
+  ): Promise<AffiliatePublisher | null> {
+    const result = await this.pool.query(
+      'SELECT * FROM affiliate_publishers WHERE provider = $1',
+      [provider]
+    );
+    if (result.rows.length === 0) return null;
+    return this.mapRowToPublisher(result.rows[0], includeToken);
+  }
+
+  async getPrimaryCampaignForConfig(configId: string): Promise<AffiliateCampaign | null> {
+    const result = await this.pool.query(
+      `SELECT * FROM affiliate_campaigns
+       WHERE affiliate_config_id = $1
+         AND is_primary = true
+         AND is_active = true
+         AND (end_date IS NULL OR end_date > NOW())
+       ORDER BY start_date DESC
+       LIMIT 1`,
+      [configId]
+    );
+    if (result.rows.length === 0) return null;
+    return this.mapRowToCampaign(result.rows[0]);
+  }
+
+  async getAffiliateCampaignsForConfig(configId: string): Promise<AffiliateCampaign[]> {
+    const result = await this.pool.query(
+      `SELECT * FROM affiliate_campaigns
+       WHERE affiliate_config_id = $1
+       ORDER BY is_primary DESC, start_date DESC`,
+      [configId]
+    );
+    return result.rows.map((row) => this.mapRowToCampaign(row));
+  }
+
+  async updateAffiliatePublisher(
+    provider: string,
+    updates: { displayName?: string; appToken?: string; apiBaseUrl?: string; isEnabled?: boolean }
+  ): Promise<AffiliatePublisher> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let i = 1;
+
+    if (updates.displayName !== undefined) {
+      fields.push(`display_name = $${i++}`);
+      values.push(updates.displayName);
+    }
+    if (updates.appToken !== undefined) {
+      fields.push(`app_token = $${i++}`);
+      values.push(updates.appToken);
+    }
+    if (updates.apiBaseUrl !== undefined) {
+      fields.push(`api_base_url = $${i++}`);
+      values.push(updates.apiBaseUrl);
+    }
+    if (updates.isEnabled !== undefined) {
+      fields.push(`is_enabled = $${i++}`);
+      values.push(updates.isEnabled);
+    }
+    fields.push('updated_at = NOW()');
+    values.push(provider);
+
+    const result = await this.pool.query(
+      `UPDATE affiliate_publishers SET ${fields.join(', ')} WHERE provider = $${i} RETURNING *`,
+      values
+    );
+    if (result.rows.length === 0) {
+      throw new Error(`Publisher not found: ${provider}`);
+    }
+    return this.mapRowToPublisher(result.rows[0], true);
+  }
+
+  async createAffiliateCampaign(input: AffiliateCampaignInput): Promise<AffiliateCampaign> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      if (input.isPrimary) {
+        await client.query(
+          `UPDATE affiliate_campaigns SET is_primary = false, updated_at = NOW()
+           WHERE affiliate_config_id = $1 AND is_primary = true`,
+          [input.affiliateConfigId]
+        );
+      }
+      const result = await client.query(
+        `INSERT INTO affiliate_campaigns
+           (affiliate_config_id, campaign_id, campaign_name, refer_code, start_date, end_date,
+            is_active, is_primary, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING *`,
+        [
+          input.affiliateConfigId,
+          input.campaignId,
+          input.campaignName,
+          input.referCode,
+          input.startDate,
+          input.endDate ?? null,
+          input.isActive ?? true,
+          input.isPrimary ?? false,
+          input.notes ?? null,
+        ]
+      );
+      await client.query('COMMIT');
+      return this.mapRowToCampaign(result.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async setPrimaryCampaign(campaignRowId: string): Promise<AffiliateCampaign> {
+    const existing = await this.pool.query(
+      'SELECT affiliate_config_id FROM affiliate_campaigns WHERE id = $1',
+      [campaignRowId]
+    );
+    if (existing.rows.length === 0) {
+      throw new Error(`Campaign not found: ${campaignRowId}`);
+    }
+    const configId = existing.rows[0].affiliate_config_id;
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        `UPDATE affiliate_campaigns SET is_primary = false, updated_at = NOW()
+         WHERE affiliate_config_id = $1`,
+        [configId]
+      );
+      const result = await client.query(
+        `UPDATE affiliate_campaigns
+         SET is_primary = true, is_active = true, updated_at = NOW()
+         WHERE id = $1
+         RETURNING *`,
+        [campaignRowId]
+      );
+      await client.query('COMMIT');
+      return this.mapRowToCampaign(result.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Generate affiliate link for seed/storage — resolves AccessTrade or native credentials
+   * and returns the internal campaign row id when applicable.
+   */
+  async generateStoredAffiliateLink(
+    platformId: string,
+    sourceUrl: string
+  ): Promise<StoredAffiliateLinkResult> {
+    const config = await this.getAffiliateConfigByPlatform(platformId);
+    if (!config || !config.isEnabled) {
+      throw new Error(`Chưa cấu hình affiliate cho sàn "${platformId}"`);
+    }
+
+    if (config.provider === 'accesstrade') {
+      const publisher = await this.resolvePublisherForConfig(config);
+      if (!publisher?.app_token) {
+        throw new Error('AccessTrade app token chưa cấu hình (Admin → Affiliate → AccessTrade)');
+      }
+      const campaign = await this.getPrimaryCampaignForConfig(config.id);
+      if (!campaign) {
+        throw new Error(`Chưa có campaign primary cho "${platformId}"`);
+      }
+      const { generateAccessTradeAffiliateUrl } = await import('./PlatformAffiliateService');
+      const result = await generateAccessTradeAffiliateUrl(sourceUrl, {
+        appToken: publisher.app_token,
+        campaignId: campaign.campaignId,
+      });
+      return { ...result, affiliateCampaignId: campaign.id };
+    }
+
+    if (config.provider === 'manual') {
+      const affiliateUrl = await this.generateAffiliateLink(sourceUrl, platformId);
+      const campaign = await this.getPrimaryCampaignForConfig(config.id);
+      return {
+        affiliateUrl,
+        method: 'auto',
+        affiliateCampaignId: campaign?.id,
+      };
+    }
+
+    if (!config.credentials) {
+      throw new Error(`Thiếu credentials cho "${platformId}"`);
+    }
+
+    const { generateAffiliateLinkForPlatform } = await import('./PlatformAffiliateService');
+    const creds = { platform: platformId, ...config.credentials } as import('./PlatformAffiliateService').PlatformCredentials;
+    const result = await generateAffiliateLinkForPlatform(sourceUrl, creds);
+
+    let affiliateCampaignId: string | undefined;
+    const primary = await this.getPrimaryCampaignForConfig(config.id);
+    if (primary) {
+      affiliateCampaignId = primary.id;
+    } else if (config.credentials.campaignId) {
+      const row = await this.pool.query(
+        `SELECT id FROM affiliate_campaigns
+         WHERE affiliate_config_id = $1 AND campaign_id = $2`,
+        [config.id, config.credentials.campaignId]
+      );
+      affiliateCampaignId = row.rows[0]?.id;
+    }
+
+    return { ...result, affiliateCampaignId };
+  }
+
+  /**
+   * Bulk regenerate price_entries.affiliate_url using the current primary campaign.
+   */
+  async regenerateAffiliateUrls(params: {
+    affiliateConfigId: string;
+    fromCampaignId?: string;
+    limit?: number;
+  }): Promise<RegenerateAffiliateResult> {
+    const configRow = await this.pool.query(
+      'SELECT platform_id FROM affiliate_configs WHERE id = $1',
+      [params.affiliateConfigId]
+    );
+    if (configRow.rows.length === 0) {
+      throw new Error(`Affiliate config not found: ${params.affiliateConfigId}`);
+    }
+    const platformId = configRow.rows[0].platform_id as string;
+
+    const primary = await this.getPrimaryCampaignForConfig(params.affiliateConfigId);
+    if (!primary) {
+      throw new Error('Chưa có campaign primary — không thể regenerate');
+    }
+
+    let query = `
+      SELECT id, source_url FROM price_entries
+      WHERE source_name = $1 AND affiliate_url IS NOT NULL
+    `;
+    const values: unknown[] = [platformId];
+    if (params.fromCampaignId) {
+      query += ` AND affiliate_campaign_id = $${values.length + 1}`;
+      values.push(params.fromCampaignId);
+    }
+    query += ' ORDER BY scraped_at DESC';
+    if (params.limit) {
+      query += ` LIMIT $${values.length + 1}`;
+      values.push(params.limit);
+    }
+
+    const entries = await this.pool.query(query, values);
+    let updated = 0;
+    const errors: string[] = [];
+
+    for (const row of entries.rows) {
+      try {
+        const result = await this.generateStoredAffiliateLink(platformId, row.source_url);
+        await this.pool.query(
+          `UPDATE price_entries
+           SET affiliate_url = $1, affiliate_campaign_id = $2, affiliate_url_at = NOW()
+           WHERE id = $3`,
+          [
+            result.affiliateUrl,
+            result.affiliateCampaignId ?? primary.id,
+            row.id,
+          ]
+        );
+        updated++;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`${row.id}: ${msg}`);
+      }
+    }
+
+    return {
+      updated,
+      skipped: entries.rows.length - updated,
+      errors,
+    };
+  }
+
+  private async resolvePublisherForConfig(
+    config: AffiliateConfig
+  ): Promise<{ app_token: string | null } | null> {
+    if (config.publisherId) {
+      const byId = await this.pool.query(
+        'SELECT app_token FROM affiliate_publishers WHERE id = $1 AND is_enabled = true',
+        [config.publisherId]
+      );
+      if (byId.rows[0]) return byId.rows[0];
+    }
+    const byProvider = await this.pool.query(
+      `SELECT app_token FROM affiliate_publishers
+       WHERE provider = 'accesstrade' AND is_enabled = true
+       LIMIT 1`
+    );
+    return byProvider.rows[0] ?? null;
   }
 
   /**

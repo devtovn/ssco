@@ -592,15 +592,20 @@ export class DataCollectionService {
       let priceEntriesCount = 0;
       for (const entry of entries) {
         const affiliateUrl = entry.affiliateUrl?.trim() || null;
+        const affiliateCampaignId = entry.affiliateCampaignId ?? null;
+        const affiliateUrlAt = affiliateUrl ? new Date() : null;
         await client.query(
           `INSERT INTO price_entries
-             (product_id, source_name, source_url, affiliate_url, price, currency, is_available, metadata, scraped_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+             (product_id, source_name, source_url, affiliate_url, affiliate_campaign_id,
+              affiliate_url_at, price, currency, is_available, metadata, scraped_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
           [
             productId,
             entry.source,
             entry.sourceUrl,
             affiliateUrl,
+            affiliateCampaignId,
+            affiliateUrlAt,
             entry.price,
             entry.currency ?? 'VND',
             entry.isAvailable,

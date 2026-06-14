@@ -1,4 +1,5 @@
--- Migration: add credentials JSONB to affiliate_configs
+-- DEPRECATED: use migration 1748800000000_affiliate-accesstrade-schema.ts instead.
+-- Kept for manual repair on DBs that ran this before the official migration.
 -- Run: Get-Content scripts\add-affiliate-credentials.sql | docker exec -i kombe-postgres psql -U kombe -d kombe
 
 ALTER TABLE affiliate_configs

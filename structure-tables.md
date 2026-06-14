@@ -38,9 +38,11 @@ erDiagram
     gadget_brands ||--o{ gadget_devices : "brand_id"
 
     %% ══════════════ AFFILIATE & ADS ══════════════
+    affiliate_publishers ||--o{ affiliate_configs : "publisher_id"
     affiliate_configs ||--o{ affiliate_campaigns : "affiliate_config_id"
     affiliate_configs ||--o{ affiliate_link_clicks : "affiliate_config_id"
     affiliate_campaigns ||--o{ affiliate_link_clicks : "campaign_id"
+    affiliate_campaigns ||--o{ price_entries : "affiliate_campaign_id"
     ad_zones ||--o{ advertisements : "zone_id"
 
     %% ══════════════ USER & CONTENT ══════════════
@@ -88,6 +90,8 @@ erDiagram
         varchar source_name
         text source_url
         text affiliate_url
+        char26 affiliate_campaign_id FK
+        timestamp affiliate_url_at
         decimal price
         varchar currency
         boolean is_available
@@ -154,10 +158,23 @@ erDiagram
         jsonb seo_metadata
     }
 
+    affiliate_publishers {
+        char26 id PK
+        varchar provider UK
+        varchar display_name
+        text app_token
+        text api_base_url
+        boolean is_enabled
+        jsonb metadata
+    }
+
     affiliate_configs {
         char26 id PK
+        char26 publisher_id FK
         varchar platform_id UK
         varchar platform_name
+        varchar provider
+        text_arr domain_patterns
         varchar refer_code
         text link_template
         jsonb link_format
@@ -175,6 +192,8 @@ erDiagram
         timestamp start_date
         timestamp end_date
         boolean is_active
+        boolean is_primary
+        text notes
     }
 
     affiliate_link_clicks {
@@ -399,7 +418,7 @@ erDiagram
 
 ---
 
-## Danh sách Tables (28 tables + 1 view)
+## Danh sách Tables (29 tables + 1 view)
 
 ### 1. Core — Sản phẩm & Giá
 
@@ -408,7 +427,7 @@ erDiagram
 | **categories** | Danh mục phân cấp (self-referencing tree) | `parent_id` → `categories.id` |
 | **products** | Sản phẩm chính (điện thoại, laptop, gia dụng…) | — |
 | **product_categories** | Junction table N:N giữa products ↔ categories | `product_id` → `products.id`, `category_id` → `categories.id` |
-| **price_entries** | Giá từ các nguồn (Tiki, Shopee, Lazada…) | `product_id` → `products.id` |
+| **price_entries** | Giá từ các nguồn (Tiki, Shopee, Lazada…) | `product_id` → `products.id`, `affiliate_campaign_id` → `affiliate_campaigns.id` (nullable) |
 | **price_sources** | Cấu hình nguồn giá (API / scrape) | — (standalone) |
 | **vouchers** | Mã giảm giá các sàn TMĐT | — (standalone) |
 | **website_config** | Cấu hình giao diện website (single-row) | — |
@@ -417,11 +436,47 @@ erDiagram
 
 | Table | Mô tả | FK đi ra |
 |-------|--------|----------|
-| **affiliate_configs** | Cấu hình affiliate từng sàn (Tiki, Shopee…) | — |
-| **affiliate_campaigns** | Chiến dịch affiliate | `affiliate_config_id` → `affiliate_configs.id` |
+| **affiliate_publishers** | Token/credentials cấp publisher (vd. AccessTrade app token dùng chung) | — |
+| **affiliate_configs** | Cấu hình affiliate từng sàn hoặc domain | `publisher_id` → `affiliate_publishers.id` (nullable) |
+| **affiliate_campaigns** | Chiến dịch affiliate (AT campaign ID, rotate) | `affiliate_config_id` → `affiliate_configs.id` |
 | **affiliate_link_clicks** | Tracking click affiliate link | `affiliate_config_id` → `affiliate_configs.id`, `campaign_id` → `affiliate_campaigns.id`, `product_id` → `products.id` |
 | **ad_zones** | Vùng quảng cáo trên website | — |
 | **advertisements** | Quảng cáo cụ thể trong từng zone | `zone_id` → `ad_zones.id` |
+
+#### Chú thích Affiliate & AccessTrade
+
+**Luồng dữ liệu (seed → hiển thị):**
+
+```
+affiliate_publishers (app_token AT)
+        │
+        ▼
+affiliate_configs (provider, domain_patterns, credentials)
+        │
+        ├── affiliate_campaigns (campaign_id AT, is_primary)
+        │
+        └── sinh link lúc seed ──► price_entries.affiliate_url
+                                    + affiliate_campaign_id
+                                    + affiliate_url_at
+                                        │
+                                        ▼
+                              "Tới nơi bán" → /chuyen-huong
+```
+
+| Cột / bảng | Ý nghĩa |
+|------------|---------|
+| **affiliate_publishers** | Một hàng cho mỗi network (hiện tại: `provider = 'accesstrade'`). `app_token` là token API publisher — **không** lặp trong từng sàn. |
+| **affiliate_configs.provider** | Cách sinh link: `native` (API riêng từng sàn), `accesstrade` (gọi AT `link_generate`), `manual` (ghép query theo `link_template`). |
+| **affiliate_configs.publisher_id** | Khi `provider = 'accesstrade'`, lấy `app_token` từ publisher thay vì `credentials.appToken`. |
+| **affiliate_configs.domain_patterns** | Mảng hostname/pattern để map URL sản phẩm → config (vd. `tiki.vn`, `cellphones.com.vn`). Bổ sung khi một sàn có nhiều domain hoặc sàn phụ qua AT. |
+| **affiliate_configs.credentials** | JSONB credential **theo sàn** khi `provider = 'native'`: Tiki `{refCode}`, Shopee `{pubId, accessToken}`, TikTok `{appKey, accessToken}`, Lazada `{appToken, campaignId}`. Với AT, có thể để trống hoặc chỉ metadata phụ. |
+| **affiliate_campaigns.campaign_id** | ID chiến dịch **bên AccessTrade** (external), không phải ULID nội bộ. |
+| **affiliate_campaigns.is_primary** | Campaign đang dùng mặc định khi seed/regenerate. Partial unique index: tối đa **một** campaign `is_primary = true AND is_active = true` trên mỗi `affiliate_config_id`. |
+| **price_entries.affiliate_url** | Snapshot link affiliate đã sinh — dùng trực tiếp trên UI, không gọi API lúc click. |
+| **price_entries.affiliate_campaign_id** | FK tới campaign đã dùng khi sinh link — cho phép bulk regenerate khi đổi campaign. |
+| **price_entries.affiliate_url_at** | Thời điểm sinh/cập nhật `affiliate_url` — audit & job refresh. |
+
+**Rotate campaign:** Admin đặt campaign mới `is_primary = true` → job/API regenerate các `price_entries` có `affiliate_campaign_id` cũ → cập nhật `affiliate_url`, `affiliate_campaign_id`, `affiliate_url_at`.
 
 ### 3. Users & Content
 
@@ -477,7 +532,7 @@ erDiagram
 ## Tóm tắt quan hệ khóa
 
 ```
-products ─────┬──< price_entries          (product_id)
+products ─────┬──< price_entries          (product_id, affiliate_campaign_id)
               ├──< product_categories     (product_id)  >── categories
               ├──< articles               (product_id)
               ├──< affiliate_link_clicks  (product_id)
@@ -492,10 +547,13 @@ users ────────┬──< articles               (reviewer_id, cr
 
 articles ─────< article_versions          (article_id)
 
+affiliate_publishers ──< affiliate_configs (publisher_id)
+
 affiliate_configs ─┬──< affiliate_campaigns    (affiliate_config_id)
                    └──< affiliate_link_clicks  (affiliate_config_id)
 
-affiliate_campaigns ──< affiliate_link_clicks  (campaign_id)
+affiliate_campaigns ─┬──< affiliate_link_clicks  (campaign_id)
+                     └──< price_entries          (affiliate_campaign_id)
 
 ad_zones ─────< advertisements            (zone_id)
 

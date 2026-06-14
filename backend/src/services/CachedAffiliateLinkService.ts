@@ -1,4 +1,4 @@
-import { AffiliateLinkService, AffiliateConfig, AffiliateConfigInput, AffiliateConfigUpdate, AffiliatePerformance, ClickMetadata, DateRange } from './AffiliateLinkService';
+import { AffiliateLinkService, AffiliateConfig, AffiliateConfigInput, AffiliateConfigUpdate, AffiliatePerformance, ClickMetadata, DateRange, StoredAffiliateLinkResult, AffiliatePublisher, AffiliateCampaign, AffiliateCampaignInput, RegenerateAffiliateResult } from './AffiliateLinkService';
 import { CacheService, CacheKeys, CacheTTL } from '../utils/cache';
 
 /**
@@ -107,9 +107,45 @@ export class CachedAffiliateLinkService {
     platformId: string,
     campaignId?: string
   ): Promise<string> {
-    // Link generation is dynamic and depends on current config
-    // We use cached config lookup internally
     return this.affiliateService.generateAffiliateLink(productUrl, platformId, campaignId);
+  }
+
+  async generateStoredAffiliateLink(
+    platformId: string,
+    sourceUrl: string
+  ): Promise<StoredAffiliateLinkResult> {
+    return this.affiliateService.generateStoredAffiliateLink(platformId, sourceUrl);
+  }
+
+  async getAffiliatePublishers(includeToken = false): Promise<AffiliatePublisher[]> {
+    return this.affiliateService.getAffiliatePublishers(includeToken);
+  }
+
+  async updateAffiliatePublisher(
+    provider: string,
+    updates: { displayName?: string; appToken?: string; apiBaseUrl?: string; isEnabled?: boolean }
+  ): Promise<AffiliatePublisher> {
+    return this.affiliateService.updateAffiliatePublisher(provider, updates);
+  }
+
+  async getAffiliateCampaignsForConfig(configId: string): Promise<AffiliateCampaign[]> {
+    return this.affiliateService.getAffiliateCampaignsForConfig(configId);
+  }
+
+  async createAffiliateCampaign(input: AffiliateCampaignInput): Promise<AffiliateCampaign> {
+    return this.affiliateService.createAffiliateCampaign(input);
+  }
+
+  async setPrimaryCampaign(campaignRowId: string): Promise<AffiliateCampaign> {
+    return this.affiliateService.setPrimaryCampaign(campaignRowId);
+  }
+
+  async regenerateAffiliateUrls(params: {
+    affiliateConfigId: string;
+    fromCampaignId?: string;
+    limit?: number;
+  }): Promise<RegenerateAffiliateResult> {
+    return this.affiliateService.regenerateAffiliateUrls(params);
   }
 
   /**

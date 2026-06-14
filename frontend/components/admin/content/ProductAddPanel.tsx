@@ -20,6 +20,7 @@ interface NormalizedProduct {
   source: string;
   /** Pre-generated affiliate link — stored at seed time */
   affiliateUrl?: string;
+  affiliateCampaignId?: string;
   specifications?: Record<string, any>;
   metadata?: Record<string, any>;
 }
@@ -92,10 +93,14 @@ function AffiliateUrlInput({
   product,
   affiliateUrls,
   setAffiliateUrls,
+  affiliateCampaignIds,
+  setAffiliateCampaignIds,
 }: {
   product: NormalizedProduct;
   affiliateUrls: Record<string, string>;
   setAffiliateUrls: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  affiliateCampaignIds: Record<string, string>;
+  setAffiliateCampaignIds: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }) {
   const key = `${product.source}::${product.externalId}`;
   const value = affiliateUrls[key] ?? '';
@@ -112,6 +117,9 @@ function AffiliateUrlInput({
         body: JSON.stringify({ sourceUrl: product.sourceUrl, platformId: product.source }),
       });
       setAffiliateUrls((prev) => ({ ...prev, [key]: res.affiliateUrl }));
+      if (res.affiliateCampaignId) {
+        setAffiliateCampaignIds((prev) => ({ ...prev, [key]: res.affiliateCampaignId }));
+      }
     } catch (e: any) {
       setGenError(e.message);
     } finally {
@@ -232,6 +240,7 @@ export function ProductAddPanel({ embedded = false }: { embedded?: boolean }) {
 
   // Affiliate URLs: key = `${source}::${externalId}` → affiliate URL string
   const [affiliateUrls, setAffiliateUrls] = useState<Record<string, string>>({});
+  const [affiliateCampaignIds, setAffiliateCampaignIds] = useState<Record<string, string>>({});
   // Tiki ref code fetched from affiliate config
   const [tikiRefCode, setTikiRefCode] = useState<string | null>(null);
 
@@ -359,7 +368,9 @@ export function ProductAddPanel({ embedded = false }: { embedded?: boolean }) {
         .map((p) => {
           const key = `${p.source}::${p.externalId}`;
           const affiliateUrl = affiliateUrls[key]?.trim() || undefined;
-          return affiliateUrl ? { ...p, affiliateUrl } : p;
+          const affiliateCampaignId = affiliateCampaignIds[key]?.trim() || undefined;
+          if (!affiliateUrl) return p;
+          return affiliateCampaignId ? { ...p, affiliateUrl, affiliateCampaignId } : { ...p, affiliateUrl };
         });
 
       // Determine primary product
@@ -575,7 +586,13 @@ export function ProductAddPanel({ embedded = false }: { embedded?: boolean }) {
                 isPrimary={isPrimary(preview.primary)}
               />
               {isSelected(preview.primary) && (
-                <AffiliateUrlInput product={preview.primary} affiliateUrls={affiliateUrls} setAffiliateUrls={setAffiliateUrls} />
+                <AffiliateUrlInput
+                  product={preview.primary}
+                  affiliateUrls={affiliateUrls}
+                  setAffiliateUrls={setAffiliateUrls}
+                  affiliateCampaignIds={affiliateCampaignIds}
+                  setAffiliateCampaignIds={setAffiliateCampaignIds}
+                />
               )}
             </section>
           )}
@@ -631,7 +648,13 @@ export function ProductAddPanel({ embedded = false }: { embedded?: boolean }) {
                         )}
                       </div>
                       {isSelected(p) && (
-                        <AffiliateUrlInput product={p} affiliateUrls={affiliateUrls} setAffiliateUrls={setAffiliateUrls} />
+                        <AffiliateUrlInput
+                          product={p}
+                          affiliateUrls={affiliateUrls}
+                          setAffiliateUrls={setAffiliateUrls}
+                          affiliateCampaignIds={affiliateCampaignIds}
+                          setAffiliateCampaignIds={setAffiliateCampaignIds}
+                        />
                       )}
                     </div>
                   ))}

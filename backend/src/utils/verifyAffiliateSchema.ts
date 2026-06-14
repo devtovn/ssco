@@ -13,7 +13,40 @@ async function verifyAffiliateSchema() {
   try {
     console.log('🔍 Verifying affiliate and advertisement tables schema...\n');
 
-    // Check affiliate_configs table
+    const expectedColumns: Record<string, string[]> = {
+      affiliate_publishers: [
+        'id', 'provider', 'display_name', 'app_token', 'api_base_url',
+        'is_enabled', 'metadata', 'created_at', 'updated_at',
+      ],
+      affiliate_configs: [
+        'id', 'platform_id', 'platform_name', 'refer_code', 'link_template',
+        'link_format', 'is_enabled', 'priority', 'created_at', 'updated_at',
+        'credentials', 'publisher_id', 'provider', 'domain_patterns',
+      ],
+      affiliate_campaigns: [
+        'id', 'affiliate_config_id', 'campaign_id', 'campaign_name', 'refer_code',
+        'start_date', 'end_date', 'is_active', 'created_at',
+        'is_primary', 'notes', 'updated_at',
+      ],
+      price_entries: ['affiliate_campaign_id', 'affiliate_url_at'],
+    };
+
+    for (const [table, columns] of Object.entries(expectedColumns)) {
+      console.log(`✓ Checking ${table}...`);
+      const result = await client.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_name = $1`,
+        [table]
+      );
+      const found = new Set(result.rows.map((r) => r.column_name));
+      const missing = columns.filter((c) => !found.has(c));
+      if (missing.length > 0) {
+        throw new Error(`Missing columns on ${table}: ${missing.join(', ')}`);
+      }
+      console.log(`  OK (${found.size} columns total)`);
+    }
+
+    // Check affiliate_configs table (legacy log)
     console.log('✓ Checking affiliate_configs table...');
     const affiliateConfigsResult = await client.query(`
       SELECT column_name, data_type, is_nullable
@@ -68,11 +101,26 @@ async function verifyAffiliateSchema() {
     const indexesResult = await client.query(`
       SELECT indexname, tablename
       FROM pg_indexes
-      WHERE tablename IN ('affiliate_configs', 'affiliate_campaigns', 'affiliate_link_clicks', 'ad_zones', 'advertisements')
+      WHERE tablename IN (
+        'affiliate_publishers', 'affiliate_configs', 'affiliate_campaigns',
+        'affiliate_link_clicks', 'ad_zones', 'advertisements', 'price_entries'
+      )
       ORDER BY tablename, indexname;
     `);
     console.log(`  Found ${indexesResult.rows.length} indexes`);
     
+    // Check default AccessTrade publisher
+    console.log('\n✓ Checking affiliate publishers...');
+    const publishersResult = await client.query(`
+      SELECT provider, display_name, is_enabled
+      FROM affiliate_publishers
+      ORDER BY provider;
+    `);
+    console.log(`  Found ${publishersResult.rows.length} publisher(s)`);
+    publishersResult.rows.forEach((row) => {
+      console.log(`    - ${row.display_name} (${row.provider}): enabled=${row.is_enabled}`);
+    });
+
     // Check default affiliate configurations
     console.log('\n✓ Checking default affiliate configurations...');
     const defaultConfigsResult = await client.query(`

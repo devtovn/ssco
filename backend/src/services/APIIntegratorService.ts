@@ -25,6 +25,8 @@ export interface NormalizedProduct {
   source: string;
   /** Pre-generated affiliate link — stored at seed time, used at redirect. */
   affiliateUrl?: string;
+  /** Internal ULID of affiliate_campaigns row used when link was generated. */
+  affiliateCampaignId?: string;
   specifications?: Record<string, any>;
   metadata?: Record<string, any>;
 }

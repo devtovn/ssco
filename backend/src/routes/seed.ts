@@ -11,10 +11,6 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { z } from 'zod';
 import { dataCollectionService } from '../services/DataCollectionService';
 import { PlatformAPIService } from '../services/PlatformAPIService';
-import {
-  generateAffiliateLinkForPlatform,
-  PlatformCredentials,
-} from '../services/PlatformAffiliateService';
 import { CachedAffiliateLinkService } from '../services/CachedAffiliateLinkService';
 
 const router = Router();
@@ -57,6 +53,7 @@ const NormalizedProductSchema = z.object({
   sourceUrl: z.string(),
   source: z.string(),
   affiliateUrl: z.string().url().optional().or(z.literal('')),
+  affiliateCampaignId: z.string().length(26).optional(),
   specifications: z.record(z.any()).optional(),
   metadata: z.record(z.any()).optional(),
 });
@@ -153,32 +150,21 @@ router.post(
     const body = GenerateAffiliateSchema.parse(req.body);
     const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
 
-    // Load stored credentials for this platform
-    const config = await affiliateService.getAffiliateConfigByPlatform(body.platformId);
-    if (!config || !config.isEnabled) {
-      return res.status(404).json({
-        error: `Chưa cấu hình affiliate cho sàn "${body.platformId}". Vào Admin → Affiliate để thêm.`,
-      });
-    }
-
-    const rawCreds = (config as any).credentials;
-    if (!rawCreds) {
-      return res.status(400).json({
-        error: `Thiếu credentials cho "${body.platformId}". Vào Admin → Affiliate để cập nhật.`,
-      });
-    }
-
-    // Build typed credentials
-    let creds: PlatformCredentials;
     try {
-      creds = { platform: body.platformId, ...rawCreds } as PlatformCredentials;
+      const result = await affiliateService.generateStoredAffiliateLink(
+        body.platformId,
+        body.sourceUrl
+      );
+      return res.json({
+        affiliateUrl: result.affiliateUrl,
+        method: result.method,
+        affiliateCampaignId: result.affiliateCampaignId,
+      });
     } catch (err) {
-      console.error('[seed] build credentials failed', err);
-      return res.status(400).json({ error: 'Credentials không hợp lệ.' });
+      const message = err instanceof Error ? err.message : 'Tạo link thất bại';
+      const status = message.includes('Chưa cấu hình') ? 404 : 400;
+      return res.status(status).json({ error: message });
     }
-
-    const result = await generateAffiliateLinkForPlatform(body.sourceUrl, creds);
-    return res.json({ affiliateUrl: result.affiliateUrl, method: result.method });
   })
 );
 

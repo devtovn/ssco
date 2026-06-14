@@ -1,22 +1,69 @@
 /**
- * Affiliate domain types
+ * Affiliate domain types — aligned with PostgreSQL schema (ULID char(26))
  */
 
 import { ProductPerformance } from './product';
 
-export type AffiliateLinkFormat = 'query_param' | 'path_param' | 'subdomain' | 'custom';
+/** How affiliate links are generated for a platform config */
+export type AffiliateProviderKind = 'native' | 'accesstrade' | 'manual';
+
+export type AffiliateLinkFormatType = 'query_param' | 'path_param' | 'subdomain' | 'custom';
+
+export interface AffiliateLinkFormat {
+  type: AffiliateLinkFormatType;
+  parameterName?: string;
+  template: string;
+  exampleUrl: string;
+}
+
+/** Publisher-level credentials (e.g. AccessTrade app token shared across platforms) */
+export interface AffiliatePublisher {
+  id: string;
+  provider: string;
+  displayName: string;
+  /** Omitted in API responses when masked */
+  appToken?: string;
+  apiBaseUrl: string;
+  isEnabled: boolean;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AffiliatePublisherInput {
+  provider: string;
+  displayName: string;
+  appToken?: string;
+  apiBaseUrl?: string;
+  isEnabled?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AffiliatePublisherUpdate {
+  displayName?: string;
+  appToken?: string;
+  apiBaseUrl?: string;
+  isEnabled?: boolean;
+  metadata?: Record<string, unknown>;
+}
 
 export interface AffiliateConfig {
-  id: number;
+  id: string;
   platformId: string;
   platformName: string;
+  publisherId?: string;
+  provider: AffiliateProviderKind;
+  domainPatterns: string[];
   referCode: string;
   linkTemplate: string;
   linkFormat: AffiliateLinkFormat;
-  isActive: boolean;
+  /**
+   * Platform-specific credentials when provider = native.
+   * tiki: { refCode }, shopee: { pubId, accessToken }, etc.
+   */
+  credentials?: Record<string, string>;
+  isEnabled: boolean;
   priority: number;
-  commissionRate?: number;
-  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,70 +71,91 @@ export interface AffiliateConfig {
 export interface AffiliateConfigInput {
   platformId: string;
   platformName: string;
+  publisherId?: string;
+  provider?: AffiliateProviderKind;
+  domainPatterns?: string[];
   referCode: string;
   linkTemplate: string;
   linkFormat: AffiliateLinkFormat;
+  credentials?: Record<string, string>;
   priority?: number;
-  commissionRate?: number;
-  notes?: string;
 }
 
 export interface AffiliateConfigUpdate {
   platformName?: string;
+  publisherId?: string | null;
+  provider?: AffiliateProviderKind;
+  domainPatterns?: string[];
   referCode?: string;
   linkTemplate?: string;
   linkFormat?: AffiliateLinkFormat;
-  isActive?: boolean;
+  credentials?: Record<string, string>;
+  isEnabled?: boolean;
   priority?: number;
-  commissionRate?: number;
-  notes?: string;
 }
 
 export interface AffiliateCampaign {
-  id: number;
-  platformId: string;
+  id: string;
+  affiliateConfigId: string;
+  /** External campaign ID (e.g. AccessTrade campaign_id) */
+  campaignId: string;
   campaignName: string;
-  campaignCode: string;
+  referCode: string;
   startDate: Date;
   endDate?: Date;
   isActive: boolean;
-  targetRevenue?: number;
-  actualRevenue?: number;
+  /** Default campaign for seed / bulk regenerate */
+  isPrimary: boolean;
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface AffiliateCampaignInput {
-  platformId: string;
+  affiliateConfigId: string;
+  campaignId: string;
   campaignName: string;
-  campaignCode: string;
+  referCode: string;
   startDate: Date;
   endDate?: Date;
-  targetRevenue?: number;
+  isActive?: boolean;
+  isPrimary?: boolean;
+  notes?: string;
+}
+
+export interface AffiliateCampaignUpdate {
+  campaignName?: string;
+  referCode?: string;
+  startDate?: Date;
+  endDate?: Date | null;
+  isActive?: boolean;
+  isPrimary?: boolean;
+  notes?: string;
 }
 
 export interface AffiliateLinkClick {
-  id: number;
-  platformId: string;
-  productId: number;
-  campaignId?: number;
-  userSession: string;
-  userAgent: string;
+  id: string;
+  affiliateConfigId: string;
+  productId?: string;
+  campaignId?: string;
+  generatedLink: string;
+  userSession?: string;
+  userAgent?: string;
   referrer?: string;
-  ipAddress?: string;
   clickedAt: Date;
-  converted: boolean;
+  isConversion: boolean;
   conversionValue?: number;
+  conversionAt?: Date;
 }
 
 export interface AffiliateLinkClickInput {
   platformId: string;
-  productId: number;
-  campaignId?: number;
+  productId: string;
+  generatedLink: string;
   userSession: string;
   userAgent: string;
   referrer?: string;
-  ipAddress?: string;
+  campaignId?: string;
 }
 
 export interface AffiliatePerformance {
@@ -114,6 +182,7 @@ export interface GeneratedAffiliateLink {
   affiliateUrl: string;
   platformId: string;
   platformName: string;
-  campaignId?: number;
+  /** Internal ULID of affiliate_campaigns row used */
+  affiliateCampaignId?: string;
   expiresAt?: Date;
 }

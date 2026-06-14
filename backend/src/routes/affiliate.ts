@@ -7,21 +7,64 @@ import { z } from 'zod';
 const router = Router();
 
 // Validation schemas
+const AffiliateLinkFormatSchema = z.object({
+  type: z.enum(['query_param', 'path_param', 'subdomain', 'custom']),
+  parameterName: z.string().optional(),
+  template: z.string().min(1, 'Format template is required'),
+  exampleUrl: z.string().url('Example URL must be valid'),
+});
+
 const AffiliateConfigInputSchema = z.object({
-  platformId: z.string().min(1, 'Platform ID is required'),
-  platformName: z.string().min(1, 'Platform name is required'),
-  referCode: z.string().min(1, 'Refer code is required'),
-  linkTemplate: z.string().min(1, 'Link template is required'),
-  linkFormat: z.object({
-    type: z.enum(['query_param', 'path_param', 'subdomain', 'custom']),
-    parameterName: z.string().optional(),
-    template: z.string().min(1, 'Format template is required'),
-    exampleUrl: z.string().url('Example URL must be valid'),
-  }),
+  platformId: z.string().min(1, 'Platform ID is required').max(100),
+  platformName: z.string().min(1, 'Platform name is required').max(200),
+  publisherId: z.string().length(26).optional(),
+  provider: z.enum(['native', 'accesstrade', 'manual']).default('accesstrade'),
+  domainPatterns: z.array(z.string().min(1)).optional(),
+  referCode: z.string().max(500).optional(),
+  linkTemplate: z.string().min(1).optional(),
+  linkFormat: AffiliateLinkFormatSchema.optional(),
+  credentials: z.record(z.string()).optional().nullable(),
   priority: z.number().int().min(0).optional(),
 });
 
-const AffiliateConfigUpdateSchema = AffiliateConfigInputSchema.partial();
+const AffiliateConfigUpdateSchema = z.object({
+  platformName: z.string().min(1).max(200).optional(),
+  publisherId: z.string().length(26).nullable().optional(),
+  provider: z.enum(['native', 'accesstrade', 'manual']).optional(),
+  domainPatterns: z.array(z.string().min(1)).optional(),
+  referCode: z.string().max(500).optional(),
+  linkTemplate: z.string().min(1).optional(),
+  linkFormat: AffiliateLinkFormatSchema.optional(),
+  credentials: z.record(z.string()).optional().nullable(),
+  isEnabled: z.boolean().optional(),
+  priority: z.number().int().min(0).optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'At least one field must be provided for update',
+});
+
+const UpdatePublisherSchema = z.object({
+  displayName: z.string().min(1).max(200).optional(),
+  appToken: z.string().min(1).optional(),
+  apiBaseUrl: z.string().url().optional(),
+  isEnabled: z.boolean().optional(),
+});
+
+const CreateCampaignSchema = z.object({
+  platformId: z.string().min(1),
+  campaignId: z.string().min(1).max(100),
+  campaignName: z.string().min(1).max(200),
+  referCode: z.string().min(1).max(500),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date().optional(),
+  isPrimary: z.boolean().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+const RegenerateSchema = z.object({
+  platformId: z.string().min(1),
+  fromCampaignId: z.string().length(26).optional(),
+  limit: z.number().int().positive().max(5000).optional(),
+});
 
 const GenerateLinkSchema = z.object({
   productUrl: z.string().url('Product URL must be valid'),
@@ -223,8 +266,9 @@ router.put(
 
     const validation = AffiliateConfigUpdateSchema.safeParse(req.body);
     if (!validation.success) {
+      const detail = validation.error.errors.map((e) => e.message).join('; ');
       return res.status(400).json({
-        error: 'Validation failed',
+        error: detail || 'Validation failed',
         code: 'VALIDATION_ERROR',
         details: validation.error.errors.map((err) => ({
           path: err.path.join('.'),
@@ -597,6 +641,160 @@ router.get(
       return res.json({ destUrl, platformId, sourceUrl });
     }
     return res.redirect(302, destUrl);
+  })
+);
+
+/** Admin: list affiliate publishers (AccessTrade token, etc.) */
+router.get(
+  '/publishers',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+
+    const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
+    const includeToken = req.query.includeToken === 'true';
+    const publishers = await affiliateService.getAffiliatePublishers(includeToken);
+    res.json(publishers);
+  })
+);
+
+/** Admin: update publisher credentials */
+router.put(
+  '/publishers/:provider',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+
+    const validation = UpdatePublisherSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: 'Validation failed', details: validation.error.errors });
+    }
+
+    const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
+    const publisher = await affiliateService.updateAffiliatePublisher(
+      req.params.provider,
+      validation.data
+    );
+    res.json(publisher);
+  })
+);
+
+/** Admin: list campaigns for a platform config */
+router.get(
+  '/configs/:platformId/campaigns',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+
+    const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
+    const config = await affiliateService.getAffiliateConfigByPlatform(req.params.platformId);
+    if (!config) {
+      return res.status(404).json({ error: 'Config not found' });
+    }
+    const campaigns = await affiliateService.getAffiliateCampaignsForConfig(config.id);
+    res.json(campaigns);
+  })
+);
+
+/** Admin: create campaign */
+router.post(
+  '/campaigns',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+
+    const validation = CreateCampaignSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: 'Validation failed', details: validation.error.errors });
+    }
+
+    const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
+    const config = await affiliateService.getAffiliateConfigByPlatform(validation.data.platformId);
+    if (!config) {
+      return res.status(404).json({ error: `Chưa có config cho ${validation.data.platformId}` });
+    }
+
+    const campaign = await affiliateService.createAffiliateCampaign({
+      affiliateConfigId: config.id,
+      campaignId: validation.data.campaignId,
+      campaignName: validation.data.campaignName,
+      referCode: validation.data.referCode,
+      startDate: validation.data.startDate,
+      endDate: validation.data.endDate,
+      isPrimary: validation.data.isPrimary,
+      notes: validation.data.notes,
+    });
+    res.status(201).json(campaign);
+  })
+);
+
+/** Admin: set primary campaign (rotate) */
+router.post(
+  '/campaigns/:id/set-primary',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+
+    const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
+    const campaign = await affiliateService.setPrimaryCampaign(req.params.id);
+    res.json(campaign);
+  })
+);
+
+/** Admin: bulk regenerate affiliate_url for a platform */
+router.post(
+  '/regenerate',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authService = req.app.get('authService');
+    await new Promise<void>((resolve, reject) => {
+      authenticateJWT(authService)(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+    await new Promise<void>((resolve, reject) => {
+      requireRole('Administrator')(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    });
+
+    const validation = RegenerateSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: 'Validation failed', details: validation.error.errors });
+    }
+
+    const affiliateService = req.app.get('affiliateService') as CachedAffiliateLinkService;
+    const config = await affiliateService.getAffiliateConfigByPlatform(validation.data.platformId);
+    if (!config) {
+      return res.status(404).json({ error: 'Config not found' });
+    }
+
+    const result = await affiliateService.regenerateAffiliateUrls({
+      affiliateConfigId: config.id,
+      fromCampaignId: validation.data.fromCampaignId,
+      limit: validation.data.limit,
+    });
+    res.json(result);
   })
 );
 

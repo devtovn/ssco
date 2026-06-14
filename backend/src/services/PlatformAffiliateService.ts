@@ -44,6 +44,17 @@ export interface GenerateResult {
   method: 'auto' | 'api';
 }
 
+export interface AccessTradeCredentials {
+  appToken: string;
+  /** External AccessTrade campaign_id */
+  campaignId: string;
+}
+
+export interface StoredAffiliateResult extends GenerateResult {
+  /** Internal ULID of affiliate_campaigns row used */
+  affiliateCampaignId?: string;
+}
+
 // ── Tiki ──────────────────────────────────────────────────────────────────────
 
 /**
@@ -142,17 +153,15 @@ export async function generateShopeeAffiliateUrl(
   return { affiliateUrl: shortLink, method: 'api' };
 }
 
-// ── Lazada (AccessTrade VN) ───────────────────────────────────────────────────
+// ── AccessTrade (all platforms) ───────────────────────────────────────────────
 
 /**
- * Lazada affiliate via AccessTrade Vietnam.
- *
- * Docs: https://api.accesstrade.vn
- * Requires: App Token + Campaign ID from accesstrade.vn dashboard
+ * Generate affiliate link via AccessTrade Vietnam link_generate API.
+ * Works for Lazada, Shopee, Tiki, TikTok Shop and other AT-supported merchants.
  */
-export async function generateLazadaAffiliateUrl(
+export async function generateAccessTradeAffiliateUrl(
   sourceUrl: string,
-  creds: LazadaCredentials
+  creds: AccessTradeCredentials
 ): Promise<GenerateResult> {
   const res = await axios.post(
     'https://api.accesstrade.vn/v1/link_generate',
@@ -169,7 +178,6 @@ export async function generateLazadaAffiliateUrl(
     }
   );
 
-  // Response: { status: "success", data: { tracking_url: "https://..." } }
   if (res.data?.status !== 'success') {
     throw new Error(
       `AccessTrade API error: ${res.data?.message ?? JSON.stringify(res.data)}`
@@ -180,6 +188,24 @@ export async function generateLazadaAffiliateUrl(
   if (!affiliateUrl) throw new Error('AccessTrade returned no tracking_url');
 
   return { affiliateUrl, method: 'api' };
+}
+
+// ── Lazada (AccessTrade VN) ───────────────────────────────────────────────────
+
+/**
+ * Lazada affiliate via AccessTrade Vietnam.
+ *
+ * Docs: https://api.accesstrade.vn
+ * Requires: App Token + Campaign ID from accesstrade.vn dashboard
+ */
+export async function generateLazadaAffiliateUrl(
+  sourceUrl: string,
+  creds: LazadaCredentials
+): Promise<GenerateResult> {
+  return generateAccessTradeAffiliateUrl(sourceUrl, {
+    appToken: creds.appToken,
+    campaignId: creds.campaignId,
+  });
 }
 
 // ── Dispatcher ────────────────────────────────────────────────────────────────
