@@ -17,8 +17,5 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "=== Seeding sample data ==="
-npm run seed || echo "⚠ Seed skipped (data may already exist)"
-
 echo "=== Starting dev server ==="
 exec npm run dev

@@ -57,7 +57,7 @@ Thay `YOUR_POSTGRES_PASSWORD` bằng `POSTGRES_PASSWORD` trong `.env` (mặc đ�
 Migration sẽ:
 
 - Tạo toàn bộ schema (bảng users, products, categories, …)
-- Seed **admin**, danh mục, cấu hình affiliate (trong các migration tạo bảng)
+- Seed **admin**, cấu hình affiliate (trong các migration tạo bảng)
 
 ### 4. Khởi động lại backend (sau lần migrate đầu)
 

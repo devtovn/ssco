@@ -18,7 +18,6 @@
     "migrate:up": "tsx scripts/migrate-up.ts",
     "migrate:down": "tsx scripts/migrate-up.ts --down",
     "migrate:create": "node-pg-migrate create",
-    "seed": "tsx scripts/seed-sample-products.ts",
     "db:reset-admin": "tsx scripts/reset-admin-password.ts"
   },
   "keywords": [

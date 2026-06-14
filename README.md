@@ -78,7 +78,7 @@ Invoke-WebRequest http://localhost:4000/health -UseBasicParsing
 
 #### Bước 3 — Migration database (bắt buộc, chạy trên máy host)
 
-Migration **không** tự chạy khi `docker compose up`. Tạo bảng + seed admin, danh mục, affiliate.
+Migration **không** tự chạy khi `docker compose up`. Tạo bảng + seed admin, affiliate.
 
 ```powershell
 cd D:\Dev\SSCO\packages\types
@@ -247,7 +247,7 @@ docker compose up -d --force-recreate backend
 
 Đổi `kombe_dev_password` nếu bạn đã đổi `POSTGRES_PASSWORD` trong `.env`.
 
-Migration tạo schema, seed danh mục, affiliate, và **tài khoản admin mặc định**.
+Migration tạo schema, seed affiliate, và **tài khoản admin mặc định**.
 
 ### Bước 4: Truy cập ứng dụng
 

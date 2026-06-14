@@ -207,21 +207,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createIndex('price_entries', 'product_id',  { name: 'idx_price_entries_product_id' });
   pgm.createIndex('price_entries', 'source_name', { name: 'idx_price_entries_source' });
   pgm.createIndex('price_entries', 'scraped_at',  { name: 'idx_price_entries_scraped_at', method: 'btree', order: 'DESC' });
-
-  // Seed default categories
-  pgm.sql(`
-    INSERT INTO categories (name_vi, name_en, slug, level, display_order) VALUES
-      ('Điện lạnh',          'Refrigeration & Air Conditioning', 'dien-lanh',          0,  1),
-      ('Thiết bị gia dụng',  'Home Appliances',                  'thiet-bi-gia-dung',  0,  2),
-      ('Điện thoại',         'Mobile Phones',                    'dien-thoai',         0,  3),
-      ('Máy tính bảng',      'Tablets',                          'may-tinh-bang',      0,  4),
-      ('Laptop',             'Laptop',                           'laptop',             0,  5),
-      ('Cơ khí',             'Mechanical Equipment',             'co-khi',             0,  6),
-      ('Thiết bị văn phòng', 'Office Equipment',                 'thiet-bi-van-phong', 0,  7),
-      ('Âm thanh & Hình ảnh','Audio & Video',                    'am-thanh-hinh-anh',  0,  8),
-      ('Phụ kiện điện tử',   'Electronic Accessories',           'phu-kien-dien-tu',   0,  9),
-      ('Đồ gia dụng nhà bếp','Kitchen Appliances',               'do-gia-dung-nha-bep',0, 10)
-  `);
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {

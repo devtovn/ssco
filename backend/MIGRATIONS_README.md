@@ -67,19 +67,6 @@ Creates the core database tables:
 - Product_categories indexes: product_id, category_id, is_primary
 - Price_entries indexes: product_id, source_name, scraped_at
 
-**Default Data:**
-Seeds 10 default product categories:
-1. Điện lạnh (Refrigeration & Air Conditioning)
-2. Thiết bị gia dụng (Home Appliances)
-3. Điện thoại (Mobile Phones)
-4. Máy tính bảng (Tablets)
-5. Laptop
-6. Cơ khí (Mechanical Equipment)
-7. Thiết bị văn phòng (Office Equipment)
-8. Âm thanh & Hình ảnh (Audio & Video)
-9. Phụ kiện điện tử (Electronic Accessories)
-10. Đồ gia dụng nhà bếp (Kitchen Appliances)
-
 ## Configuration
 
 Migration configuration is stored in `backend/.migrationrc.json`:

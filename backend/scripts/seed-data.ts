@@ -20,17 +20,15 @@ async function verifySeededData() {
     console.log('VERIFYING SEEDED DATA');
     console.log('='.repeat(80) + '\n');
 
-    // Verify categories
+    // Verify categories (optional — no default seed)
     const categoriesResult = await client.query(
-      'SELECT COUNT(*) as count, array_agg(name) as names FROM categories WHERE is_active = true'
+      'SELECT COUNT(*) as count FROM categories WHERE is_active = true'
     );
     const categoriesCount = parseInt(categoriesResult.rows[0].count);
-    const categoryNames = categoriesResult.rows[0].names;
 
     console.log('📁 CATEGORIES:');
     console.log(`   Total: ${categoriesCount}`);
-    console.log(`   Names: ${categoryNames.join(', ')}`);
-    console.log('   ✅ Categories seeded successfully\n');
+    console.log('   ℹ️  No default categories seeded by migration\n');
 
     // Verify affiliate configurations
     const affiliateResult = await client.query(
@@ -64,13 +62,13 @@ async function verifySeededData() {
     console.log('='.repeat(80));
     console.log('VERIFICATION SUMMARY');
     console.log('='.repeat(80));
-    console.log(`✅ Categories: ${categoriesCount}/10 expected`);
+    console.log(`ℹ️  Categories: ${categoriesCount} (none required)`);
     console.log(`✅ Affiliate Configs: ${affiliateCount}/5 expected`);
     console.log(`✅ Admin Account: ${adminResult.rows.length}/1 expected`);
     console.log('='.repeat(80) + '\n');
 
     // Check if all expected data is present
-    if (categoriesCount >= 10 && affiliateCount >= 5 && adminResult.rows.length >= 1) {
+    if (affiliateCount >= 5 && adminResult.rows.length >= 1) {
       console.log('✅ ALL SEED DATA VERIFIED SUCCESSFULLY!\n');
       return true;
     } else {
