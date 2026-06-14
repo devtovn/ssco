@@ -1,6 +1,6 @@
 # Services
 
-This directory contains business logic services for the Product Price Comparison Website backend.
+This directory contains business logic services for the Product So Sanh Website backend.
 
 ## Structure
 

@@ -127,7 +127,7 @@ export class SEOOptimizer {
       keywords: input.keyword,
       author: {
         '@type': 'Organization',
-        name: 'SSCO Price Comparison',
+        name: 'SSCO So Sanh',
       },
     };
   }

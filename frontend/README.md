@@ -1,6 +1,6 @@
-# Product Price Comparison Website - Frontend
+# Product So Sanh Website - Frontend
 
-This is the frontend application for the Product Price Comparison Website, built with Next.js 14, TypeScript, and Tailwind CSS.
+This is the frontend application for the Product So Sanh Website, built with Next.js 14, TypeScript, and Tailwind CSS.
 
 ## Tech Stack
 

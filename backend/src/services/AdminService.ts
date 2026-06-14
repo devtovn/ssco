@@ -392,7 +392,7 @@ export class AdminService {
     return {
       id: row.id.toString(),
       logoUrl: configData.logo || '',
-      siteName: configData.siteName || 'Price Comparison',
+      siteName: configData.siteName || 'So Sanh',
       tagline: configData.tagline || '',
       theme: {
         primaryColor: configData.primaryColor || '#3B82F6',

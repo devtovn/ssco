@@ -1,6 +1,6 @@
 # Models
 
-This directory contains TypeScript interfaces and types for the Product Price Comparison Website backend.
+This directory contains TypeScript interfaces and types for the Product So Sanh Website backend.
 
 ## Structure
 

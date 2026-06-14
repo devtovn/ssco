@@ -39,7 +39,7 @@ async function testAdminEndpoints() {
       const updateConfigResponse = await axios.put(
         `${BASE_URL}/admin/config`,
         {
-          siteName: 'Test Price Comparison',
+          siteName: 'Test So Sanh',
           tagline: 'Test tagline',
           primaryColor: '#FF5733'
         },

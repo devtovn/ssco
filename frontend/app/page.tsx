@@ -89,7 +89,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     );
   }
 
-  /* ── Price comparison tab (default) ──────────────────────────── */
+  /* ── So Sanh tab (default) ──────────────────────────── */
   const [categories, keywords, deals] = await Promise.all([
     getCategoryTree().catch((err) => { console.error('[HomePage] getCategoryTree', err); return []; }),
     getPopularKeywords(8).catch((err) => { console.error('[HomePage] getPopularKeywords', err); return []; }),

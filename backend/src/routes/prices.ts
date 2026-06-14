@@ -1,6 +1,6 @@
 /**
  * Price Routes
- * REST API endpoints for price comparison
+ * REST API endpoints for So Sanh
  */
 
 import { Router, Request, Response } from 'express';
@@ -15,7 +15,7 @@ const router = Router();
  * /api/products/{id}/prices:
  *   get:
  *     summary: Get product prices
- *     description: Get price comparison from all sources for a product
+ *     description: Get So Sanh from all sources for a product
  *     tags: [Prices]
  *     parameters:
  *       - in: path
@@ -26,7 +26,7 @@ const router = Router();
  *         description: Product ID
  *     responses:
  *       200:
- *         description: Price comparison retrieved successfully
+ *         description: So Sanh retrieved successfully
  *         content:
  *           application/json:
  *             schema:

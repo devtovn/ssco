@@ -93,7 +93,7 @@ src/
 ## API Documentation Verification
 
 ### OpenAPI 3.0 Configuration
-- ✅ API title: "Product Price Comparison API"
+- ✅ API title: "Product So Sanh API"
 - ✅ Version: 1.0.0
 - ✅ Description: Comprehensive API description
 - ✅ Contact information configured

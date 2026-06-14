@@ -52,7 +52,7 @@ export class SearchService {
 }
 ```
 
-### Example 2: Price Comparison Service
+### Example 2: So Sanh Service
 
 ```typescript
 // backend/src/services/PriceComparisonService.ts
@@ -317,7 +317,7 @@ export function ProductCard({ product, lowestPrice }: ProductCardProps) {
 }
 ```
 
-### Example 3: Price Comparison Component
+### Example 3: So Sanh Component
 
 ```typescript
 // frontend/components/PriceComparison.tsx
@@ -341,7 +341,7 @@ export function PriceComparisonTable({ productId }: PriceComparisonProps) {
 
   return (
     <div className="price-comparison">
-      <h2>Price Comparison</h2>
+      <h2>So Sanh</h2>
       <table>
         <thead>
           <tr>

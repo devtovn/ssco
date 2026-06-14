@@ -1,6 +1,6 @@
 # SSCO Design System
 
-**SSCO** ("So Sánh Giá" = "Price Comparison" in Vietnamese) is a public Vietnamese price-comparison website that aggregates listings from Tiki, Lazada, Shopee, TikTok Shop and other Vietnamese retailers. Visitors can search and compare prices anonymously; the site monetizes through affiliate links and managed ad zones. Two authenticated roles — **Administrator** (system config, ads, reviewers, affiliate, categories, analytics) and **Reviewer** (AI-assisted article generation, edit, approve/reject, publish) — operate from sidebar dashboards behind `/login`.
+**SSCO** ("So Sánh Giá" = "So Sanh" in Vietnamese) is a public Vietnamese price-comparison website that aggregates listings from Tiki, Lazada, Shopee, TikTok Shop and other Vietnamese retailers. Visitors can search and compare prices anonymously; the site monetizes through affiliate links and managed ad zones. Two authenticated roles — **Administrator** (system config, ads, reviewers, affiliate, categories, analytics) and **Reviewer** (AI-assisted article generation, edit, approve/reject, publish) — operate from sidebar dashboards behind `/login`.
 
 This design system captures the **tokens, components, and screens** of the live SSCO frontend so future designs stay consistent.
 

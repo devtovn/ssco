@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "version": "1.0.0",
-  "description": "Product Price Comparison Website - Frontend",
+  "description": "Product So Sanh Website - Frontend",
   "private": true,
   "scripts": {
     "dev": "next dev",

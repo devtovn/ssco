@@ -85,7 +85,7 @@ async function testAdminService() {
     // Restore original config
     console.log('8. Restoring original website config...');
     await adminService.updateWebsiteConfig({
-      siteName: 'Price Comparison',
+      siteName: 'So Sanh',
       theme: { primaryColor: '#3B82F6' },
     });
     console.log('✅ Config restored');

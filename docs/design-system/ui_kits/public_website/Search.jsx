@@ -98,7 +98,7 @@ function SearchFilters({ filters, setFilters, brands, categories, priceRange }) 
   );
 }
 
-// ─── Price comparison table ─────────────────────────────────────────
+// ─── So Sanh table ─────────────────────────────────────────
 function PriceComparisonTable({ rows, lowestId, onGo, productId }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">

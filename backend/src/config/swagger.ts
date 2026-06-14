@@ -4,10 +4,10 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Product Price Comparison API',
+      title: 'Product So Sanh API',
       version: '1.0.0',
       description:
-        'API documentation for the Product Price Comparison Website - A public-facing web application for the Vietnamese market that enables users to search and compare product prices from multiple e-commerce platforms.',
+        'API documentation for the Product So Sanh Website - A public-facing web application for the Vietnamese market that enables users to search and compare product prices from multiple e-commerce platforms.',
       contact: {
         name: 'API Support',
         email: 'support@pricecomparison.vn',
@@ -162,7 +162,7 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: 'Products',
-        description: 'Product information and price comparison endpoints (public access)',
+        description: 'Product information and So Sanh endpoints (public access)',
       },
       {
         name: 'Categories',

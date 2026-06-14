@@ -13,7 +13,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       notNull: true,
       default: JSON.stringify({
         logo: '',
-        siteName: 'Price Comparison',
+        siteName: 'So Sanh',
         tagline: 'So sánh giá tốt nhất',
         primaryColor: '#3B82F6',
         secondaryColor: '#10B981',
@@ -43,7 +43,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     INSERT INTO website_config (id, config_data)
     VALUES (1, '${JSON.stringify({
       logo: '',
-      siteName: 'Price Comparison',
+      siteName: 'So Sanh',
       tagline: 'So sánh giá tốt nhất',
       primaryColor: '#3B82F6',
       secondaryColor: '#10B981',

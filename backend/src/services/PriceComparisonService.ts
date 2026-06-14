@@ -1,5 +1,5 @@
 /**
- * Price Comparison Service
+ * So Sanh Service
  * Handles price aggregation, comparison, history, and best deals
  */
 

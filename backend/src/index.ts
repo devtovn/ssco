@@ -82,7 +82,7 @@ const authRateLimiter = createRateLimiter({
 app.get('/', (_req, res) => {
   res.status(200).json({
     status: 'ok',
-    message: 'Price Comparison API',
+    message: 'So Sanh API',
     health: '/health',
     docs: `${API_PREFIX}/docs`,
     api: API_PREFIX,

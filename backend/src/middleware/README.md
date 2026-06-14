@@ -1,6 +1,6 @@
 # Middleware
 
-This directory contains Express middleware functions for the Product Price Comparison Website backend.
+This directory contains Express middleware functions for the Product So Sanh Website backend.
 
 ## Available Middleware
 

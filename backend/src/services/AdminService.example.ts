@@ -26,7 +26,7 @@ async function getWebsiteConfigExample() {
     {
       id: '123e4567-e89b-12d3-a456-426614174000',
       logoUrl: 'https://example.com/logo.png',
-      siteName: 'Product Price Comparison',
+      siteName: 'Product So Sanh',
       tagline: 'So sánh giá sản phẩm từ nhiều nguồn',
       theme: {
         primaryColor: '#3B82F6',
@@ -50,7 +50,7 @@ async function getWebsiteConfigExample() {
 async function updateWebsiteConfigExample() {
   try {
     const updatedConfig = await adminService.updateWebsiteConfig({
-      siteName: 'My Price Comparison Site',
+      siteName: 'My So Sanh Site',
       tagline: 'Find the best deals online',
       logoUrl: 'https://example.com/new-logo.png',
       theme: {

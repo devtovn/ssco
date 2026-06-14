@@ -51,7 +51,7 @@ const product: Product = {
 
 ### Price Types (`price.ts`)
 - `PriceEntry` - Individual price from a source
-- `PriceComparison` - Multi-source price comparison
+- `PriceComparison` - Multi-source So Sanh
 - `PriceHistory` - Historical price data
 - `PriceRange` - Min/max price range
 - `Deal` - Special deal/discount information
@@ -154,7 +154,7 @@ The package is built using `tsup` and generates:
 
 This package satisfies the following requirements:
 - **Requirement 4.1**: Type definitions for public product search
-- **Requirement 5.1**: Type definitions for price comparison
+- **Requirement 5.1**: Type definitions for So Sanh
 - **Requirement 11.1**: Type definitions for category management
 - **Requirement 12.1**: Type definitions for affiliate link management
 
