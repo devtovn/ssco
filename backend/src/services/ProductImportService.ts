@@ -6,7 +6,7 @@ import { Pool, PoolClient } from 'pg';
 import { pool } from '../config/database';
 import { slugify } from './PlatformAPIService';
 
-const TIKI_HEADERS = ['sku', 'name', 'url', 'price', 'discount', 'image', 'desc', 'category'] as const;
+const TIKI_HEADERS = ['sku', 'name', 'url', 'price', 'discount', 'image', 'desc', 'category', 'keywords'] as const;
 
 export interface ImportRowError {
   row: number;
@@ -30,7 +30,8 @@ export interface TikiCsvRow {
   discount: number;
   image?: string;
   desc?: string;
-  categoryRoot: string;
+  categoryName: string;
+  keywords: string[];
 }
 
 /** Parse RFC4180-style CSV (quoted fields, commas inside quotes). */
@@ -84,11 +85,29 @@ export function parseCsvRows(content: string): string[][] {
   return rows;
 }
 
-/** First segment of Tiki category breadcrumb (exact name for categories.name_vi). */
-export function parseTikiCategoryRoot(raw: string): string {
-  const decoded = raw.replace(/&gt;/gi, '>').replace(/&amp;/gi, '&');
-  const first = decoded.split('>')[0]?.trim() ?? '';
-  return first;
+/** Category name from CSV (already normalized — use as categories.name_vi). */
+export function parseTikiCategoryName(raw: string): string {
+  return raw.replace(/&gt;/gi, '>').replace(/&amp;/gi, '&').trim();
+}
+
+/** Parse keywords cell: `"a","b","c"` or plain comma-separated. */
+export function parseTikiKeywords(raw: string): string[] {
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+
+  const quoted: string[] = [];
+  const re = /"([^"]*)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(trimmed)) !== null) {
+    const kw = match[1].trim();
+    if (kw) quoted.push(kw);
+  }
+  if (quoted.length > 0) return quoted;
+
+  return trimmed
+    .split(',')
+    .map((s) => s.trim().replace(/^"|"$/g, ''))
+    .filter(Boolean);
 }
 
 function parseTikiRows(csv: string): { rows: TikiCsvRow[]; errors: ImportRowError[] } {
@@ -142,16 +161,17 @@ function parseTikiRows(csv: string): { rows: TikiCsvRow[]; errors: ImportRowErro
     }
 
     const categoryRaw = get('category');
-    const categoryRoot = categoryRaw ? parseTikiCategoryRoot(categoryRaw) : '';
-    if (!categoryRoot) {
-      errors.push({ row: rowNum, sku, message: 'Thiếu category hoặc segment đầu rỗng' });
+    const categoryName = categoryRaw ? parseTikiCategoryName(categoryRaw) : '';
+    if (!categoryName) {
+      errors.push({ row: rowNum, sku, message: 'Thiếu category' });
       continue;
     }
 
+    const keywords = parseTikiKeywords(get('keywords'));
     const image = get('image') || undefined;
     const desc = get('desc') || undefined;
 
-    rows.push({ sku, name, url, discount, image, desc, categoryRoot });
+    rows.push({ sku, name, url, discount, image, desc, categoryName, keywords });
   }
 
   return { rows, errors };
@@ -197,7 +217,7 @@ export class ProductImportService {
     try {
       await client.query('BEGIN');
 
-      const category = await this.resolveCategory(client, row.categoryRoot);
+      const category = await this.resolveCategory(client, row.categoryName);
       const existing = await client.query<{ id: string; product_id: string }>(
         `SELECT id, product_id FROM price_entries
          WHERE source_name = 'tiki' AND external_id = $1
@@ -222,7 +242,7 @@ export class ProductImportService {
             row.desc ?? null,
             row.image ? [row.image] : null,
             category.slug,
-            row.name.split(/\s+/).slice(0, 10),
+            row.keywords,
             productId,
           ]
         );
@@ -263,7 +283,7 @@ export class ProductImportService {
           row.desc ?? null,
           category.slug,
           row.image ? [row.image] : null,
-          row.name.split(/\s+/).slice(0, 10),
+          row.keywords,
         ]
       );
 

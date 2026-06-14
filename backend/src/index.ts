@@ -64,7 +64,7 @@ app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000' }));
 app.use(compression());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-app.use(express.json());
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '100mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(metricsMiddleware);
 

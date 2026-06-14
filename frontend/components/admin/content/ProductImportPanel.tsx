@@ -118,9 +118,11 @@ export function ProductImportPanel({ embedded = false }: { embedded?: boolean })
         </div>
 
         <p className="mb-4 text-xs text-slate-500">
-          Cột bắt buộc: sku, name, url, price, discount, image, desc, category. Giá lấy từ{' '}
-          <code className="rounded bg-slate-100 px-1">discount</code>; danh mục = segment đầu
-          của <code className="rounded bg-slate-100 px-1">category</code> (split bởi &gt;).
+          Cột bắt buộc: sku, name, url, price, discount, image, desc, category, keywords. Giá lấy từ{' '}
+          <code className="rounded bg-slate-100 px-1">discount</code>;{' '}
+          <code className="rounded bg-slate-100 px-1">category</code> là tên danh mục (tự tạo nếu chưa có);{' '}
+          <code className="rounded bg-slate-100 px-1">keywords</code> ghi vào{' '}
+          <code className="rounded bg-slate-100 px-1">products.keywords</code>.
         </p>
 
         <button

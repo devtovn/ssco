@@ -627,12 +627,13 @@ router.get(
     const pool = req.app.get('pool') as Pool;
     const category = (req.query.category as string) || null;
     const q = (req.query.q as string) || null;
+    const isActiveParam = req.query.isActive as string | undefined;
     const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
     const page = Math.max(parseInt(req.query.page as string, 10) || 1, 1);
     const offset = (page - 1) * limit;
 
     const conditions: string[] = [];
-    const params: (string | number | null)[] = [];
+    const params: (string | number | boolean | null)[] = [];
 
     if (category) {
       params.push(category);
@@ -645,6 +646,12 @@ router.get(
       conditions.push(`(p.name ILIKE $${i} OR p.brand ILIKE $${i} OR p.model ILIKE $${i})`);
     }
 
+    if (isActiveParam === 'true') {
+      conditions.push('p.is_active = true');
+    } else if (isActiveParam === 'false') {
+      conditions.push('p.is_active = false');
+    }
+
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const countResult = await pool.query(
@@ -655,20 +662,28 @@ router.get(
 
     params.push(limit, offset);
     const dataResult = await pool.query(
-      `SELECT p.id, p.name, p.brand, p.model, p.category AS category_slug,
+      `SELECT p.id, p.slug, p.name, p.brand, p.model, p.source_type,
+              p.category AS category_slug,
               c.name_vi AS category_name,
               p.is_active, p.created_at,
               p.hidden_sources,
               COUNT(DISTINCT pe.id)::int AS price_count,
-              MIN(pe.price) AS min_price,
+              MIN(pe.price) FILTER (
+                WHERE pe.is_available = true
+                  AND NOT (pe.source_name = ANY(COALESCE(p.hidden_sources, '{}')))
+              ) AS min_price,
               MAX(pe.price) AS max_price,
-              ARRAY(SELECT DISTINCT pe2.source_name FROM price_entries pe2
-                    WHERE pe2.product_id = p.id AND pe2.is_available = true) AS available_sources
+              ARRAY(
+                SELECT DISTINCT pe2.source_name FROM price_entries pe2
+                WHERE pe2.product_id = p.id AND pe2.is_available = true
+                ORDER BY pe2.source_name
+              ) AS available_sources
        FROM products p
        LEFT JOIN categories c ON c.slug = p.category
        LEFT JOIN price_entries pe ON pe.product_id = p.id AND pe.is_available = true
        ${where}
-       GROUP BY p.id, p.name, p.brand, p.model, p.category, c.name_vi, p.is_active, p.created_at, p.updated_at, p.hidden_sources
+       GROUP BY p.id, p.slug, p.name, p.brand, p.model, p.source_type, p.category, c.name_vi,
+                p.is_active, p.created_at, p.updated_at, p.hidden_sources
        ORDER BY COALESCE(p.updated_at, p.created_at) DESC
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params
@@ -737,6 +752,35 @@ router.delete(
   })
 );
 
+router.get(
+  '/products/:id/price-entries',
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await requireAdmin(req, res);
+    if (res.headersSent) return;
+
+    const { id } = req.params;
+    const pool = req.app.get('pool') as Pool;
+
+    const result = await pool.query(
+      `SELECT id, source_name, external_id, source_url, affiliate_url,
+              price, currency, is_available, scraped_at
+       FROM price_entries
+       WHERE product_id = $1
+       ORDER BY price ASC, source_name ASC`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      const exists = await pool.query('SELECT id FROM products WHERE id = $1', [id]);
+      if (exists.rowCount === 0) {
+        return res.status(404).json({ error: 'Sản phẩm không tồn tại' });
+      }
+    }
+
+    res.json({ success: true, data: result.rows });
+  })
+);
+
 router.patch(
   '/products/:id',
   asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -776,7 +820,7 @@ router.patch(
 
     const result = await pool.query(
       `UPDATE products SET ${setClauses.join(', ')} WHERE id = $${vals.length}
-       RETURNING id, name, category, is_active, slug`,
+       RETURNING id, name, category, is_active, slug, hidden_sources`,
       vals
     );
 
