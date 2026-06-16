@@ -267,7 +267,7 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const result = await queryRead(
       `SELECT
-         p.id, p.slug, p.name, p.brand, p.description, p.images,
+         p.id, p.slug, p.name, p.brand, p.description, p.images, p.keywords,
          c.id        AS category_id,
          c.name_vi   AS category_name,
          c.slug      AS category_slug
@@ -299,6 +299,7 @@ router.get(
         categoryId: row.category_id || null,
         categoryName: row.category_name || null,
         categorySlug: row.category_slug || null,
+        keywords: row.keywords || [],
       },
     });
   })

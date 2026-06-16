@@ -104,12 +104,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const lowestSource = comparison.lowestPrice?.source || 'tiki';
 
-  const relatedKeywords = [
-    comparison.productName + ' giá rẻ',
-    comparison.productName + ' chính hãng',
-    ...(product?.brand ? [product.brand + ' ' + comparison.productName.split(/\s+/).slice(-2).join(' ')] : []),
-    comparison.productName + ' ' + (product?.categoryName || ''),
-  ].filter(Boolean).slice(0, 6);
+  const relatedKeywords = (product?.keywords ?? []).filter(Boolean);
 
   const breadcrumbItems = [
     { label: 'Trang chủ', href: '/' },
@@ -167,20 +162,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
               <VoucherTable source={lowestSource} isLowest />
             </div>
 
-            <div className="mt-5">
-              <h3 className="mb-2 text-sm font-bold text-slate-900">Từ khóa liên quan</h3>
-              <div className="flex flex-wrap gap-2">
-                {relatedKeywords.map((k) => (
-                  <Link
-                    key={k}
-                    href={`/search?q=${encodeURIComponent(k)}`}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
-                  >
-                    {k}
-                  </Link>
-                ))}
+            {relatedKeywords.length > 0 && (
+              <div className="mt-5">
+                <h3 className="mb-2 text-sm font-bold text-slate-900">Từ khóa liên quan</h3>
+                <div className="flex flex-wrap gap-2">
+                  {relatedKeywords.map((k) => (
+                    <Link
+                      key={k}
+                      href={`/search?q=${encodeURIComponent(k)}`}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+                    >
+                      {k}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

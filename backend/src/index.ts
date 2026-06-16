@@ -159,7 +159,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info('Server started', {
     port: PORT,
     docsUrl: `http://localhost:${PORT}${API_PREFIX}/docs`,
@@ -167,5 +167,10 @@ app.listen(PORT, () => {
     metricsUrl: `http://localhost:${PORT}/metrics`,
   });
 });
+
+const importTimeoutMs = parseInt(process.env.IMPORT_TIMEOUT_MS || String(30 * 60 * 1000), 10);
+server.timeout = importTimeoutMs;
+server.requestTimeout = importTimeoutMs;
+server.headersTimeout = importTimeoutMs + 60_000;
 
 export default app;

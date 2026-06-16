@@ -20,31 +20,35 @@ interface ImportResult {
   errors: ImportError[];
 }
 
+function formatFetchError(err: unknown): string {
+  if (!(err instanceof Error)) return 'Import thất bại';
+  if (err.message === 'Failed to fetch') {
+    return (
+      'Không kết nối được server (Failed to fetch). ' +
+      'Kiểm tra backend đang chạy, restart sau khi cập nhật JSON_BODY_LIMIT=100mb, ' +
+      'và đợi vài phút — file ~50MB cần thời gian upload + xử lý.'
+    );
+  }
+  return err.message;
+}
+
 export function ProductImportPanel({ embedded = false }: { embedded?: boolean }) {
   const [platform, setPlatform] = useState<'tiki'>('tiki');
-  const [fileName, setFileName] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const csvRef = useRef<string>('');
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
+    const picked = e.target.files?.[0] ?? null;
+    setFile(picked);
     setError(null);
     setResult(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      csvRef.current = String(reader.result ?? '');
-    };
-    reader.onerror = () => setError('Không đọc được file');
-    reader.readAsText(file, 'UTF-8');
   }
 
   async function handleImport() {
-    if (!csvRef.current.trim()) {
+    if (!file) {
       setError('Chọn file CSV trước khi import');
       return;
     }
@@ -60,21 +64,25 @@ export function ProductImportPanel({ embedded = false }: { embedded?: boolean })
     setResult(null);
 
     try {
-      const res = await fetch(buildApiUrl('/admin/import/products'), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ platform, csv: csvRef.current }),
-      });
-      const json = await res.json();
+      const res = await fetch(
+        buildApiUrl('/admin/import/products', { platform }),
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'text/csv; charset=utf-8',
+          },
+          body: file,
+        }
+      );
+
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(json.error?.message ?? json.message ?? json.error ?? 'Import thất bại');
       }
       setResult(json as ImportResult);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Import thất bại');
+      setError(formatFetchError(e));
     } finally {
       setLoading(false);
     }
@@ -112,8 +120,10 @@ export function ProductImportPanel({ embedded = false }: { embedded?: boolean })
             onChange={handleFileChange}
             className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-700 hover:file:bg-primary-100"
           />
-          {fileName && (
-            <p className="mt-1 text-xs text-slate-500">Đã chọn: {fileName}</p>
+          {file && (
+            <p className="mt-1 text-xs text-slate-500">
+              Đã chọn: {file.name} ({(file.size / 1024 / 1024).toFixed(1)} MB)
+            </p>
           )}
         </div>
 
@@ -123,15 +133,16 @@ export function ProductImportPanel({ embedded = false }: { embedded?: boolean })
           <code className="rounded bg-slate-100 px-1">category</code> là tên danh mục (tự tạo nếu chưa có);{' '}
           <code className="rounded bg-slate-100 px-1">keywords</code> ghi vào{' '}
           <code className="rounded bg-slate-100 px-1">products.keywords</code>.
+          File lớn (~50MB) có thể mất vài phút — không đóng tab.
         </p>
 
         <button
           type="button"
           onClick={handleImport}
-          disabled={loading || !fileName}
+          disabled={loading || !file}
           className="rounded-lg bg-primary-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? 'Đang import…' : 'Import'}
+          {loading ? 'Đang import… (có thể mất vài phút)' : 'Import'}
         </button>
       </div>
 

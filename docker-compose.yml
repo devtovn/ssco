@@ -94,6 +94,7 @@ services:
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
       RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
       JSON_BODY_LIMIT: ${JSON_BODY_LIMIT:-100mb}
+      IMPORT_TIMEOUT_MS: ${IMPORT_TIMEOUT_MS:-1800000}
 
       # File watching (polling for Windows host volume mounts)
       CHOKIDAR_USEPOLLING: "true"

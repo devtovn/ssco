@@ -10,6 +10,7 @@ export interface ProductDetail {
   categoryId: string | null;
   categoryName: string | null;
   categorySlug: string | null;
+  keywords: string[];
 }
 
 export async function getProductById(productId: string): Promise<ProductDetail> {

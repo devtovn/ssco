@@ -167,7 +167,7 @@ function parseTikiRows(csv: string): { rows: TikiCsvRow[]; errors: ImportRowErro
       continue;
     }
 
-    const keywords = parseTikiKeywords(get('keywords'));
+    const keywords = parseTikiKeywords((cells[colIndex.keywords] ?? '').trim());
     const image = get('image') || undefined;
     const desc = get('desc') || undefined;
 
@@ -191,126 +191,159 @@ export class ProductImportService {
       errors: [...parseErrors],
     };
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const rowNum = i + 2 + parseErrors.length;
-      try {
-        const action = await this.upsertTikiRow(row);
-        if (action === 'created') result.created++;
-        else result.updated++;
-      } catch (err) {
-        result.failed++;
-        result.errors.push({
-          row: rowNum,
-          sku: row.sku,
-          message: err instanceof Error ? err.message : String(err),
-        });
+    if (rows.length === 0) {
+      return result;
+    }
+
+    const categoryCache = new Map<string, { id: string; slug: string }>();
+    const client = await this.db.connect();
+    const BATCH_SIZE = 200;
+
+    try {
+      await client.query(`SET statement_timeout = 0`);
+
+      for (let start = 0; start < rows.length; start += BATCH_SIZE) {
+        const batch = rows.slice(start, start + BATCH_SIZE);
+        const firstRowNum = start + 2;
+
+        try {
+          await client.query('BEGIN');
+          const actions: Array<'created' | 'updated'> = [];
+          for (const row of batch) {
+            actions.push(await this.upsertTikiRowWithClient(client, row, categoryCache));
+          }
+          await client.query('COMMIT');
+          for (const action of actions) {
+            if (action === 'created') result.created++;
+            else result.updated++;
+          }
+        } catch {
+          await client.query('ROLLBACK');
+          for (let i = 0; i < batch.length; i++) {
+            const row = batch[i];
+            const rowNum = firstRowNum + i;
+            try {
+              await client.query('BEGIN');
+              const action = await this.upsertTikiRowWithClient(client, row, categoryCache);
+              await client.query('COMMIT');
+              if (action === 'created') result.created++;
+              else result.updated++;
+            } catch (err) {
+              await client.query('ROLLBACK');
+              result.failed++;
+              result.errors.push({
+                row: rowNum,
+                sku: row.sku,
+                message: err instanceof Error ? err.message : String(err),
+              });
+            }
+          }
+        }
       }
+    } finally {
+      client.release();
     }
 
     result.total = rows.length + parseErrors.length;
     return result;
   }
 
-  private async upsertTikiRow(row: TikiCsvRow): Promise<'created' | 'updated'> {
-    const client = await this.db.connect();
-    try {
-      await client.query('BEGIN');
+  private async upsertTikiRowWithClient(
+    client: PoolClient,
+    row: TikiCsvRow,
+    categoryCache: Map<string, { id: string; slug: string }>
+  ): Promise<'created' | 'updated'> {
+    let category = categoryCache.get(row.categoryName);
+    if (!category) {
+      category = await this.resolveCategory(client, row.categoryName);
+      categoryCache.set(row.categoryName, category);
+    }
 
-      const category = await this.resolveCategory(client, row.categoryName);
-      const existing = await client.query<{ id: string; product_id: string }>(
-        `SELECT id, product_id FROM price_entries
-         WHERE source_name = 'tiki' AND external_id = $1
-         LIMIT 1`,
-        [row.sku]
-      );
+    const existing = await client.query<{ id: string; product_id: string }>(
+      `SELECT id, product_id FROM price_entries
+       WHERE source_name = 'tiki' AND external_id = $1
+       LIMIT 1`,
+      [row.sku]
+    );
 
-      if (existing.rows.length > 0) {
-        const { id: priceEntryId, product_id: productId } = existing.rows[0];
+    if (existing.rows.length > 0) {
+      const { id: priceEntryId, product_id: productId } = existing.rows[0];
 
-        await client.query(
-          `UPDATE products SET
-             name = $1,
-             description = $2,
-             images = $3,
-             category = $4,
-             keywords = $5,
-             updated_at = NOW()
-           WHERE id = $6`,
-          [
-            row.name,
-            row.desc ?? null,
-            row.image ? [row.image] : null,
-            category.slug,
-            row.keywords,
-            productId,
-          ]
-        );
-
-        await client.query(
-          `INSERT INTO product_categories (product_id, category_id, is_primary)
-           VALUES ($1, $2, true)
-           ON CONFLICT (product_id, category_id) DO UPDATE SET is_primary = true`,
-          [productId, category.id]
-        );
-
-        await client.query(
-          `UPDATE price_entries SET
-             source_url = $1,
-             price = $2,
-             currency = 'VND',
-             is_available = true,
-             metadata = NULL,
-             scraped_at = NOW()
-           WHERE id = $3`,
-          [row.url, row.discount, priceEntryId]
-        );
-
-        await client.query('COMMIT');
-        return 'updated';
-      }
-
-      const slug = await this.resolveUniqueProductSlug(client, slugify(row.name) || `tiki-${row.sku}`);
-
-      const productRes = await client.query<{ id: string }>(
-        `INSERT INTO products
-           (name, slug, description, category, brand, images, keywords, is_active, hidden_sources, source_type)
-         VALUES ($1, $2, $3, $4, NULL, $5, $6, false, '{}', 'tiki')
-         RETURNING id`,
+      await client.query(
+        `UPDATE products SET
+           name = $1,
+           description = $2,
+           images = $3,
+           category = $4,
+           keywords = $5,
+           updated_at = NOW()
+         WHERE id = $6`,
         [
           row.name,
-          slug,
           row.desc ?? null,
-          category.slug,
           row.image ? [row.image] : null,
+          category.slug,
           row.keywords,
+          productId,
         ]
       );
-
-      const productId = productRes.rows[0].id;
 
       await client.query(
         `INSERT INTO product_categories (product_id, category_id, is_primary)
          VALUES ($1, $2, true)
-         ON CONFLICT (product_id, category_id) DO NOTHING`,
+         ON CONFLICT (product_id, category_id) DO UPDATE SET is_primary = true`,
         [productId, category.id]
       );
 
       await client.query(
-        `INSERT INTO price_entries
-           (product_id, source_name, external_id, source_url, price, currency, is_available, metadata, scraped_at)
-         VALUES ($1, 'tiki', $2, $3, $4, 'VND', true, NULL, NOW())`,
-        [productId, row.sku, row.url, row.discount]
+        `UPDATE price_entries SET
+           source_url = $1,
+           price = $2,
+           currency = 'VND',
+           is_available = true,
+           metadata = NULL,
+           scraped_at = NOW()
+         WHERE id = $3`,
+        [row.url, row.discount, priceEntryId]
       );
 
-      await client.query('COMMIT');
-      return 'created';
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
+      return 'updated';
     }
+
+    const slug = await this.resolveUniqueProductSlug(client, slugify(row.name) || `tiki-${row.sku}`);
+
+    const productRes = await client.query<{ id: string }>(
+      `INSERT INTO products
+         (name, slug, description, category, brand, images, keywords, is_active, hidden_sources, source_type)
+       VALUES ($1, $2, $3, $4, NULL, $5, $6, false, '{}', 'tiki')
+       RETURNING id`,
+      [
+        row.name,
+        slug,
+        row.desc ?? null,
+        category.slug,
+        row.image ? [row.image] : null,
+        row.keywords,
+      ]
+    );
+
+    const productId = productRes.rows[0].id;
+
+    await client.query(
+      `INSERT INTO product_categories (product_id, category_id, is_primary)
+       VALUES ($1, $2, true)
+       ON CONFLICT (product_id, category_id) DO NOTHING`,
+      [productId, category.id]
+    );
+
+    await client.query(
+      `INSERT INTO price_entries
+         (product_id, source_name, external_id, source_url, price, currency, is_available, metadata, scraped_at)
+       VALUES ($1, 'tiki', $2, $3, $4, 'VND', true, NULL, NOW())`,
+      [productId, row.sku, row.url, row.discount]
+    );
+
+    return 'created';
   }
 
   private async resolveCategory(

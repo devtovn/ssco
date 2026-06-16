@@ -42,9 +42,18 @@ describe('ProductImportService helpers', () => {
       ]);
     });
 
-    it('returns empty array for blank cell', () => {
-      expect(parseTikiKeywords('')).toEqual([]);
-      expect(parseTikiKeywords('   ')).toEqual([]);
+    it('parses keywords from import row getter (no outer-quote strip)', () => {
+      const csv = `"sku","name","url","price","discount","image","desc","category","keywords"
+"118954","Sách A","https://tiki.vn/p.html","298000.0","149000.0","https://img.jpg","desc","Sách -Truyện","""Nhà Sách Tiki"",""Sách tiếng Việt"",""Luyện thi IELTS"""`;
+      const parsed = parseCsvRows(csv.trim());
+      const header = parsed[0].map((h) => h.trim().toLowerCase().replace(/^"|"$/g, ''));
+      const colIndex = Object.fromEntries(header.map((h, i) => [h, i])) as Record<string, number>;
+      const raw = (parsed[1][colIndex.keywords] ?? '').trim();
+      expect(parseTikiKeywords(raw)).toEqual([
+        'Nhà Sách Tiki',
+        'Sách tiếng Việt',
+        'Luyện thi IELTS',
+      ]);
     });
   });
 });
