@@ -1,7 +1,14 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  AdjustmentsHorizontalIcon,
+  ViewColumnsIcon,
+  DevicePhoneMobileIcon,
+} from '@heroicons/react/24/outline';
 import { apiFetchWithAuth } from '@/lib/auth';
+
+type Tab = 'Chung' | 'Layout' | 'Master';
 
 interface WebsiteConfig {
   id?: string;
@@ -13,10 +20,17 @@ interface WebsiteConfig {
     secondaryColor?: string;
     fontFamily?: string;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
+const TABS: { value: Tab; Icon: typeof AdjustmentsHorizontalIcon }[] = [
+  { value: 'Chung', Icon: AdjustmentsHorizontalIcon },
+  { value: 'Layout', Icon: ViewColumnsIcon },
+  { value: 'Master', Icon: DevicePhoneMobileIcon },
+];
+
 export default function AdminConfigPage() {
+  const [tab, setTab] = useState<Tab>('Chung');
   const [config, setConfig] = useState<WebsiteConfig>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,48 +40,8 @@ export default function AdminConfigPage() {
   const [error, setError] = useState('');
 
   const gadgetAutoPublish = config.metadata?.gadget_auto_publish === true;
-
-  const layoutMode: string = config.metadata?.layout_mode ?? 'boxed';
+  const layoutMode: string = (config.metadata?.layout_mode as string) ?? 'boxed';
   const layoutMaxWidth: string = String(config.metadata?.layout_max_width ?? '');
-
-  function setLayoutMode(mode: string) {
-    setConfig({
-      ...config,
-      metadata: { ...(config.metadata ?? {}), layout_mode: mode },
-    });
-  }
-
-  function setLayoutMaxWidth(val: string) {
-    const num = parseInt(val, 10);
-    setConfig({
-      ...config,
-      metadata: { ...(config.metadata ?? {}), layout_max_width: isNaN(num) ? '' : num },
-    });
-  }
-
-  async function handleSaveLayout() {
-    setSavingLayout(true);
-    setError('');
-    try {
-      const meta = { ...(config.metadata ?? {}), layout_mode: layoutMode };
-      if (layoutMode === 'custom') {
-        const w = parseInt(layoutMaxWidth, 10);
-        meta.layout_max_width = isNaN(w) || w < 600 ? 1200 : w;
-      } else {
-        delete meta.layout_max_width;
-      }
-      const result = await apiFetchWithAuth<{ config: WebsiteConfig }>('/admin/config', {
-        method: 'PUT',
-        body: JSON.stringify({ metadata: meta }),
-      });
-      setConfig(result.config ?? { ...config, metadata: meta });
-      setMessage('Đã lưu cấu hình layout');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lưu thất bại');
-    } finally {
-      setSavingLayout(false);
-    }
-  }
 
   useEffect(() => {
     apiFetchWithAuth<WebsiteConfig>('/admin/config')
@@ -76,12 +50,20 @@ export default function AdminConfigPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleSubmit(e: FormEvent) {
+  function setLayoutMode(mode: string) {
+    setConfig({ ...config, metadata: { ...(config.metadata ?? {}), layout_mode: mode } });
+  }
+
+  function setLayoutMaxWidth(val: string) {
+    const num = parseInt(val, 10);
+    setConfig({ ...config, metadata: { ...(config.metadata ?? {}), layout_max_width: isNaN(num) ? '' : num } });
+  }
+
+  async function handleSaveChung(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setMessage('');
     setError('');
-
     try {
       const theme = {
         primaryColor: config.theme?.primaryColor || undefined,
@@ -104,6 +86,30 @@ export default function AdminConfigPage() {
       setError(err instanceof Error ? err.message : 'Lưu thất bại');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveLayout() {
+    setSavingLayout(true);
+    setError('');
+    try {
+      const meta: Record<string, unknown> = { ...(config.metadata ?? {}), layout_mode: layoutMode };
+      if (layoutMode === 'custom') {
+        const w = parseInt(layoutMaxWidth, 10);
+        meta.layout_max_width = isNaN(w) || w < 600 ? 1200 : w;
+      } else {
+        delete meta.layout_max_width;
+      }
+      const result = await apiFetchWithAuth<{ config: WebsiteConfig }>('/admin/config', {
+        method: 'PUT',
+        body: JSON.stringify({ metadata: meta }),
+      });
+      setConfig(result.config ?? { ...config, metadata: meta });
+      setMessage('Đã lưu cấu hình layout');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Lưu thất bại');
+    } finally {
+      setSavingLayout(false);
     }
   }
 
@@ -131,181 +137,201 @@ export default function AdminConfigPage() {
   }
 
   return (
-    <div className="max-w-xl space-y-8">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Cấu hình website</h1>
         <p className="mt-1 text-sm text-slate-600">Thương hiệu và giao diện trang chủ</p>
       </div>
 
-      {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-      )}
-      {message && (
-        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>
-      )}
+      <div className="flex gap-6">
+        {/* Vertical menu */}
+        <nav className="flex w-44 shrink-0 flex-col gap-1">
+          {TABS.map(({ value, Icon }) => {
+            const active = tab === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => { setTab(value); setMessage(''); setError(''); }}
+                className={`flex items-center gap-2.5 rounded-lg border-l-2 px-3 py-2.5 text-left text-sm font-medium transition ${
+                  active
+                    ? 'border-primary-600 bg-primary-50 text-primary-700'
+                    : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-primary-700'
+                }`}
+              >
+                <Icon className="h-5 w-5 shrink-0" aria-hidden />
+                {value}
+              </button>
+            );
+          })}
+        </nav>
 
-      {/* ── General config ── */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <h2 className="font-semibold text-slate-800">Thông tin chung</h2>
+        {/* Panel */}
+        <div className="min-w-0 max-w-xl flex-1 space-y-6">
+          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {message && <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>}
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Tên website</label>
-          <input
-            value={config.siteName ?? ''}
-            onChange={(e) => setConfig({ ...config, siteName: e.target.value })}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
+          {/* ── Chung ── */}
+          {tab === 'Chung' && (
+            <form onSubmit={handleSaveChung} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="font-semibold text-slate-800">Thông tin chung</h2>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Khẩu hiệu</label>
-          <input
-            value={config.tagline ?? ''}
-            onChange={(e) => setConfig({ ...config, tagline: e.target.value })}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">URL logo</label>
-          <input
-            type="url"
-            value={config.logoUrl ?? ''}
-            onChange={(e) => setConfig({ ...config, logoUrl: e.target.value })}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Màu chính</label>
-          <input
-            type="text"
-            placeholder="#0ea5e9"
-            value={config.theme?.primaryColor ?? ''}
-            onChange={(e) => setConfig({ ...config, theme: { ...config.theme, primaryColor: e.target.value } })}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Màu phụ</label>
-          <input
-            type="text"
-            placeholder="#0369a1"
-            value={config.theme?.secondaryColor ?? ''}
-            onChange={(e) => setConfig({ ...config, theme: { ...config.theme, secondaryColor: e.target.value } })}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
-        >
-          {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
-        </button>
-      </form>
-
-      {/* ── Layout settings ── */}
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="font-semibold text-slate-800">Bố cục trang (Layout)</h2>
-        <p className="text-xs text-slate-500">
-          Chọn kiểu hiển thị chiều rộng nội dung trang công khai.
-        </p>
-
-        <div className="space-y-3">
-          {[
-            { value: 'boxed', label: 'Boxed', desc: 'Nội dung giới hạn 1152px, nền trắng (mặc định)' },
-            { value: 'full-width', label: 'Full-width', desc: 'Kiểu Tiki — nội dung 1280px, nền xám, header/footer full viewport' },
-            { value: 'custom', label: 'Tuỳ chọn', desc: 'Nhập giá trị max-width tùy ý (px)' },
-          ].map((opt) => (
-            <label
-              key={opt.value}
-              className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition ${
-                layoutMode === opt.value
-                  ? 'border-primary-400 bg-primary-50'
-                  : 'border-slate-200 bg-slate-50 hover:border-slate-300'
-              }`}
-            >
-              <input
-                type="radio"
-                name="layoutMode"
-                value={opt.value}
-                checked={layoutMode === opt.value}
-                onChange={() => setLayoutMode(opt.value)}
-                className="mt-0.5 accent-primary-600"
-              />
-              <div>
-                <p className="text-sm font-medium text-slate-800">{opt.label}</p>
-                <p className="text-xs text-slate-500">{opt.desc}</p>
-              </div>
-            </label>
-          ))}
-        </div>
-
-        {layoutMode === 'custom' && (
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              Max-width (px)
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Tên website</label>
             <input
-              type="number"
-              min={600}
-              max={3000}
-              step={10}
-              placeholder="1200"
-              value={layoutMaxWidth}
-              onChange={(e) => setLayoutMaxWidth(e.target.value)}
-              className="w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              value={config.siteName ?? ''}
+              onChange={(e) => setConfig({ ...config, siteName: e.target.value })}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
-            <p className="mt-1 text-xs text-slate-400">Từ 600px đến 3000px</p>
           </div>
-        )}
 
-        <button
-          type="button"
-          disabled={savingLayout}
-          onClick={handleSaveLayout}
-          className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
-        >
-          {savingLayout ? 'Đang lưu...' : 'Lưu layout'}
-        </button>
-      </div>
-
-      {/* ── Gadget settings ── */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 font-semibold text-slate-800">📱 So sánh Thiết bị</h2>
-        <p className="mb-4 text-xs text-slate-500">
-          Thiết lập liên quan đến module So sánh Thiết bị (GSMArena).
-        </p>
-
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <div>
-            <p className="text-sm font-medium text-slate-800">Tự động publish sau khi crawl</p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {gadgetAutoPublish
-                ? 'Bật — thiết bị được publish ngay sau khi lưu'
-                : 'Tắt — thiết bị ở trạng thái Draft, cần vào Admin → Thiết bị để Publish'}
-            </p>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Khẩu hiệu</label>
+            <input
+              value={config.tagline ?? ''}
+              onChange={(e) => setConfig({ ...config, tagline: e.target.value })}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
           </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">URL logo</label>
+            <input
+              type="url"
+              value={config.logoUrl ?? ''}
+              onChange={(e) => setConfig({ ...config, logoUrl: e.target.value })}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Màu chính</label>
+            <input
+              type="text"
+              placeholder="#0ea5e9"
+              value={config.theme?.primaryColor ?? ''}
+              onChange={(e) => setConfig({ ...config, theme: { ...config.theme, primaryColor: e.target.value } })}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Màu phụ</label>
+            <input
+              type="text"
+              placeholder="#0369a1"
+              value={config.theme?.secondaryColor ?? ''}
+              onChange={(e) => setConfig({ ...config, theme: { ...config.theme, secondaryColor: e.target.value } })}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+          >
+            {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
+          </button>
+        </form>
+      )}
+
+      {/* ── Layout ── */}
+      {tab === 'Layout' && (
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="font-semibold text-slate-800">Bố cục trang (Layout)</h2>
+          <p className="text-xs text-slate-500">Chọn kiểu hiển thị chiều rộng nội dung trang công khai.</p>
+
+          <div className="space-y-3">
+            {[
+              { value: 'boxed', label: 'Boxed', desc: 'Nội dung giới hạn 1152px, nền trắng (mặc định)' },
+              { value: 'full-width', label: 'Full-width', desc: 'Kiểu Tiki — nội dung 1280px, nền xám, header/footer full viewport' },
+              { value: 'custom', label: 'Tuỳ chọn', desc: 'Nhập giá trị max-width tùy ý (px)' },
+            ].map((opt) => (
+              <label
+                key={opt.value}
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition ${
+                  layoutMode === opt.value
+                    ? 'border-primary-400 bg-primary-50'
+                    : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="layoutMode"
+                  value={opt.value}
+                  checked={layoutMode === opt.value}
+                  onChange={() => setLayoutMode(opt.value)}
+                  className="mt-0.5 accent-primary-600"
+                />
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{opt.label}</p>
+                  <p className="text-xs text-slate-500">{opt.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {layoutMode === 'custom' && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Max-width (px)</label>
+              <input
+                type="number"
+                min={600}
+                max={3000}
+                step={10}
+                placeholder="1200"
+                value={layoutMaxWidth}
+                onChange={(e) => setLayoutMaxWidth(e.target.value)}
+                className="w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+              <p className="mt-1 text-xs text-slate-400">Từ 600px đến 3000px</p>
+            </div>
+          )}
+
           <button
             type="button"
-            disabled={savingGadget}
-            onClick={() => handleGadgetAutoPublish(!gadgetAutoPublish)}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-              gadgetAutoPublish ? 'bg-primary-600' : 'bg-slate-300'
-            } disabled:opacity-40`}
+            disabled={savingLayout}
+            onClick={handleSaveLayout}
+            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
           >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                gadgetAutoPublish ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
+            {savingLayout ? 'Đang lưu...' : 'Lưu layout'}
           </button>
+        </div>
+      )}
+
+      {/* ── Master ── */}
+      {tab === 'Master' && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-1 font-semibold text-slate-800">So sánh Thiết bị</h2>
+          <p className="mb-4 text-xs text-slate-500">Thiết lập liên quan đến module So sánh Thiết bị (GSMArena).</p>
+
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-slate-800">Tự động publish sau khi crawl</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {gadgetAutoPublish
+                  ? 'Bật — thiết bị được publish ngay sau khi lưu'
+                  : 'Tắt — thiết bị ở trạng thái Draft, cần vào Admin → Thiết bị để Publish'}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={savingGadget}
+              onClick={() => handleGadgetAutoPublish(!gadgetAutoPublish)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                gadgetAutoPublish ? 'bg-primary-600' : 'bg-slate-300'
+              } disabled:opacity-40`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  gadgetAutoPublish ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+          )}
         </div>
       </div>
     </div>
