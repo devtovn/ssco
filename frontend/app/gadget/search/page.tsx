@@ -38,7 +38,8 @@ export default async function GadgetSearchPage({ searchParams }: Props) {
 
   return (
     <PublicLayout>
-      <section className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+      <section>
+        <div className="layout-container px-4 py-6 sm:py-10">
         {/* Back + title */}
         <div className="mb-6 flex items-center gap-3">
           <Link href="/gadget" className="text-sm text-primary-600 hover:underline">← Chọn hãng</Link>
@@ -117,6 +118,7 @@ export default async function GadgetSearchPage({ searchParams }: Props) {
             )}
           </div>
         )}
+        </div>
       </section>
     </PublicLayout>
   );

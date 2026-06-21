@@ -19,7 +19,8 @@ export default async function DealsPage() {
 
   return (
     <PublicLayout>
-      <section className="mx-auto max-w-6xl px-4 py-8">
+      <section>
+        <div className="layout-container px-4 py-8">
         <h1 className="text-3xl font-bold text-slate-900">Ưu đãi tốt nhất</h1>
         <p className="mt-2 text-slate-600">Sản phẩm đang giảm giá mạnh trên các sàn</p>
 
@@ -65,6 +66,7 @@ export default async function DealsPage() {
             ))}
           </div>
         )}
+        </div>
       </section>
     </PublicLayout>
   );

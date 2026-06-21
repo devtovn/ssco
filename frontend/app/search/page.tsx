@@ -89,13 +89,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <PublicLayout>
       {jsonLd && <JsonLd data={jsonLd} />}
-      <section className="mx-auto max-w-6xl bg-slate-50 px-4 py-8">
+      <section className="bg-slate-50">
+        <div className="layout-container px-4 py-8">
         <h1 className="text-2xl font-bold text-slate-900">
           {keyword ? `Kết quả cho "${keyword}"` : 'Tìm kiếm sản phẩm'}
         </h1>
         <Suspense fallback={<p className="mt-4 text-slate-500">Đang tải…</p>}>
           <SearchResults keyword={keyword} results={results} error={error} page={page} />
         </Suspense>
+        </div>
       </section>
     </PublicLayout>
   );

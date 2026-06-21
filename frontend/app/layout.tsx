@@ -48,16 +48,25 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { siteName } = await getSiteConfig();
+  const { siteName, layoutMode, layoutMaxWidth } = await getSiteConfig();
+
+  const layoutCssVar =
+    layoutMode === 'full-width'
+      ? '1280px'
+      : layoutMode === 'custom' && layoutMaxWidth
+        ? `${layoutMaxWidth}px`
+        : '72rem'; // boxed default = max-w-6xl
+
+  const isFullWidth = layoutMode === 'full-width';
 
   return (
-    <html lang="vi" className={inter.variable}>
+    <html lang="vi" className={inter.variable} style={{ '--layout-max-width': layoutCssVar } as React.CSSProperties}>
       <head>
         <link rel="preconnect" href={apiUrl} />
         <link rel="dns-prefetch" href={apiUrl} />
       </head>
-      <body className="font-sans antialiased">
-        <SiteConfigProvider siteName={siteName}>
+      <body className={`font-sans antialiased ${isFullWidth ? 'layout-full-width' : ''}`}>
+        <SiteConfigProvider siteName={siteName} layoutMode={layoutMode} layoutMaxWidth={layoutMaxWidth}>
           <ErrorBoundary>{children}</ErrorBoundary>
           <PwaInstallPrompt />
         </SiteConfigProvider>

@@ -38,7 +38,7 @@ const adminNav: SidebarGroup[] = [
     group: 'Nội dung',
     items: [
       { href: '/admin/categories', label: 'Danh mục' },
-      { href: '/admin/content/add', label: 'Thêm Nội dung' },
+      { href: '/admin/content/add', label: 'Thêm' },
     ],
   },
   {

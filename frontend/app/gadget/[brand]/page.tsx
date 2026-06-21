@@ -38,7 +38,8 @@ export default async function BrandPage({ params, searchParams }: Props) {
 
   return (
     <PublicLayout>
-      <section className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+      <section>
+        <div className="layout-container px-4 py-6 sm:py-10">
         {/* Brand header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">{brand.name}</h1>
@@ -94,6 +95,7 @@ export default async function BrandPage({ params, searchParams }: Props) {
         {devices.length === 0 && (
           <p className="mt-12 text-center text-slate-500">Chưa có thiết bị nào.</p>
         )}
+        </div>
       </section>
     </PublicLayout>
   );

@@ -64,7 +64,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   return (
     <PublicLayout>
       <JsonLd data={jsonLd} />
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <div>
+        <div className="layout-container px-4 py-8">
         <Breadcrumbs
           items={[
             { label: 'Trang chủ', href: '/' },
@@ -127,6 +128,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </article>
           </AdSidebarLayout>
         </div>
+      </div>
       </div>
     </PublicLayout>
   );

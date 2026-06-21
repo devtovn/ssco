@@ -9,6 +9,9 @@ export interface CategoryProduct {
   brand?: string;
   images?: string[] | string;
   lowest_price?: number;
+  lowest_source?: string;
+  source_count?: number;
+  sources?: string[];
   created_at?: string;
 }
 

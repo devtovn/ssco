@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mockup — Danh mục 2 cột + sàn bán | SSCO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff', 100: '#e0f2fe', 600: '#0284c7', 700: '#0369a1',
+            },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; }
+    .platform-logo {
+      display: inline-flex;
+      height: 1.25rem;
+      width: 1.25rem;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 0.375rem;
+      background: #fff;
+      box-shadow: 0 0 0 1px rgb(226 232 240);
+    }
+    .platform-logo img, .platform-logo svg {
+      display: block;
+      height: 100%;
+      width: 100%;
+      object-fit: contain;
+      padding: 2px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+  <!-- Mockup banner -->
+  <div class="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900">
+    <strong>Mockup UI</strong> — Trang <code class="rounded bg-white/80 px-1">/danh-muc/[slug]</code> · layout 2 cột + số sàn bán · chưa áp dụng vào code
+  </div>
+
+  <div class="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-slate-500">
+      <a href="#" class="hover:text-primary-600">Trang chủ</a>
+      <span class="mx-1.5">/</span>
+      <span class="text-slate-700">Sách -Truyện</span>
+    </nav>
+
+    <!-- Category header -->
+    <div class="mt-4 flex items-center gap-3 sm:mt-6">
+      <span class="text-4xl sm:text-5xl" aria-hidden>📚</span>
+      <div>
+        <h1 class="text-2xl font-bold sm:text-3xl">Sách -Truyện</h1>
+        <p class="text-sm text-slate-500">44.019 sản phẩm · cập nhật mỗi 6 giờ</p>
+      </div>
+    </div>
+
+    <!-- Variant tabs (visual only) -->
+    <div class="mt-8 flex flex-wrap gap-2">
+      <button type="button" class="rounded-full bg-primary-600 px-4 py-1.5 text-sm font-medium text-white">Phương án A — gọn</button>
+      <button type="button" class="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm text-slate-600">Phương án B — chi tiết</button>
+    </div>
+
+    <p class="mt-3 max-w-2xl text-sm text-slate-600">
+      Desktop: <strong>2 cột</strong>, card ngang (ảnh trái — nội dung phải) để title hiển thị gần trọn vẹn (3–4 dòng).
+      Mỗi card thêm dòng <strong>số sàn đang bán</strong> và tên sàn.
+    </p>
+
+    <!-- ═══ PHƯƠNG ÁN A — gọn: "3 sàn" + pill tên sàn ═══ -->
+    <section class="mt-10">
+      <h2 class="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Phương án A — nhãn gọn</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+
+        <!-- Card 1 -->
+        <a href="#" class="group flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-primary-300 hover:shadow-md sm:gap-4 sm:p-4">
+          <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-28 sm:w-28">
+            <img src="https://salt.tikicdn.com/ts/tmp/e6/b1/06/92782c2dd5d2e5802e60b6cd241546c1.jpg" alt="" class="h-full w-full object-cover" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-semibold leading-snug text-slate-900 group-hover:text-primary-700 sm:text-[15px] sm:leading-snug">
+              Sách IELTS Success Formula Academic Kèm CD
+            </h3>
+            <p class="mt-2 text-lg font-bold text-primary-600">149.000 ₫</p>
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">1 sàn</span>
+              <span class="rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-semibold text-primary-700">Tiki</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Card 2 — multi platform -->
+        <a href="#" class="group flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-primary-300 hover:shadow-md sm:gap-4 sm:p-4">
+          <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-28 sm:w-28">
+            <div class="flex h-full items-center justify-center text-3xl">📦</div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-semibold leading-snug text-slate-900 group-hover:text-primary-700 sm:text-[15px]">
+              Apple iPhone 15 Pro Max 256GB Chính hãng VN/A — Bảo hành 12 tháng
+            </h3>
+            <p class="mt-2 text-lg font-bold text-primary-600">28.490.000 ₫</p>
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">3 sàn</span>
+              <span class="rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-semibold text-primary-700">Tiki</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">Shopee</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">Lazada</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Card 3 — long title -->
+        <a href="#" class="group flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-primary-300 hover:shadow-md sm:gap-4 sm:p-4">
+          <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-28 sm:w-28">
+            <div class="flex h-full items-center justify-center text-3xl">📦</div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-semibold leading-snug text-slate-900 group-hover:text-primary-700 sm:text-[15px]">
+              Sách Collins - Listening for IELTS Quét Mã QR Để Nghe File Mp3 (Bản in mới 2024)
+            </h3>
+            <p class="mt-2 text-lg font-bold text-primary-600">117.000 ₫</p>
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">2 sàn</span>
+              <span class="rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-semibold text-primary-700">Tiki</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">Shopee</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Card 4 -->
+        <a href="#" class="group flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-primary-300 hover:shadow-md sm:gap-4 sm:p-4">
+          <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-28 sm:w-28">
+            <div class="flex h-full items-center justify-center text-3xl">📦</div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-semibold leading-snug text-slate-900 group-hover:text-primary-700 sm:text-[15px]">
+              Nồi Cơm Điện Tử Cuckoo CR-0631F 1L - Hàng Chính Hãng
+            </h3>
+            <p class="mt-2 text-lg font-bold text-primary-600">1.890.000 ₫</p>
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">4 sàn</span>
+              <span class="rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-semibold text-primary-700">Tiki</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">Shopee</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">Lazada</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">TikTok</span>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ═══ PHƯƠNG ÁN B — chi tiết: icon sàn + "Rẻ nhất: Tiki" ═══ -->
+    <section class="mt-14 border-t border-slate-200 pt-10">
+      <h2 class="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Phương án B — chi tiết hơn</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+
+        <a href="#" class="group flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-primary-300 hover:shadow-md sm:gap-4 sm:p-4">
+          <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-28 sm:w-28">
+            <img src="https://salt.tikicdn.com/ts/product/c2/c9/11/701047210222cbad06db0ed6fdfc745a.jpg" alt="" class="h-full w-full object-cover" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-semibold leading-snug text-slate-900 group-hover:text-primary-700 sm:text-[15px]">
+              Sách Cánh Chim Kiêu Hãnh
+            </h3>
+            <p class="mt-2 text-lg font-bold text-primary-600">38.475 ₫</p>
+            <div class="mt-2 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1">
+                <span class="platform-logo" title="Tiki"><img src="assets/platforms/tiki.png" alt="Tiki" /></span>
+              </div>
+              <span class="text-[11px] text-slate-500">1 nơi bán</span>
+            </div>
+            <p class="mt-1 text-[11px] text-green-700">
+              <span class="rounded-full bg-green-50 px-1.5 py-0.5 font-medium">Rẻ nhất</span>
+              trên Tiki
+            </p>
+          </div>
+        </a>
+
+        <a href="#" class="group flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-primary-300 hover:shadow-md sm:gap-4 sm:p-4">
+          <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-28 sm:w-28">
+            <div class="flex h-full items-center justify-center text-3xl">📦</div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-semibold leading-snug text-slate-900 group-hover:text-primary-700 sm:text-[15px]">
+              Tai nghe Sony WH-1000XM5 Chống ồn chủ động — Bản quốc tế, fullbox
+            </h3>
+            <p class="mt-2 text-lg font-bold text-primary-600">6.790.000 ₫</p>
+            <div class="mt-2 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1">
+                <span class="platform-logo" title="Tiki"><img src="assets/platforms/tiki.png" alt="Tiki" /></span>
+                <span class="platform-logo" title="Shopee"><img src="assets/platforms/shopee.svg" alt="Shopee" /></span>
+                <span class="platform-logo" title="Lazada"><img src="assets/platforms/lazada.png" alt="Lazada" /></span>
+                <span class="flex -space-x-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">+1</span>
+              </div>
+              <span class="text-[11px] text-slate-500">4 nơi bán</span>
+            </div>
+            <p class="mt-1 text-[11px] text-green-700">
+              <span class="rounded-full bg-green-50 px-1.5 py-0.5 font-medium">Rẻ nhất</span>
+              trên Shopee
+            </p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Mobile preview -->
+    <section class="mt-14 border-t border-slate-200 pt-10">
+      <h2 class="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Mobile — 1 cột (giữ card ngang)</h2>
+      <div class="mx-auto max-w-sm">
+        <a href="#" class="group flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+            <div class="flex h-full items-center justify-center text-2xl">📦</div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-semibold leading-snug text-slate-900">Sách New Eye Of The TOEIC Không CD</h3>
+            <p class="mt-1.5 text-base font-bold text-primary-600">133.000 ₫</p>
+            <div class="mt-1.5 flex flex-wrap items-center gap-1">
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">2 sàn</span>
+              <span class="rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-semibold text-primary-700">Tiki</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700">Shopee</span>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Notes -->
+    <aside class="mt-12 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
+      <h3 class="font-semibold text-slate-900">Ghi chú cho dev</h3>
+      <ul class="mt-2 list-inside list-disc space-y-1">
+        <li><strong>Grid:</strong> <code>sm:grid-cols-2</code> thay vì 3–4 cột hiện tại.</li>
+        <li><strong>Title:</strong> bỏ <code>line-clamp-2</code>, cho phép 3–4 dòng (<code>line-clamp-4</code> hoặc không clamp).</li>
+        <li><strong>Dữ liệu:</strong> đếm <code>price_entries</code> theo <code>product_id</code> (distinct <code>source_name</code>).</li>
+        <li><strong>Hiển thị:</strong> "N sàn" + tên sàn; sàn rẻ nhất có thể highlight (phương án B).</li>
+        <li>Ưu tiên <strong>phương án A</strong> nếu muốn gọn, ít màu thương hiệu sàn.</li>
+      </ul>
+    </aside>
+  </div>
+</body>
+</html>

@@ -40,7 +40,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+      <div className="layout-container flex items-center gap-3 px-4 py-3">
         {/* Logo — icon only, no text */}
         <Link href="/" className="shrink-0" aria-label={siteName}>
           <svg viewBox="0 0 64 64" className="h-7 w-7" aria-hidden="true">
@@ -94,7 +94,7 @@ export function Header() {
       {/* Mobile nav dropdown */}
       {mobileOpen && (
         <div className="border-t border-slate-200 bg-white md:hidden">
-          <nav className="mx-auto flex max-w-6xl flex-col px-4 py-2">
+          <nav className="layout-container flex flex-col px-4 py-2">
             <Link href="/search"   className="border-b border-slate-100 py-3 text-sm font-medium text-slate-700 hover:text-primary-600" onClick={() => setMobileOpen(false)}>Tìm kiếm</Link>
             <Link href="/deals"    className="border-b border-slate-100 py-3 text-sm font-medium text-slate-700 hover:text-primary-600" onClick={() => setMobileOpen(false)}>Ưu đãi</Link>
             <Link href="/bai-viet" className="py-3 text-sm font-medium text-slate-700 hover:text-primary-600"                           onClick={() => setMobileOpen(false)}>Bài viết</Link>

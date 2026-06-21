@@ -87,4 +87,28 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Layout width — controlled via --layout-max-width CSS variable set on <html> */
+  .layout-container {
+    max-width: var(--layout-max-width, 72rem); /* 72rem = 1152px = max-w-6xl */
+    margin-inline: auto;
+  }
+
+}
+
+/* ── Full-width (Tiki-style) layout ── */
+body.layout-full-width {
+  background-color: #f5f5fa;
+}
+
+/* Sections inside full-width get full-viewport bg + contained inner content */
+body.layout-full-width main > section,
+body.layout-full-width main > div {
+  width: 100%;
+}
+
+/* Header & footer keep white bg in full-width mode */
+body.layout-full-width header,
+body.layout-full-width footer {
+  background-color: #fff;
 }

@@ -13,8 +13,6 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const [active, setActive] = useState(0);
   const main = list[active];
 
-  const thumbCount = Math.max(list.length, 4);
-
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
       <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-slate-100">
@@ -34,29 +32,24 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
         )}
       </div>
 
-      <div className="mt-4 flex gap-2">
-        {Array.from({ length: Math.min(thumbCount, 4) }).map((_, i) => {
-          const img = list[i];
-          return (
+      {list.length > 1 && (
+        <div className="mt-4 flex gap-2">
+          {list.map((img, i) => (
             <button
               key={i}
               type="button"
-              onClick={() => img && setActive(i)}
+              onClick={() => setActive(i)}
               className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 bg-slate-100 sm:h-16 sm:w-16 ${
-                i === active && img ? 'border-primary-400' : 'border-slate-200'
+                i === active ? 'border-primary-400' : 'border-slate-200'
               }`}
             >
-              {img ? (
-                <div className="relative h-full w-full">
-                  <Image src={img} alt="" fill className="object-cover" sizes="64px" />
-                </div>
-              ) : (
-                <span className="text-lg" aria-hidden>📦</span>
-              )}
+              <div className="relative h-full w-full">
+                <Image src={img} alt="" fill className="object-cover" sizes="64px" />
+              </div>
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -118,7 +118,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
     <PublicLayout>
       <ProductViewTracker productId={resolvedId} />
       <JsonLd data={jsonLd} />
-      <section className="mx-auto max-w-6xl px-4 py-5 sm:py-8">
+      <section>
+        <div className="layout-container px-4 py-5 sm:py-8">
         <Breadcrumbs items={breadcrumbItems} />
 
         <div className="mt-4 grid gap-6 sm:mt-6 sm:gap-8 lg:grid-cols-[420px_1fr]">
@@ -193,6 +194,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
         <RelatedProducts products={related} searchKeyword={keyword} />
         <YouMightAlsoLike deals={crossCategoryDeals} />
+        </div>
       </section>
     </PublicLayout>
   );

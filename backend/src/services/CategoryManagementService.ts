@@ -341,14 +341,50 @@ export class CategoryManagementService {
       categoryIds = [categoryId, ...descendants];
     }
     
-    // Get products — use materialized view for cheapest price (no per-row subquery)
+    // Get products with price/source aggregation (respects hidden_sources)
     const productsQuery = `
-      SELECT DISTINCT p.*, cp.price AS lowest_price
+      SELECT
+        p.id,
+        p.slug,
+        p.name,
+        p.brand,
+        p.images,
+        p.created_at,
+        MIN(pe.price) FILTER (
+          WHERE pe.is_available = true
+            AND pe.scraped_at >= NOW() - INTERVAL '30 days'
+            AND NOT (pe.source_name = ANY(COALESCE(p.hidden_sources, '{}')))
+        ) AS lowest_price,
+        (
+          SELECT pe2.source_name
+          FROM price_entries pe2
+          WHERE pe2.product_id = p.id
+            AND pe2.is_available = true
+            AND pe2.scraped_at >= NOW() - INTERVAL '30 days'
+            AND NOT (pe2.source_name = ANY(COALESCE(p.hidden_sources, '{}')))
+          ORDER BY pe2.price ASC, pe2.scraped_at DESC
+          LIMIT 1
+        ) AS lowest_source,
+        COUNT(DISTINCT pe.source_name) FILTER (
+          WHERE pe.is_available = true
+            AND pe.scraped_at >= NOW() - INTERVAL '30 days'
+            AND NOT (pe.source_name = ANY(COALESCE(p.hidden_sources, '{}')))
+        )::int AS source_count,
+        ARRAY(
+          SELECT DISTINCT pe3.source_name
+          FROM price_entries pe3
+          WHERE pe3.product_id = p.id
+            AND pe3.is_available = true
+            AND pe3.scraped_at >= NOW() - INTERVAL '30 days'
+            AND NOT (pe3.source_name = ANY(COALESCE(p.hidden_sources, '{}')))
+          ORDER BY pe3.source_name
+        ) AS sources
       FROM products p
       INNER JOIN product_categories pc ON p.id = pc.product_id
-      LEFT JOIN cheapest_prices cp ON cp.product_id = p.id
+      LEFT JOIN price_entries pe ON pe.product_id = p.id
       WHERE pc.category_id = ANY($1::text[])
         AND p.is_active = true
+      GROUP BY p.id, p.slug, p.name, p.brand, p.images, p.created_at, p.hidden_sources
       ORDER BY p.created_at DESC
       LIMIT $2 OFFSET $3
     `;

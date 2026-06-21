@@ -22,10 +22,12 @@ router.get(
         siteName: config.siteName ?? null,
         tagline: config.tagline ?? null,
         logoUrl: config.logoUrl ?? null,
+        layoutMode: config.metadata?.layout_mode ?? 'boxed',
+        layoutMaxWidth: config.metadata?.layout_max_width ?? null,
       });
     } catch (err) {
       console.error('[public] getWebsiteConfig failed', err);
-      res.json({ siteName: null, tagline: null, logoUrl: null });
+      res.json({ siteName: null, tagline: null, logoUrl: null, layoutMode: 'boxed', layoutMaxWidth: null });
     }
   })
 );

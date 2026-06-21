@@ -15,15 +15,19 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   return (
     <>
       <Header />
-      <AdZone position="header" className="mx-auto max-w-6xl px-4 py-2" />
+      <div className="layout-container px-4 py-2">
+        <AdZone position="header" />
+      </div>
       <ErrorBoundary>
         <main className="min-h-screen">{children}</main>
       </ErrorBoundary>
       <AdZone position="floating" className="fixed bottom-4 right-4 z-50 shadow-lg" />
       <AdZone position="overlay" className="fixed bottom-4 left-4 z-50 shadow-lg" />
       <footer className="border-t border-slate-200 bg-slate-50">
-        <AdZone position="footer" className="mx-auto max-w-6xl px-4 py-4" />
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+        <div className="layout-container px-4 py-4">
+          <AdZone position="footer" />
+        </div>
+        <div className="layout-container px-4 py-6 sm:py-8">
           <div className="grid gap-6 sm:grid-cols-3 sm:gap-8">
             <div>
               <p className="font-bold text-primary-700">{siteName}</p>

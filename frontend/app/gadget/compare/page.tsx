@@ -210,7 +210,8 @@ function GadgetComparePage() {
 
   return (
     <PublicLayout>
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+    <div>
+    <div className="layout-container px-4 py-6 sm:py-10">
 
       {/* ── Header / breadcrumb ──────────────────────────────────── */}
       {/*
@@ -341,6 +342,7 @@ function GadgetComparePage() {
           )}
         </>
       )}
+    </div>
     </div>
     </PublicLayout>
   );

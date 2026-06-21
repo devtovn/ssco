@@ -20,11 +20,54 @@ export default function AdminConfigPage() {
   const [config, setConfig] = useState<WebsiteConfig>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingLayout, setSavingLayout] = useState(false);
   const [savingGadget, setSavingGadget] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const gadgetAutoPublish = config.metadata?.gadget_auto_publish === true;
+
+  const layoutMode: string = config.metadata?.layout_mode ?? 'boxed';
+  const layoutMaxWidth: string = String(config.metadata?.layout_max_width ?? '');
+
+  function setLayoutMode(mode: string) {
+    setConfig({
+      ...config,
+      metadata: { ...(config.metadata ?? {}), layout_mode: mode },
+    });
+  }
+
+  function setLayoutMaxWidth(val: string) {
+    const num = parseInt(val, 10);
+    setConfig({
+      ...config,
+      metadata: { ...(config.metadata ?? {}), layout_max_width: isNaN(num) ? '' : num },
+    });
+  }
+
+  async function handleSaveLayout() {
+    setSavingLayout(true);
+    setError('');
+    try {
+      const meta = { ...(config.metadata ?? {}), layout_mode: layoutMode };
+      if (layoutMode === 'custom') {
+        const w = parseInt(layoutMaxWidth, 10);
+        meta.layout_max_width = isNaN(w) || w < 600 ? 1200 : w;
+      } else {
+        delete meta.layout_max_width;
+      }
+      const result = await apiFetchWithAuth<{ config: WebsiteConfig }>('/admin/config', {
+        method: 'PUT',
+        body: JSON.stringify({ metadata: meta }),
+      });
+      setConfig(result.config ?? { ...config, metadata: meta });
+      setMessage('Đã lưu cấu hình layout');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Lưu thất bại');
+    } finally {
+      setSavingLayout(false);
+    }
+  }
 
   useEffect(() => {
     apiFetchWithAuth<WebsiteConfig>('/admin/config')
@@ -166,6 +209,72 @@ export default function AdminConfigPage() {
           {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
         </button>
       </form>
+
+      {/* ── Layout settings ── */}
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="font-semibold text-slate-800">Bố cục trang (Layout)</h2>
+        <p className="text-xs text-slate-500">
+          Chọn kiểu hiển thị chiều rộng nội dung trang công khai.
+        </p>
+
+        <div className="space-y-3">
+          {[
+            { value: 'boxed', label: 'Boxed', desc: 'Nội dung giới hạn 1152px, nền trắng (mặc định)' },
+            { value: 'full-width', label: 'Full-width', desc: 'Kiểu Tiki — nội dung 1280px, nền xám, header/footer full viewport' },
+            { value: 'custom', label: 'Tuỳ chọn', desc: 'Nhập giá trị max-width tùy ý (px)' },
+          ].map((opt) => (
+            <label
+              key={opt.value}
+              className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition ${
+                layoutMode === opt.value
+                  ? 'border-primary-400 bg-primary-50'
+                  : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+              }`}
+            >
+              <input
+                type="radio"
+                name="layoutMode"
+                value={opt.value}
+                checked={layoutMode === opt.value}
+                onChange={() => setLayoutMode(opt.value)}
+                className="mt-0.5 accent-primary-600"
+              />
+              <div>
+                <p className="text-sm font-medium text-slate-800">{opt.label}</p>
+                <p className="text-xs text-slate-500">{opt.desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        {layoutMode === 'custom' && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Max-width (px)
+            </label>
+            <input
+              type="number"
+              min={600}
+              max={3000}
+              step={10}
+              placeholder="1200"
+              value={layoutMaxWidth}
+              onChange={(e) => setLayoutMaxWidth(e.target.value)}
+              className="w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-slate-400">Từ 600px đến 3000px</p>
+          </div>
+        )}
+
+        <button
+          type="button"
+          disabled={savingLayout}
+          onClick={handleSaveLayout}
+          className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+        >
+          {savingLayout ? 'Đang lưu...' : 'Lưu layout'}
+        </button>
+      </div>
 
       {/* ── Gadget settings ── */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

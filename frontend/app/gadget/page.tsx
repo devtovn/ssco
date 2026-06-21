@@ -21,7 +21,8 @@ export default async function GadgetPage() {
 
   return (
     <PublicLayout>
-      <section className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+      <section>
+        <div className="layout-container px-4 py-6 sm:py-10">
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">So sánh Thiết bị</h1>
@@ -65,6 +66,7 @@ export default async function GadgetPage() {
         {brands.length === 0 && (
           <p className="mt-12 text-center text-slate-500">Chưa có dữ liệu thiết bị.</p>
         )}
+        </div>
       </section>
     </PublicLayout>
   );

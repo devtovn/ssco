@@ -7,6 +7,7 @@ import { DealsSection } from '@/components/home/DealsSection';
 import { VoucherTabs } from '@/components/home/VoucherTabs';
 import { SuggestedToday } from '@/components/home/SuggestedToday';
 import { GadgetSearchBar } from '@/components/gadget/GadgetSearchBar';
+import { LayoutContainer } from '@/components/layout/LayoutContainer';
 import { getBestDeals, getCategoryTree } from '@/lib/api/catalog';
 import { getPopularKeywords } from '@/lib/api/search';
 import { getGadgetBrands } from '@/lib/api/gadget';
@@ -29,7 +30,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     return (
       <PublicLayout>
         <section className="bg-gradient-to-b from-primary-50 to-white">
-          <div className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:pb-16 sm:pt-12">
+          <LayoutContainer className="pb-10 pt-8 sm:pb-16 sm:pt-12">
 
             <div className="text-center">
               <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
@@ -83,7 +84,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             {brands.length === 0 && (
               <p className="mt-12 text-center text-slate-500">Chưa có dữ liệu thiết bị.</p>
             )}
-          </div>
+          </LayoutContainer>
         </section>
       </PublicLayout>
     );
@@ -99,7 +100,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <PublicLayout>
       <section className="bg-gradient-to-b from-primary-50 to-white">
-        <div className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:pb-16 sm:pt-12">
+        <LayoutContainer className="pb-10 pt-8 sm:pb-16 sm:pt-12">
 
           <div className="text-center">
             <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
@@ -120,7 +121,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <VoucherTabs featured className="mt-16" />
           <DealsSection deals={deals} />
           <SuggestedToday deals={deals} />
-        </div>
+        </LayoutContainer>
       </section>
     </PublicLayout>
   );
